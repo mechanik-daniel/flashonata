@@ -730,17 +730,6 @@ describe("Tests that are specific to a Javascript runtime", () => {
     describe("empty regex", function() {
         it("should throw error", function() {
             expect(function() {
-                var expr = jsonata("//");
-                expr.evaluate();
-            })
-                .to.throw()
-                .to.deep.contain({ position: 1, code: "S0301" });
-        });
-    });
-
-    describe("empty regex", function() {
-        it("should throw error", function() {
-            expect(function() {
                 var expr = jsonata("/");
                 expr.evaluate();
             })

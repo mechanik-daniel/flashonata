@@ -1,0 +1,5 @@
+// header comment
+{
+    '//': 'a',
+    'http://example.org/dsfsd/434': 'b'
+    }.(`//` & `http://example.org/dsfsd/434`)
