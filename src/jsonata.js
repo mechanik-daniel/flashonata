@@ -85,6 +85,9 @@ var jsonata = (function() {
             case 'condition':
                 result = await evaluateCondition(expr, input, environment);
                 break;
+            case 'coalesce':
+                result = await evaluateCoalesce(expr, input, environment);
+                break;
             case 'block':
                 result = await evaluateBlock(expr, input, environment);
                 break;
@@ -1070,6 +1073,24 @@ var jsonata = (function() {
         if (fn.boolean(condition)) {
             result = await evaluate(expr.then, input, environment);
         } else if (typeof expr.else !== 'undefined') {
+            result = await evaluate(expr.else, input, environment);
+        }
+        return result;
+    }
+
+    /**
+     * Evaluate coalesce against input data
+     * @param {Object} expr - JSONata expression
+     * @param {Object} input - Input data to evaluate against
+     * @param {Object} environment - Environment
+     * @returns {*} Evaluated input data
+     */
+    async function evaluateCoalesce(expr, input, environment) {
+        var result;
+        var condition = await evaluate(expr.condition, input, environment);
+        if (fn.boolean(condition)) {
+            result = condition;
+        } else {
             result = await evaluate(expr.else, input, environment);
         }
         return result;

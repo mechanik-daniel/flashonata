@@ -45,7 +45,8 @@ const parser = (() => {
         'in': 40,
         '&': 50,
         '!': 0,   // not an operator, but needed as a stop character for name tokens
-        '~': 0   // not an operator, but needed as a stop character for name tokens
+        '~': 0,   // not an operator, but needed as a stop character for name tokens
+        '??': 65
     };
 
     var escapes = {  // JSON string escape sequences - see json.org
@@ -207,6 +208,11 @@ const parser = (() => {
                 // ~>  chain function
                 position += 2;
                 return create('operator', '~>');
+            }
+            if (currentChar === '?' && path.charAt(position + 1) === '?') {
+                // FUME: ??
+                position += 2;
+                return create('operator', '??');
             }
             // test for single char operators
             if (Object.prototype.hasOwnProperty.call(operators, currentChar)) {
@@ -859,6 +865,14 @@ const parser = (() => {
             return this;
         });
 
+        // FUME: coalesce operator ??
+        infix("??", operators['??'], function (left) {
+            this.type = 'coalesce';
+            this.condition = left;
+            this.else = expression(0);
+            return this;
+        });
+
         // object transformer
         prefix("|", function () {
             this.type = 'transform';
@@ -1274,6 +1288,15 @@ const parser = (() => {
                         result.else = processAST(expr.else);
                         pushAncestry(result, result.else);
                     }
+                    break;
+                case 'coalesce':
+                    result = {type: expr.type, position: expr.position};
+                    result.condition = processAST(expr.condition);
+                    pushAncestry(result, result.condition);
+                    // result.then = processAST(expr.then);
+                    // pushAncestry(result, result.then);
+                    result.else = processAST(expr.else);
+                    pushAncestry(result, result.else);
                     break;
                 case 'transform':
                     result = {type: expr.type, position: expr.position};
