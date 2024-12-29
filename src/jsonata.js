@@ -2093,6 +2093,27 @@ var jsonata = (function() {
         // Otherwise retain the original `err.message`
     }
 
+    function shiftASTPositions(ast, shiftBy) {
+        if (typeof ast !== 'object' || ast === null) {
+            return ast; // Return non-object values as is
+        }
+    
+        // Create a copy of the AST to avoid mutating the original
+        const newAST = Array.isArray(ast) ? [] : {};
+    
+        for (const key in ast) {
+            if (key === 'position' && typeof ast[key] === 'number') {
+                // Shift position value
+                newAST[key] = ast[key] + shiftBy;
+            } else {
+                // Recursively process nested objects/arrays
+                newAST[key] = shiftASTPositions(ast[key], shiftBy);
+            }
+        }
+    
+        return newAST;
+    }
+
     /**
      * JSONata
      * @param {Object} expr - JSONata expression
@@ -2106,13 +2127,27 @@ var jsonata = (function() {
         var errors;
         try {
             ast = parser(expr, options && options.recover);
-            errors = ast.errors;
-            delete ast.errors;
-        } catch(err) {
-            // insert error message into structure
-            populateMessage(err); // possible side-effects on `err`
-            throw err;
+        } catch (e1) {
+            // FUME: Try again, this time wrapped inside a block
+            try {
+                ast = parser(`(${expr})`, options && options.recover);
+                ast = shiftASTPositions(ast, -1);
+            } catch (e2) {
+                if (e2.code === e1.code) {
+                    // insert original error message into structure
+                    populateMessage(e1); // possible side-effects on `err`
+                    throw e1;
+                } else {
+                    // insert second error message into structure
+                    const err = { ...e2, position: e2.position -1 }
+                    populateMessage(err); // possible side-effects on `err`
+                    throw err;
+                }
+            }
         }
+        errors = ast.errors;
+        delete ast.errors;
+
         var environment = createFrame(staticFrame);
 
         var timestamp = new Date(); // will be overridden on each call to evalute()
