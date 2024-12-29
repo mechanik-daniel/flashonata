@@ -1,0 +1,8 @@
+{
+    "expr": "[$base64encode() ~> $base64decode]",
+    "data": "אאוטברן בע\"מ",
+    "bindings": {},
+    "result": [
+        "אאוטברן בע\"מ"
+      ]
+}

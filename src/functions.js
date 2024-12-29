@@ -210,6 +210,34 @@ const functions = (() => {
     }
 
     /**
+     * Check if a string begins with a string
+     * @param {String} str - string to check
+     * @param {String} startStr - beginning
+     * @returns {Boolean} - true if str begins with startStr
+     */
+    function startsWith(str, startStr) {
+        // undefined inputs always return undefined
+        if (typeof str === 'undefined') {
+            return undefined;
+        }
+        return str.startsWith(startStr);
+    }
+
+    /**
+     * Check if a string ends with a string
+     * @param {String} str - string to check
+     * @param {String} endStr - ending
+     * @returns {Boolean} - true if str ends with startStr
+     */
+    function endsWith(str, endStr) {
+        // undefined inputs always return undefined
+        if (typeof str === 'undefined') {
+            return undefined;
+        }
+        return str.endsWith(endStr);
+    }
+
+    /**
      * Lowercase a string
      * @param {String} str - String to evaluate
      * @returns {string} Lowercase string
@@ -551,17 +579,8 @@ const functions = (() => {
         if (typeof str === 'undefined') {
             return undefined;
         }
-        // Use btoa in a browser, or Buffer in Node.js
 
-        var btoa = typeof window !== 'undefined' ?
-            /* istanbul ignore next */ window.btoa :
-            function (str) {
-                // Simply doing `new Buffer` at this point causes Browserify to pull
-                // in the entire Buffer browser library, which is large and unnecessary.
-                // Using `global.Buffer` defeats this.
-                return new global.Buffer.from(str, 'binary').toString('base64'); // eslint-disable-line new-cap
-            };
-        return btoa(str);
+        return Buffer.from(str).toString('base64');
     }
 
     /**
@@ -574,16 +593,8 @@ const functions = (() => {
         if (typeof str === 'undefined') {
             return undefined;
         }
-        // Use btoa in a browser, or Buffer in Node.js
-        var atob = typeof window !== 'undefined' ?
-            /* istanbul ignore next */ window.atob :
-            function (str) {
-                // Simply doing `new Buffer` at this point causes Browserify to pull
-                // in the entire Buffer browser library, which is large and unnecessary.
-                // Using `global.Buffer` defeats this.
-                return new global.Buffer.from(str, 'base64').toString('binary'); // eslint-disable-line new-cap
-            };
-        return atob(str);
+
+        return Buffer.from(str, 'base64').toString('utf-8');
     }
 
     /**
@@ -2058,7 +2069,7 @@ const functions = (() => {
     return {
         sum, count, max, min, average,
         string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
-        match, contains, replace, split, join,
+        match, contains, replace, split, join, startsWith, endsWith,
         formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
         boolean, not,
         map, zip, filter, single, foldLeft, sift,
