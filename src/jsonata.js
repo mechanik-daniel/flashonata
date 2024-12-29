@@ -2128,21 +2128,21 @@ var jsonata = (function() {
         try {
             ast = parser(expr, options && options.recover);
         } catch (e1) {
-            // FUME: Try again, this time wrapped inside a block
-            try {
-                ast = parser(`(${expr})`, options && options.recover);
-                ast = shiftASTPositions(ast, -1);
-            } catch (e2) {
-                if (e2.code === e1.code) {
-                    // insert original error message into structure
-                    populateMessage(e1); // possible side-effects on `err`
-                    throw e1;
-                } else {
+            if (e1.code === 'S0201' && e1.token === ';') {
+                // FUME: Try again, this time wrapped inside a block
+                try {
+                    ast = parser(`(${expr})`, options && options.recover);
+                    ast = shiftASTPositions(ast, -1);
+                } catch (e2) {
                     // insert second error message into structure
                     const err = { ...e2, position: e2.position -1 }
                     populateMessage(err); // possible side-effects on `err`
                     throw err;
                 }
+            } else {
+                // throw original error
+                populateMessage(e1); // possible side-effects on `err`
+                throw e1;
             }
         }
         errors = ast.errors;
