@@ -1,3 +1,4 @@
+/* eslint-disable no-prototype-builtins */
 /**
  * © Copyright IBM Corp. 2016 All Rights Reserved
  *   Project name: JSONata
