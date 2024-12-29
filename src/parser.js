@@ -158,11 +158,11 @@ const parser = (() => {
                 currentChar = path.charAt(position);
                 return next(prefix); // need this to swallow any following whitespace
             }
-            // FUME: skip single line comments
-            if (currentChar === '/' && path.charAt(position + 1) === '/') {
+            // FUME: skip single line comments - except when prefixed with : (for URLs)
+            if (currentChar === '/' && path.charAt(position + 1) === '/' && (position === 0 || path.charAt(position - 1) !== ':')) {
                 position += 2;
                 currentChar = path.charAt(position);
-                while (!(currentChar === '\r' || currentChar === '\n')) {
+                while (!(currentChar === '\r' || currentChar === '\n' || position === length)) {
                     currentChar = path.charAt(++position);
                 }
                 currentChar = path.charAt(position);
