@@ -1,0 +1,6 @@
+{
+    "expr": "$endsWith(\"Hello World\", \"orld\")",
+    "dataset": "dataset5",
+    "bindings": {},
+    "result": true
+}

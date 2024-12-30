@@ -1,6 +1,7 @@
 {
     "expr": "{\"items\": items#$i.{\"foo\": \"bar\",\"label\": $$.items[$i].label & \" \" & $$.items[text!=\"\" and text!=\"test\"][$i].text}}",
     "dataset": "items",
+    "timelimit": 3000,
     "bindings": {},
     "result": {
       "items": [

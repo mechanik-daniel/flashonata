@@ -1,0 +1,6 @@
+{
+    "expr": "$startsWith('')",
+    "data": "a string",
+    "bindings": {},
+    "result": true
+}

@@ -1,0 +1,6 @@
+{
+    "expr": "$startsWith(\"Hell\")",
+    "data": "Hello World",
+    "bindings": {},
+    "result": true
+}

@@ -1,0 +1,6 @@
+{
+    "expr": "$endsWith(\"orld\")",
+    "data": "Hello World",
+    "bindings": {},
+    "result": true
+}

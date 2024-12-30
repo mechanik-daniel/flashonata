@@ -1,0 +1,6 @@
+{
+    "expr": "$endsWith('')",
+    "data": "a string",
+    "bindings": {},
+    "result": true
+}

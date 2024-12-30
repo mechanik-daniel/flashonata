@@ -1,0 +1,6 @@
+{
+    "expr": "$startsWith('Hello World')",
+    "data": "Hello World",
+    "bindings": {},
+    "result": true
+}

@@ -1,0 +1,8 @@
+{
+    "expr": "$endsWith(blah, 'Hell')",
+    "data": {
+        "no-blah": "'blah' is undefined"
+    },
+    "bindings": {},
+    "undefinedResult": true
+}

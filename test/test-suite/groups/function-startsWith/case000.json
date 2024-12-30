@@ -1,0 +1,6 @@
+{
+    "expr": "$startsWith(\"Hello World\", \"Hell\")",
+    "dataset": "dataset5",
+    "bindings": {},
+    "result": true
+}
