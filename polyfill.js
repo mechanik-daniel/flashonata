@@ -1,3 +1,8 @@
+/* eslint-disable no-empty */
+/* eslint-disable eqeqeq */
+/* eslint-disable strict */
+/* eslint-disable no-unused-vars */
+/* eslint-disable new-cap */
 /**
  * © Copyright IBM Corp. 2018 All Rights Reserved
  *   Project name: JSONata
