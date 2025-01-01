@@ -2066,10 +2066,35 @@ const functions = (() => {
         return result;
     }
 
+    /**
+     * Test a string a gainst the FHIR decimal datatype RegEx
+     * @param {String} str - the string to test
+     * @returns {Boolean} - boolean
+     */
+    function isStrFhirDecimal (str) {
+        // RegEx taken form the FHIR spec for the decimal datatype: https://www.hl7.org/fhir/r4/datatypes.html
+        return /^-?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)?$/.test(str);
+    }
+
+    /**
+     * Check if a value can be converted to a FHIR decimal
+     * @param {Number | String} val - the value to check
+     * @returns {Boolean} - boolean
+     */
+    function isFhirDecimal (val) {
+        // undefined inputs always return undefined
+        if (typeof val === 'undefined') return undefined;
+        if (typeof val === 'number') return isNumeric(val);
+
+        if (typeof val === 'string') return isStrFhirDecimal(val);
+
+        return false;
+    }
+
     return {
         sum, count, max, min, average,
         string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
-        match, contains, replace, split, join, startsWith, endsWith,
+        match, contains, replace, split, join, startsWith, endsWith, isNumeric: isFhirDecimal,
         formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
         boolean, not,
         map, zip, filter, single, foldLeft, sift,

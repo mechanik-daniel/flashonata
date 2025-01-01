@@ -1956,6 +1956,7 @@ var jsonata = (function() {
     staticFrame.bind('clone', defineFunction(functionClone, '<(oa)-:o>'));
     staticFrame.bind('startsWith', defineFunction(fn.startsWith, '<s-s:b>'));
     staticFrame.bind('endsWith', defineFunction(fn.endsWith, '<s-s:b>'));
+    staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<(sn)-:b>'));
 
     /**
      * Error codes

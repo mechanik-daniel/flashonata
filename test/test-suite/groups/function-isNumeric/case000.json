@@ -1,0 +1,6 @@
+{
+    "expr": "$isNumeric($)",
+    "data": "Hello World",
+    "bindings": {},
+    "result": false
+}
