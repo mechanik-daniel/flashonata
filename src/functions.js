@@ -2091,6 +2091,32 @@ const functions = (() => {
         return false;
     }
 
+    /**
+     * Waits for the provided period of time
+     * @param {number} ms - wait for `ms` milliseconds
+     * @returns {undefined}
+     */
+    function wait (ms) {
+        if (typeof ms !== 'number') {
+            throw {
+                stack: (new Error()).stack,
+                code: "T0410",
+                value: ms
+            };
+        }
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Like $millis(), returns the current dateTime in milliseconds,
+     * but unlike $millis(), will return a new value in each invokation instead of the registered timestamp
+     * @returns {number} milliseconds since midnight, January 1, 1970 UTC
+     */
+    function thisInstant () {
+        const now = new Date();
+        return now.getTime();
+    }
+
     return {
         sum, count, max, min, average,
         string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
@@ -2099,7 +2125,8 @@ const functions = (() => {
         boolean, not,
         map, zip, filter, single, foldLeft, sift,
         keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
-        base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl
+        base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
+        wait, thisInstant
     };
 })();
 

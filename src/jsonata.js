@@ -1957,6 +1957,8 @@ var jsonata = (function() {
     staticFrame.bind('startsWith', defineFunction(fn.startsWith, '<s-s:b>'));
     staticFrame.bind('endsWith', defineFunction(fn.endsWith, '<s-s:b>'));
     staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<(sn)-:b>'));
+    staticFrame.bind('wait', defineFunction(fn.wait), '<n->');
+    staticFrame.bind('thisInstant', defineFunction(fn.thisInstant), '<:n>')
 
     /**
      * Error codes
