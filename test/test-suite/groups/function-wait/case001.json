@@ -1,0 +1,6 @@
+{
+    "expr": "ms.($wait($))",
+    "data": { "ms": [500,500] },
+    "bindings": {},
+    "undefinedResult": true
+}

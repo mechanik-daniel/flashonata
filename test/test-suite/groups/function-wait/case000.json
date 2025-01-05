@@ -1,0 +1,6 @@
+{
+    "expr": "($a:=$thisInstant();$wait(ms);$b:=$thisInstant();$round(($b-$a)/100))",
+    "data": { "ms": 500 },
+    "bindings": {},
+    "result": 5
+}

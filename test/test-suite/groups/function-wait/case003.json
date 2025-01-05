@@ -1,0 +1,6 @@
+{
+    "expr": "$wait($)",
+    "data": "a string",
+    "bindings": {},
+    "code": "T0410"
+}

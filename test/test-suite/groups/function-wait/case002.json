@@ -1,0 +1,6 @@
+{
+    "expr": "($a:=$thisInstant();ms.($wait($));$b:=$thisInstant();$round(($b-$a)/1000))",
+    "data": { "ms": [500,500,100,100,100,200,500] },
+    "bindings": {},
+    "result": 2
+}

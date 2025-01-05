@@ -1,0 +1,6 @@
+{
+    "expr": "$type($thisInstant() - $millis())",
+    "data": null,
+    "bindings": {},
+    "result": "number"
+}
