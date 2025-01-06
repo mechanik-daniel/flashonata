@@ -1,0 +1,8 @@
+{
+    "expr": "$isNumeric($)",
+    "data": {
+        "no-blah": "'blah' is undefined"
+    },
+    "bindings": {},
+    "code": "T0410"
+}

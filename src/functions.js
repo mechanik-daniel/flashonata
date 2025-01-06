@@ -2088,6 +2088,7 @@ const functions = (() => {
 
         if (typeof val === 'string') return isStrFhirDecimal(val);
 
+        /* istanbul ignore next */
         return false;
     }
 
