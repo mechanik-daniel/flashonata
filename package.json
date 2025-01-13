@@ -1,5 +1,5 @@
 {
-  "name": "jsonata-fume",
+  "name": "flashonata",
   "version": "1.0.0",
   "description": "JSONata with adaptations for FUME",
   "module": "jsonata.js",

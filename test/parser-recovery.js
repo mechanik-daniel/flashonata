@@ -16,20 +16,20 @@ describe('Invoke parser with valid expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7
+                        "line":1,"position": 7
                     },
                     {
                         "value": "Order",
                         "type": "name",
-                        "position": 13,
+                        "line":1,"position": 13,
                         "stages": [
                             {
                                 "expr": {
                                     "value": 0,
                                     "type": "number",
-                                    "position": 15
+                                    "line":1,"position": 15
                                 },
-                                "position": 14,
+                                "line":1,"position": 14,
                                 "type": "filter"
                             }
                         ]
@@ -55,13 +55,13 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7
+                        "line":1,"position": 7
                     },
                     {
                         "type": "error",
                         "error": {
                             "code": "S0207",
-                            "position": 8,
+                            "line":1,"position": 8,
                             "token": "(end)"
                         }
                     }
@@ -71,7 +71,7 @@ describe('Invoke parser with incomplete expression', function() {
             var expected_errors = [
                 {
                     "code": "S0207",
-                    "position": 8,
+                    "line":1,"position": 8,
                     "token": "(end)"
                 }
             ];
@@ -90,18 +90,18 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7,
+                        "line":1,"position": 7,
                         "stages": [
                             {
                                 "expr": {
                                     "type": "error",
                                     "error": {
                                         "code": "S0207",
-                                        "position": 8,
+                                        "line":1,"position": 8,
                                         "token": "(end)"
                                     }
                                 },
-                                "position": 8,
+                                "line":1,"position": 8,
                                 "type": "filter"
                             }
                         ]
@@ -112,14 +112,14 @@ describe('Invoke parser with incomplete expression', function() {
             var expected_errors =   [
                 {
                     "code": "S0203",
-                    "position": 8,
+                    "line":1,"position": 8,
                     "token": "(end)",
                     "value": "]",
                     "remaining": []
                 },
                 {
                     "code": "S0207",
-                    "position": 8,
+                    "line":1,"position": 8,
                     "token": "(end)"
                 }
             ];
@@ -138,27 +138,27 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7
+                        "line":1,"position": 7
                     },
                     {
                         "value": "Order",
                         "type": "name",
-                        "position": 13,
+                        "line":1,"position": 13,
                         "stages": [
                             {
                                 "expr": {
                                     "code": "S0211",
                                     "token": ";",
-                                    "position": 15,
+                                    "line":1,"position": 15,
                                     "remaining": [
-                                        {"value": 0, "type": "number", "position": 16},
-                                        {"type": "operator", "value": "]", "position": 17},
-                                        {"type": "operator", "value": ".", "position": 18},
-                                        {"type": "name", "value": "Product", "position": 25}
+                                        {"value": 0, "type": "number", "line":1,"position": 16},
+                                        {"type": "operator", "value": "]", "line":1,"position": 17},
+                                        {"type": "operator", "value": ".", "line":1,"position": 18},
+                                        {"type": "name", "value": "Product", "line":1,"position": 25}
                                     ],
                                     "type": "error"
                                 },
-                                "position": 14,
+                                "line":1,"position": 14,
                                 "type": "filter"
                             }
                         ]
@@ -170,25 +170,25 @@ describe('Invoke parser with incomplete expression', function() {
                 {
                     "code": "S0211",
                     "token": ";",
-                    "position": 15,
+                    "line":1,"position": 15,
                     "remaining": [
-                        {"value": 0, "type": "number", "position": 16},
-                        {"type": "operator", "value": "]", "position": 17},
-                        {"type": "operator", "value": ".", "position": 18},
-                        {"type": "name", "value": "Product", "position": 25}
+                        {"value": 0, "type": "number", "line":1,"position": 16},
+                        {"type": "operator", "value": "]", "line":1,"position": 17},
+                        {"type": "operator", "value": ".", "line":1,"position": 18},
+                        {"type": "name", "value": "Product", "line":1,"position": 25}
                     ],
                     "type": "error"
                 },
                 {
                     "code": "S0202",
-                    "position": 16,
+                    "line":1,"position": 16,
                     "token": "0",
                     "value": "]",
                     "remaining": [
                         {
                             "value": 0,
                             "type": "number",
-                            "position": 16
+                            "line":1,"position": 16
                         }
                     ]
                 }
@@ -208,20 +208,20 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7
+                        "line":1,"position": 7
                     },
                     {
                         "value": "Order",
                         "type": "name",
-                        "position": 13,
+                        "line":1,"position": 13,
                         "stages": [
                             {
                                 "expr": {
                                     "value": 0,
                                     "type": "number",
-                                    "position": 15
+                                    "line":1,"position": 15
                                 },
-                                "position": 14,
+                                "line":1,"position": 14,
                                 "type": "filter"
                             }
                         ]
@@ -232,14 +232,14 @@ describe('Invoke parser with incomplete expression', function() {
             var expected_errors =   [
                 {
                     "code": "S0202",
-                    "position": 16,
+                    "line":1,"position": 16,
                     "token": ";",
                     "value": "]",
                     "remaining": [
-                        {"value": ";", "type": "operator", "position": 16},
-                        {"type": "operator", "value": "]", "position": 17},
-                        {"type": "operator", "value": ".", "position": 18},
-                        {"type": "name", "value": "Product", "position": 25}
+                        {"value": ";", "type": "operator", "line":1,"position": 16},
+                        {"type": "operator", "value": "]", "line":1,"position": 17},
+                        {"type": "operator", "value": ".", "line":1,"position": 18},
+                        {"type": "name", "value": "Product", "line":1,"position": 25}
                     ]
                 }
             ];
@@ -258,20 +258,20 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Account",
                         "type": "name",
-                        "position": 7
+                        "line":1,"position": 7
                     },
                     {
                         "value": "Order",
                         "type": "name",
-                        "position": 13,
+                        "line":1,"position": 13,
                         "stages": [
                             {
                                 "expr": {
                                     "value": 0,
                                     "type": "number",
-                                    "position": 15
+                                    "line":1,"position": 15
                                 },
-                                "position": 14,
+                                "line":1,"position": 14,
                                 "type": "filter"
                             }
                         ]
@@ -279,7 +279,7 @@ describe('Invoke parser with incomplete expression', function() {
                     {
                         "value": "Product",
                         "type": "name",
-                        "position": 24
+                        "line":1,"position": 24
                     }
                 ]
             };
@@ -287,10 +287,10 @@ describe('Invoke parser with incomplete expression', function() {
             var expected_errors = [
                 {
                     "code": "S0201",
-                    "position": 25,
+                    "line":1,"position": 25,
                     "remaining": [
                         {
-                            "position": 25,
+                            "line":1,"position": 25,
                             "type": "operator",
                             "value": ";"
                         }
@@ -308,129 +308,129 @@ describe('Invoke parser with incomplete expression', function() {
             var expr = jsonata('$inputSource[0].UnstructuredAnswers^()[0].Text', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
-                    "type": "path",
-                    "steps": [
-                        {
-                            "value": "inputSource",
-                            "type": "variable",
-                            "position": 12,
-                            "predicate": [
-                                {
-                                    "type": "filter",
-                                    "expr": {
-                                        "value": 0,
-                                        "type": "number",
-                                        "position": 14
-                                    },
-                                    "position": 13
+                "type": "path",
+                "steps": [
+                    {
+                        "value": "inputSource",
+                        "type": "variable",
+                        "line":1,"position": 12,
+                        "predicate": [
+                            {
+                                "type": "filter",
+                                "expr": {
+                                    "value": 0,
+                                    "type": "number",
+                                    "line":1,"position": 14
+                                },
+                                "line":1,"position": 13
+                            }
+                        ]
+                    },
+                    {
+                        "value": "UnstructuredAnswers",
+                        "type": "name",
+                        "line":1,"position": 35
+                    },
+                    {
+                        "type": "sort",
+                        "terms": [
+                            {
+                                "descending": false,
+                                "expression": {
+                                    "code": "S0211",
+                                    "token": ")",
+                                    "line":1,"position": 38,
+                                    "remaining": [
+                                        {
+                                            "type": "operator",
+                                            "value": "[",
+                                            "line":1,"position": 39
+                                        },
+                                        {
+                                            "type": "number",
+                                            "value": 0,
+                                            "line":1,"position": 40
+                                        },
+                                        {
+                                            "type": "operator",
+                                            "value": "]",
+                                            "line":1,"position": 41
+                                        },
+                                        {
+                                            "type": "operator",
+                                            "value": ".",
+                                            "line":1,"position": 42
+                                        },
+                                        {
+                                            "type": "name",
+                                            "value": "Text",
+                                            "line":1,"position": 46
+                                        }
+                                    ],
+                                    "type": "error",
+                                    "predicate": [
+                                        {
+                                            "type": "filter",
+                                            "expr": {
+                                                "type": "error",
+                                                "error": {
+                                                    "code": "S0207",
+                                                    "line":1,"position": 46,
+                                                    "token": "(end)"
+                                                }
+                                            },
+                                            "line":1,"position": 39
+                                        }
+                                    ]
                                 }
-                            ]
-                        },
-                        {
-                            "value": "UnstructuredAnswers",
-                            "type": "name",
-                            "position": 35
-                        },
-                        {
-                            "type": "sort",
-                            "terms": [
-                                {
-                                    "descending": false,
-                                    "expression": {
-                                        "code": "S0211",
-                                        "token": ")",
-                                        "position": 38,
-                                        "remaining": [
-                                            {
-                                                "type": "operator",
-                                                "value": "[",
-                                                "position": 39
-                                            },
-                                            {
-                                                "type": "number",
-                                                "value": 0,
-                                                "position": 40
-                                            },
-                                            {
-                                                "type": "operator",
-                                                "value": "]",
-                                                "position": 41
-                                            },
-                                            {
-                                                "type": "operator",
-                                                "value": ".",
-                                                "position": 42
-                                            },
-                                            {
-                                                "type": "name",
-                                                "value": "Text",
-                                                "position": 46
-                                            }
-                                        ],
-                                        "type": "error",
-                                        "predicate": [
-                                            {
-                                                "type": "filter",
-                                                "expr": {
-                                                    "type": "error",
-                                                    "error": {
-                                                        "code": "S0207",
-                                                        "position": 46,
-                                                        "token": "(end)"
-                                                    }
-                                                },
-                                                "position": 39
-                                            }
-                                        ]
-                                    }
-                                }
-                            ],
-                            "position": 36
-                        }
-                    ]
-                };
+                            }
+                        ],
+                        "line":1,"position": 36
+                    }
+                ]
+            };
             var errors = expr.errors();
             var expected_errors = [
                 {
                     "code": "S0211",
-                    "position": 38,
+                    "line":1,"position": 38,
                     "predicate": [
                         {
                             "expr": {
                                 "error": {
                                     "code": "S0207",
-                                    "position": 46,
+                                    "line":1,"position": 46,
                                     "token": "(end)"
                                 },
                                 "type": "error"
                             },
-                            "position": 39,
+                            "line":1,"position": 39,
                             "type": "filter"
                         }
                     ],
                     "remaining": [
                         {
-                            "position": 39,
+                            "line":1,"position": 39,
                             "type": "operator",
                             "value": "["
                         },
                         {
-                            "position": 40,
+                            "line":1,"position": 40,
                             "type": "number",
                             "value": 0
                         },
                         {
-                            "position": 41,
+                            "line":1,"position": 41,
                             "type": "operator",
                             "value": "]"
                         },
                         {
-                            "position": 42,
+                            "line":1,"position": 42,
                             "type": "operator",
                             "value": "."
                         },
                         {
-                            "position": 46,
+                            "line":1,"position": 46,
                             "type": "name",
                             "value": "Text"
                         }
@@ -440,21 +440,21 @@ describe('Invoke parser with incomplete expression', function() {
                 },
                 {
                     "code": "S0203",
-                    "position": 46,
+                    "line":1,"position": 46,
                     "remaining": [],
                     "token": "(end)",
                     "value": "]"
                 },
                 {
                     "code": "S0203",
-                    "position": 46,
+                    "line":1,"position": 46,
                     "remaining": [],
                     "token": "(end)",
                     "value": ")"
                 },
                 {
                     "code": "S0207",
-                    "position": 46,
+                    "line":1,"position": 46,
                     "token": "(end)"
                 }
             ];

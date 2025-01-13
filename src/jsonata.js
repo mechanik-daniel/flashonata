@@ -5,8 +5,8 @@
  */
 
 /**
- * @module JSONata
- * @description JSON query and transformation language
+ * @module FLASHonata
+ * @description FUME adapted JSONata module for parsing FLASH - a DSL (Domain-specific language) for FHIR
  */
 
 var datetime = require('./datetime');
@@ -511,6 +511,7 @@ var jsonata = (function() {
      * @returns {*} Evaluated input data
      */
     async function evaluateUnary(expr, input, environment) {
+        console.log('jsonata.evaluateUnary called', { expr, input, environment })
         var result;
 
         switch (expr.value) {
@@ -559,6 +560,31 @@ var jsonata = (function() {
             case '{':
                 // object constructor - apply grouping
                 result = await evaluateGroupExpression(expr, input, environment);
+                break;
+            case 'Instance:':
+                // FLASH Instance: decleration
+                var idValue = await evaluate(expr.expression, input, environment);
+                if(typeof idValue === 'undefined') {
+                    result = {}
+                } else if (typeof idValue === 'string') {
+                    result = {
+                        id: idValue
+                    }
+                } else {
+                    throw {
+                        code: "F1001",
+                        stack: (new Error()).stack,
+                        position: expr.position,
+                        token: expr.value,
+                        value: idValue
+                    };
+                }
+                break;
+            case 'InstanceOf:':
+                // FLASH InstanceOf: decleration
+                result = {
+                    __fhirProfile: expr.expression
+                }
                 break;
 
         }
@@ -1374,7 +1400,7 @@ var jsonata = (function() {
         return defineFunction(transformer, '<(oa):o>');
     }
 
-    var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
+    // var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
 
     /**
      * Apply the function on the RHS using the sequence on the LHS as the first argument
@@ -1406,6 +1432,7 @@ var jsonata = (function() {
             if(isFunction(lhs)) {
                 // this is function chaining (func1 ~> func2)
                 // λ($f, $g) { λ($x){ $g($f($x)) } }
+                var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
                 var chain = await evaluate(chainAST, null, environment);
                 result = await apply(chain, [lhs, func], null, environment);
             } else {
@@ -1973,6 +2000,7 @@ var jsonata = (function() {
      *  10xx    - evaluator
      *  20xx    - operators
      *  3xxx    - functions (blocks of 10 for each function)
+     * Fxxxx    - FUME errors
      */
     var errorCodes = {
         "S0101": "String literal must be terminated by a matching quote",
@@ -2071,7 +2099,22 @@ var jsonata = (function() {
         "D3138": "The $single() function expected exactly 1 matching result.  Instead it matched more.",
         "D3139": "The $single() function expected exactly 1 matching result.  Instead it matched 0.",
         "D3140": "Malformed URL passed to ${{{functionName}}}(): {{value}}",
-        "D3141": "{{{message}}}"
+        "D3141": "{{{message}}}",
+        "F1001": "Resource.id (value after 'Instance:' decleration) must be a string. Got: {{value}}",
+        "F1002": "The symbol {{token}} cannot be used as a binary operator",
+        "F1003": "Invalid FHIR type after `InstanceOf:`",
+        "F1004": "Duplicate `Instance:` declaration",
+        "F1005": "Duplicate `InstanceOf:` declaration",
+        "F1006": "Malformed FLASH rule",
+        "F1007": "Missing `InstanceOf:` declaration",
+        "F1008": "An `InstanceOf:` declaration must be the first in an expression block unless it is preceded by `Instance:`",
+        "F1009": "An `Instance:` declaration must be immediately followed by `InstanceOf:`",
+        "F1010": "`Instance:` declaration must come BEFORE `InstanceOf:`",
+        "F1011": "A FLASH block can only contain FLASH rules (lines starting with `*`) or variable assignments ($v := value)",
+        "F1012": "Malformed FLASH rule: missing expression assignment after `=`",
+        "F1013": "An `InstanceOf:` declaration following `Instance:` must start on a new line",
+        "F1014": "`InstanceOf:` must have the same indentation as `Instance:`"
+
     };
 
     /**
