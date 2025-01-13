@@ -5,8 +5,8 @@
  */
 
 /**
- * @module FLASHonata
- * @description FUME adapted JSONata module for parsing FLASH - a DSL (Domain-specific language) for FHIR
+ * @module JSONata
+ * @description JSON query and transformation language
  */
 
 var datetime = require('./datetime');
@@ -1400,7 +1400,7 @@ var jsonata = (function() {
         return defineFunction(transformer, '<(oa):o>');
     }
 
-    // var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
+    var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
 
     /**
      * Apply the function on the RHS using the sequence on the LHS as the first argument
@@ -1432,7 +1432,6 @@ var jsonata = (function() {
             if(isFunction(lhs)) {
                 // this is function chaining (func1 ~> func2)
                 // λ($f, $g) { λ($x){ $g($f($x)) } }
-                var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
                 var chain = await evaluate(chainAST, null, environment);
                 result = await apply(chain, [lhs, func], null, environment);
             } else {

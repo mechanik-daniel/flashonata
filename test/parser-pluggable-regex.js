@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-escape */
+/* eslint-disable require-jsdoc */
 "use strict";
 
 var jsonata = require('../src/jsonata');

@@ -1,0 +1,6 @@
+{
+    "expr": "24 \n* 0.5",
+    "dataset": "dataset0",
+    "bindings": {},
+    "result": 12
+}
