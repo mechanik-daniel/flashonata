@@ -250,11 +250,10 @@ const parser = (() => {
                 path.substring(position, position + 11) === 'InstanceOf:'
             ) {
                 lookForFlash = true;
-                var shift = firstInLine() ? 0 : 2;
                 // If we got here, it means we need to create a block indent token
                 // But it may have already been created, so we need to check previous token
                 if (typeof previousToken === 'undefined' || previousToken.type !== 'blockindent' || previousToken.position < lineStart) {
-                    return create('blockindent', indentNumber() + shift);
+                    return create('blockindent', indentNumber());
                 }
             }
             // skip comments (regular jsonata comments /* */)
