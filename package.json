@@ -6,6 +6,7 @@
   "main": "jsonata.js",
   "typings": "jsonata.d.ts",
   "scripts": {
+    "fume-test": "node src/fume.test.js",
     "pretest": "npm run lint",
     "mocha": "nyc ./node_modules/mocha/bin/_mocha -- \"test/**/*.js\" --timeout 5000",
     "test": "npm run mocha",
