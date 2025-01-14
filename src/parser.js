@@ -70,10 +70,10 @@ const parser = (() => {
 
     /**
      * Tokenizer (lexer, or scanner) - invoked by the parser to return one token at a time.
-     * The tokens are simple and context-independent at this stage.
+     * The tokens are simple and generally context-independent at this stage.
      * Very little validation is done here, most of the work will be done later by the parser.
      * Possible token types: name, value, operator, variable, number, string, regex
-     * Special FUME token types: instanceof, url, indent
+     * Special FUME token types: instanceof, url, indent, blockindent
      * - The `indent` token will only be created if it is followed by a flash declaration or rule. Its value is the indentation number
      * - The `instanceof` token will have the profile identifier as its value
      * @param {string} path The source string
@@ -228,9 +228,14 @@ const parser = (() => {
             // - Instance:
             // - InstanceOf:
             // - * (flash rules)
-            // - $ (assingment rules)
+            // - $ (assignment rules)
             // The last two are created only if we previously encountered one of the first two declarations,
             // since they are only significant inside flash blocks.
+            // NOTE: This approach ignores block closing since we don't track these kind of stuff in the scanner.
+            //      This means that even if we are after a flash block that has been closed,
+            //      or inside a regular epression block, we still get these indent
+            //      tokens on every line starting with * or $.
+            //      TODO: Find a proper way to handle this
             if (
                 position < length &&
                 lookForFlash &&
@@ -860,9 +865,10 @@ const parser = (() => {
         /**
          * The heart of Pratt's technique is the expression function.
          * It takes a right binding power that controls how aggressively it binds to tokens on its right.
-         * expression() calls the nud method of the token. The nud is used to process literals, variables, and prefix operators.
+         * expression() takes the current token's nud (aka head handler), and uses it to process the next token.
          * Then as long as the right binding power is less than the left binding power of the next token,
-         * the led method is invoked on the following token. The led is used to process infix and suffix operators.
+         * the led method (aka tail handler) of the current token is invoked on the following token.
+         * The led is used to process infix and suffix operators.
          * This process can be recursive because the nud and led methods can call expression().
          * @param {number} rbp Right binding power
          * @returns expression object
@@ -870,18 +876,59 @@ const parser = (() => {
         var expression = function (rbp) {
             // console.log(`expression(${rbp})`, { node });
             var left;
-            var token = node;
-            advance(null, true);
-            left = token.nud();
-            while (rbp < node.lbp) {
-                token = node;
-                advance();
-                left = token.led(left);
+            var token = node; // save current node as token
+            advance(null, true); // advance node to the next token
+            left = token.nud(); // save result of calling the previous head handler on current node
+            while (rbp < node.lbp) { // if and while current node's lbp is higher than the provided rbp
+                token = node; // save current node as token
+                advance();// advance node to next token
+                left = token.led(left); // accumulate results of recursive calls to the tail handler
             }
             // console.log(`expression(${rbp})`, { left });
             return left;
+            // if we simulate parsing the expression `1 + 2 * 3` using expression(0) (rbp-0):
+            // - current node is literal 1 (terminal)
+            // - save token = literal 1
+            // - advancing node to the next token
+            // - node is now `+`, it's left binding power is 50.
+            // - calling the literal 1 token's nud.
+            // - it returns itself since it's a terminal (literal 1)
+            // - left is now literal 1
+            // - loop starts since rbp(0) < node(+).lbp(50)
+            // - save token: + operator
+            // - advance node
+            // - node is now literal 2
+            // - call the `+' operator's led on left (literal 1)
+            // - it returns a '+' node with:
+            //  - lhs: left (literal 1)
+            //  - rhs: the result of calling expression(50)
+            //      - we start at literal 2
+            //      - advancing, node now at *. binding power is 60.
+            //      - calling literal 2 token's nud and it returns itself
+            //      - left is now literal 2
+            //      - loop starts since rbp(50) < node(*).lbp(60)
+            //      - token is now * operator
+            //      - advancing node, it is now at literal 3
+            //      - call the `*` operator's led on left (literal 2)
+            //      - returns a '*' node with lhs = literal 2 (left)
+            //      - rhs: the result of calling expression(60)
+            //          - starting at node = literal 3
+            //          - advancing, we get node = (end)
+            //          - calling literal 3 nud - returns itself
+            //          - left is now literal 3 (left of end)
+            //          - loop is skipped since literal's lbp is 0 and rbp(60) is greater than that
+            //          - returning literal 3
+            // So we get a root '+' node with lhs = literal 1, and rhs which is a * node, that has
+            // lhs = literal 2 and rhs = literal 3
         };
 
+        /**
+         * A terminal does not care about what's on the right or the left, it is a subexpression on itself and
+         * doesn't bind anywhere (bp=0). It may be preceded or followed by operators that do something with it,
+         * but that's their job and not the terminal's. Hence, it only has a nud (head handler), and it just returns
+         * itself
+         * @param {string} id symbol id
+         */
         var terminal = function (id) {
             var s = symbol(id, 0);
             s.nud = function () {
