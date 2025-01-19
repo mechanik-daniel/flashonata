@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\n* (contextExpr).path = something\n  * subpath = something\n* path2 = something\n * wrongindent",
+    "data": null,
+    "bindings": {},
+    "code": "F1021"
+}

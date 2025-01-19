@@ -200,6 +200,8 @@ const utils = (() => {
         return arr;
     }
 
+    var chainAST = {"type":"lambda","arguments":[{"value":"f","type":"variable","position":11,"line":1},{"value":"g","type":"variable","position":15,"line":1}],"position":9,"line":1,"body":{"type":"lambda","arguments":[{"value":"x","type":"variable","position":30,"line":1}],"position":28,"line":1,"body":{"type":"lambda","thunk":true,"arguments":[],"position":36,"line":1,"body":{"type":"function","value":"(","position":36,"line":1,"arguments":[{"type":"function","value":"(","position":39,"line":1,"arguments":[{"value":"x","type":"variable","position":41,"line":1}],"procedure":{"value":"f","type":"variable","position":38,"line":1}}],"procedure":{"value":"g","type":"variable","position":35,"line":1}}}}};
+
     return {
         isNumeric,
         isArrayOfStrings,
@@ -212,7 +214,8 @@ const utils = (() => {
         getFunctionArity,
         isDeepEqual,
         stringToArray,
-        isPromise
+        isPromise,
+        chainAST
     };
 })();
 

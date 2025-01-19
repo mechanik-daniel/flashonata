@@ -86,7 +86,7 @@ const parser = (() => {
         var line = 1; // The current line number in the source, starting from 1
         var lineIndent = ''; // accumulating indentation characters of the current line
         var previousToken; // Keep track of previous token
-        var lookForFlash = false; // Switched on once we encounter Instance: or InstanceOf:
+        // var lookForFlash = false; // Switched on once we encounter Instance: or InstanceOf:
 
         /**
          * Creates a token object with type, value, and position.
@@ -96,7 +96,6 @@ const parser = (() => {
          */
         var create = function (type, value) {
             var obj = {type, value, position, line};
-            console.log('creating token', obj);
             previousToken = obj;
             return obj;
         };
@@ -127,14 +126,14 @@ const parser = (() => {
                 if (isClosingSlash(position)) {
                     // end of regex found
                     pattern = path.substring(start, position);
-                    if (pattern === '') {
-                        throw {
-                            code: "S0301",
-                            stack: (new Error()).stack,
-                            position,
-                            line
-                        };
-                    }
+                    // if (pattern === '') {
+                    //     throw {
+                    //         code: "S0301",
+                    //         stack: (new Error()).stack,
+                    //         position,
+                    //         line
+                    //     };
+                    // }
                     position++;
                     currentChar = path.charAt(position);
                     // flags
@@ -189,7 +188,13 @@ const parser = (() => {
         /**
          * Advances to the next simple token and returns it.
          * This is entirely sequential - no nesting and operator precedence logic is done here
-         * @param {boolean} prefix - A flag for regex scanning
+         * @param {boolean} prefix - This essentially tells the scanner that the next token is going to be
+         *      used as a prefix - the beginning of a subexpression.
+         *      This is explicitly set to true only in the first call to advance() from expression().
+         *      The only use for this flag currently is to tell the scanner how to treat the '/' operator.
+         *      When / is used as prefix, everything up to the next '/' should not be tokenized but rather
+         *      "swallowed" as the value of a regex token.
+         *      When '/' is used an infix, it is just the regular division operator.
          * @returns {object|null} The next token object or null if end of input.
          */
         var next = function (prefix) {
@@ -238,7 +243,7 @@ const parser = (() => {
             //      TODO: Find a proper way to handle this
             if (
                 position < length &&
-                lookForFlash &&
+                // lookForFlash &&
                 '*$'.indexOf(currentChar) > -1 && // flash rule or assignment
                 firstInLine()
             ) {
@@ -251,10 +256,11 @@ const parser = (() => {
                 }
             }
             if (
+                (position + 9) <= length &&
                 path.substring(position, position + 9) === 'Instance:' ||
                 path.substring(position, position + 11) === 'InstanceOf:'
             ) {
-                lookForFlash = true;
+                // lookForFlash = true;
                 // If we got here, it means we need to create a block indent token
                 // But it may have already been created, so we need to check previous token
                 if (typeof previousToken === 'undefined' || previousToken.type !== 'blockindent' || previousToken.position < lineStart) {
@@ -302,7 +308,7 @@ const parser = (() => {
 
             // FUME: capture URL's (including URN's)
             if (
-                lookForFlash && ( // only relevant if a flash block was encountered previously
+                /*lookForFlash &&*/ ( // only relevant if a flash block was encountered previously
                     path.substring(position, position + 7) === 'http://' ||
                     path.substring(position, position + 8) === 'https://' ||
                     path.substring(position, position + 4) === 'urn:'
@@ -330,16 +336,19 @@ const parser = (() => {
             }
 
             // handle flash block declarations ("Instance:", "InstanceOf:" and "* " rules)
+            var token;
             if (path.substring(position, position + 9) === 'Instance:') {
                 // console.log(' handle flash block declarations', 'Instance:');
                 position += 9;
-                return create('operator', 'Instance:');
+                token = create('operator', 'Instance:');
+                token.indent = indentNumber();
+                return token;
             }
             if (path.substring(position, position + 11) === 'InstanceOf:') {
                 // console.log(' handle flash block declarations', 'InstanceOf:');
                 position += 11;
                 var profileId = '';
-                while (' \t\r\n'.indexOf(path.charAt(position)) > -1) {
+                while (position < length && ' \t\r\n'.indexOf(path.charAt(position)) > -1) {
                     // skip any whitespace after the keyword
                     position ++;
                 }
@@ -348,12 +357,14 @@ const parser = (() => {
                     profileId += path.charAt(position);
                     position ++;
                 }
-                return create('instanceof', profileId);
+                token = create('instanceof', profileId);
+                token.indent = indentNumber();
+                return token;
             }
-            if (lookForFlash && currentChar === '*' && firstInLine()) {
-                position ++;
-                return create('operator', 'flashrule');
-            }
+            // if (lookForFlash && currentChar === '*' && firstInLine()) {
+            //     position ++;
+            //     return create('operator', 'flashrule');
+            // }
             // test for regex
             if (prefix !== true && currentChar === '/') {
                 position++;
@@ -399,6 +410,13 @@ const parser = (() => {
                 // FUME: ?? coalesce operator
                 position += 2;
                 return create('operator', '??');
+            }
+            // potential flash rules
+            if (currentChar === '*' && firstInLine()) {
+                position++;
+                token = create('operator', currentChar);
+                token.indent = indentNumber();
+                return token;
             }
             // test for single char operators
             if (Object.prototype.hasOwnProperty.call(operators, currentChar)) {
@@ -505,7 +523,9 @@ const parser = (() => {
                         // variable reference
                         name = path.substring(position + 1, i);
                         position = i;
-                        return create('variable', name);
+                        token = create('variable', name);
+                        if (firstInLine()) token.indent = indentNumber();
+                        return token;
                     } else {
                         name = path.substring(position, i);
                         position = i;
@@ -542,16 +562,6 @@ const parser = (() => {
      * @param {string} source The source as raw string
      * @returns {Array} Array of all simple tokens identified by the scanner
      */
-    // var scan = function (source) {
-    //     var tokens = [];
-    //     var lexer = tokenizer(source);
-    //     var nxt = lexer();
-    //     while (nxt !== null) {
-    //         tokens.push(nxt);
-    //         nxt = lexer();
-    //     }
-    //     return tokens;
-    // };
 
     // This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
     // and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
@@ -570,44 +580,6 @@ const parser = (() => {
          */
         var symbol_table = {};
         var errors = [];
-
-        // try {
-        //     tokens = scan(source);
-        //     console.log('Scanned source tokens', tokens);
-        // } catch (e) {
-        //     console.log('error scanning tokens');
-        // }
-
-        // var nodeToFhirTypeId = function(token) {
-        //     // names are valid parts of a fhir type
-        //     if (token && token.type === 'name') {
-        //         return token.value;
-        //     }
-        //     // numbers are valid parts of a fhir type if treated as strings
-        //     if (token && token.type === 'number') {
-        //         return String(token.value);
-        //     }
-
-        //     // Check if token is not a binary '-' or '.' operator
-        //     if (!token || token.type !== 'binary' || (token.value !== '-' && token.value !== '.')) {
-        //         return undefined;
-        //     }
-
-        //     // Check if 'lhs' returns a value from nodeToFhirTypeId
-        //     const lhsTypeId = nodeToFhirTypeId(token.lhs);
-        //     if (!lhsTypeId) {
-        //         return undefined;
-        //     }
-
-        //     // Check if 'rhs' returns a value from nodeToFhirTypeId
-        //     const rhsTypeId = nodeToFhirTypeId(token.rhs);
-        //     if (!rhsTypeId) {
-        //         return undefined;
-        //     }
-
-        //     // Return the concatenated string of lhsTypeId + '-' + rhsTypeId
-        //     return `${lhsTypeId}${token.value}${rhsTypeId}`;
-        // };
 
         var remainingTokens = function () {
             var remaining = [];
@@ -640,26 +612,6 @@ const parser = (() => {
                     token: this.value,
                     position: this.position,
                     line: this.line
-                };
-
-                if (recover) {
-                    err.remaining = remainingTokens();
-                    err.type = 'error';
-                    errors.push(err);
-                    return err;
-                } else {
-                    err.stack = (new Error()).stack;
-                    throw err;
-                }
-            },
-            led: function (left) {
-                // error - symbol has been invoked as a binary operator
-                var err = {
-                    code: 'F1002',
-                    token: this.value,
-                    position: this.position,
-                    line: this.line,
-                    left
                 };
 
                 if (recover) {
@@ -724,15 +676,15 @@ const parser = (() => {
          * @param {boolean} infix
          * @returns token (node)
          */
-        var advance = function (id, infix) {
+        var advance = function (id, infix, lookForFlash) {
             // In Crockford's implementation, we assume that the source text has been transformed into an array of simple token
             // objects (tokens), each containing a type (string) and a value (string or number).
             // In this implementation, the token array is built as we go, and the next token is returned by the lexer (next() function)
             // the node variable is currently set to the previous token
-            console.log('advance()', { id, infix, node: { ...node, indent: node && node.indent ? node.indent:  undefined} });
+            // console.log('advance()', { id, infix, node: { ...node, indent: node && node.indent ? node.indent:  undefined} });
+            lookForFlash = lookForFlash || false;
             if (id && // id argument provided
-                node.id !== id && // AND it's not the same as the previous node.id
-                node.id !== '(indent)'
+                node.id !== id // AND it's not the same as the previous node.id
             ) {
                 var code;
                 if (node.id === '(end)') {
@@ -748,21 +700,30 @@ const parser = (() => {
                     code: code,
                     position: node.position,
                     line: node.line,
-                    token: node.id === '(indent)' ? node.id : node.value,
+                    token: node.value,
                     value: id
                 };
                 return handleError(err);
             }
             /** Track line number */
             var line;
+            var indent;
+            if (node && node.indent >= 0) {
+                indent = node.indent;
+            }
             /** Need this to initialize at 1 */
             if (node && Object.prototype.hasOwnProperty.call(node, 'line')) {
                 line = node.line; // Set to previous node's line
             } else {
                 line = 1; // Initialize
             }
+            // Track indent number
+            if (node && node.id === '(indent)') {
+                indent = node.value; // Set to previous node's line
+            }
+            // lookForFlash = (lookForFlash && lookForFlash === true) || (node && (node.type === 'instanceof' || node.id === '(indent)' || node.value === 'flashrule'));
             /** Fetch next simple token from the scanner */
-            var next_token = lexer(infix);
+            var next_token = lexer(infix, lookForFlash);
             // console.log('advance()', { next_token });
             if (next_token === null) {
                 // When the scanner has no more tokens to consume from the source it returns null
@@ -772,11 +733,14 @@ const parser = (() => {
                 node.line = line;
                 return node;
             }
+            if (next_token.type === 'indent' && lookForFlash === false) {
+                next_token = lexer(infix, false);
+            }
             /** Start preparing the processed token to return and override the `node` var with */
             var value = next_token.value;
             var type = next_token.type;
             var symbol;
-            console.log('advance() switch case', { type });
+            // console.log('advance() switch case', { type });
             switch (type) {
                 case 'name':
                 case 'variable':
@@ -793,6 +757,9 @@ const parser = (() => {
                             token: value
                         });
                     }
+                    if (value === '*' || value === '$') {
+                        symbol.indent = indent;
+                    }
                     break;
                 case 'string':
                 case 'number':
@@ -808,7 +775,6 @@ const parser = (() => {
                     // Regular indents are not skipped, they will be used as seperators inside flash blocks.
                     symbol = symbol_table[`(indent)`];
                     break;
-                /* istanbul ignore next */
                 case 'blockindent':
                     // we can skip indents if they are before declarations (blockindent).
                     // We just need to pass the indent value to the next token
@@ -816,9 +782,10 @@ const parser = (() => {
                     // Handle flash indentation tokens.
                     // var indentSymbol = symbol_table["(indent)"];
                     var indentValue = next_token.value; // this is the indent number
-                    console.log('advance() found blockindent token', { token: next_token });
+                    // console.log('advance() found blockindent token', { token: next_token });
                     // go to next token
-                    next_token = lexer(infix);
+                    next_token = lexer(infix, true);
+                    /* istanbul ignore else  */
                     if (next_token.type === 'operator' && next_token.value === 'Instance:') {
                         // It's a FLASH Instance: delaration
                         type = 'instance';
@@ -831,9 +798,10 @@ const parser = (() => {
                         symbol.indent = indentValue;
                     }
                     value = next_token.value;
-                    console.log('type after blockindent is: ', type);
-                    console.log('symbol is: ', symbol);
+                    // console.log('type after blockindent is: ', type);
+                    // console.log('symbol is: ', symbol);
                     break;
+                /* istanbul ignore next */
                 default:
                     return handleError({
                         code: "S0205",
@@ -845,8 +813,8 @@ const parser = (() => {
             }
             /** This is where we override the node variable with a new processed token */
             node = Object.create(symbol);
-            console.log('advance(): processing symbol', { ...symbol, id: symbol.id, indent: symbol.indent});
-            console.log('advance(): new node created');
+            // console.log('advance(): processing symbol', { ...symbol, id: symbol.id, indent: symbol.indent});
+            // console.log('advance(): new node created');
             node.value = value;
             node.type = type;
             node.position = next_token.position;
@@ -857,7 +825,7 @@ const parser = (() => {
                 // the prototype object are hidden (like the id, lbp, nud and led)
                 node.indent = symbol.indent;
             }
-            console.log('advance() returning', { ...node, id: node.id, lbp: node.lbp, nud: node.nud, led: node.led, indent: node.indent});
+            // console.log('advance() returning', { ...node, id: node.id, lbp: node.lbp, nud: node.nud, led: node.led, indent: node.indent});
             return node;
         };
 
@@ -873,16 +841,16 @@ const parser = (() => {
          * @param {number} rbp Right binding power
          * @returns expression object
          */
-        var expression = function (rbp) {
+        var expression = function (rbp, lookForFlash) {
             // console.log(`expression(${rbp})`, { node });
             var left;
             var token = node; // save current node as token
-            advance(null, true); // advance node to the next token
-            left = token.nud(); // save result of calling the previous head handler on current node
+            advance(null, true, lookForFlash); // advance node to the next token
+            left = token.nud(lookForFlash); // save result of calling the previous head handler on current node
             while (rbp < node.lbp) { // if and while current node's lbp is higher than the provided rbp
                 token = node; // save current node as token
-                advance();// advance node to next token
-                left = token.led(left); // accumulate results of recursive calls to the tail handler
+                advance(null, null, lookForFlash);// advance node to next token
+                left = token.led(left, lookForFlash); // accumulate results of recursive calls to the tail handler
             }
             // console.log(`expression(${rbp})`, { left });
             return left;
@@ -951,9 +919,9 @@ const parser = (() => {
         var infix = function (id, bp, led) {
             var bindingPower = bp || operators[id];
             var s = symbol(id, bindingPower);
-            s.led = led || function (left) {
+            s.led = led || function (left, lookForFlash) {
                 this.lhs = left;
-                this.rhs = expression(bindingPower);
+                this.rhs = expression(bindingPower, lookForFlash);
                 this.type = "binary";
                 return this;
             };
@@ -963,21 +931,19 @@ const parser = (() => {
         /**
          * Create a right associative infix operator: <expression> <operator> <expression>
          * It takes an operator (symbol) id, a binding power and a led function.
-         * If bp is not supplied, it will default to 0.
+         * If bp is not supplied, it will default to the bp defined in `operators`, otherwise 0.
+         * When a right associative operator scans the rhs expression, it uses an expression binding power of bp-1.
+         * This means that when encountering the same operator again, the first pair will not combine into the
+         * lhs of the next operator - but the two later operands will be combined into the rhs of the first.
+         * The only infixr tokens defined at the moment are ':=' and '(error)'
          * @param {string} id - the token identifier (symbol id)
          * @param {number} bp - the binding power to override with
          * @param {Function} led - The left-denotation function to override the default one with
          * @returns {Object} - a symbol object
          */
         var infixr = function (id, bp, led) {
-            var bindingPower = bp || operators[id];
-            var s = symbol(id, bindingPower);
-            s.led = led || function (left) {
-                this.lhs = left;
-                this.rhs = expression(bindingPower - 1); // subtract 1 from bindingPower for right associative operators
-                this.type = "binary";
-                return this;
-            };
+            var s = symbol(id, bp);
+            s.led = led;
             return s;
         };
 
@@ -997,9 +963,7 @@ const parser = (() => {
         terminal("(name)");
         terminal("(literal)");
         terminal("(regex)");
-        symbol("(indent)");
-        // terminal("(flashrule)");
-        // terminal("(indent)");
+        terminal("(indent)");
         symbol(":");
         symbol(";");
         symbol(",");
@@ -1038,11 +1002,29 @@ const parser = (() => {
             return this;
         });
 
-        // since a flash block can be initialized both by Instance: and InstanceOf: keywords,
+        // Since indent tokens are only separators for flash rules, they should not be called as prefixes
+        // If an indent token IS called as prefix, this means it comes immediaty after '*' and got scanned as a path.
+        // prefix("(indent)", function () {
+        //     return handleError({
+        //         code: "F1024",
+        //         stack: (new Error()).stack,
+        //         position: this.position,
+        //         line: this.line,
+        //         token: '*',
+        //         value: `${String(this.value)} spaces`
+        //     });
+        // });
+
+        // since a flash block expression can be initialized both by Instance: and InstanceOf: keywords,
         // both prefix handlers should collect rules using the same function.
-        var collectRules = function () {
-            console.log('collectRules()', node);
+        // In both cases, this function is only called after the InstanceOf: keyword, so it should not encounter an
+        // 'Instance:' token after it. If it does, that's an error.
+        // The only valid expression types are flashrule and ':=' (bind)
+        var collectRules = function (level, root) {
+            root = root || 0;
+            console.log('collectRules()', {level, root}, node);
             if (node.type === 'instance') {
+                // Instance:` declaration must come BEFORE `InstanceOf:`
                 return handleError({
                     code: "F1010",
                     stack: (new Error()).stack,
@@ -1052,40 +1034,214 @@ const parser = (() => {
                 });
             }
             var rules = [];
+            if (node.id === '(indent)' && node.value > level) {
+                return handleError({
+                    code: "F1017",
+                    stack: (new Error()).stack,
+                    position: node.position,
+                    line: node.line,
+                    token: `${String(level)} spaces`,
+                    value: `${String(node.value)} spaces`
+                });
+            }
+            if (node.id === '(indent)' && node.value < root) {
+                return handleError({
+                    code: "F1016",
+                    stack: (new Error()).stack,
+                    position: node.position,
+                    line: node.line,
+                    token: `${String(root)} spaces`,
+                    value: `${String(node.value)} spaces`
+                });
+            }
             while (node.id !== ")" && node.id !== "(end)") {
                 var indent;
+                // var subrules = [];
                 if (node.id === "(indent)") {
-                    indent = node.value;
-                    advance();
+                    if (node.value === level) {
+                        indent = node.value;
+                        advance("(indent)", null, true);
+                    // } else if (node.value > level) {
+                    //     if ((node.value - level) !== 2) {
+                    //         return handleError({
+                    //             code: "F1015",
+                    //             stack: (new Error()).stack,
+                    //             position: node.position,
+                    //             line: node.line,
+                    //             token: `${String(level)} spaces or ${String(level + 2)}`,
+                    //             value: `${String(node.value)} spaces`
+                    //         });
+                    //     } else {
+                    //         subrules = collectRules(level + 2, root);
+                    //         advance(null, null, true);
+                    //     }
+                    } else {
+                        if ((level - node.value) % 2 !== 0) {
+                            return handleError({
+                                code: "F1021",
+                                stack: (new Error()).stack,
+                                position: node.position,
+                                line: node.line,
+                                token: '(indent)',
+                                value: `${String(node.value)} spaces`
+                            });
+                        }
+                        // if (node.value < root) {
+                        //     return handleError({
+                        //         code: "F1016",
+                        //         stack: (new Error()).stack,
+                        //         position: node.position,
+                        //         line: node.line,
+                        //         token: '(indent)',
+                        //         value: `${String(node.value)} spaces`
+                        //     });
+                        // }
+                        // advance();
+                        break;
+                    }
                 }
-                var rule = expression(0);
-                if (rule.id !== 'flashrule' && rule.id !== ':=') {
-                    return handleError({
-                        code: "F1011",
-                        stack: (new Error()).stack,
-                        position: node.position,
-                        line: node.line,
-                        token: node.id
-                    });
+                var rule = expression(0, true);
+                if (rule.type !== 'flashrule' && rule.id !== ':=') {
+                    if (rule.id === '=') {
+                        return handleError({
+                            code: "F1025",
+                            stack: (new Error()).stack,
+                            position: rule.position,
+                            line: rule.line,
+                            token: rule.id
+                        });
+                    } else {
+                        return handleError({
+                            code: "F1011",
+                            stack: (new Error()).stack,
+                            position: rule.position,
+                            line: rule.line,
+                            token: rule.id
+                        });
+                    }
                 }
-                rule.indent = indent;
+                rule.indent = rule.indent || indent;
+                // if (subrules.length > 0) rule.rules = subrules;
                 rules.push(rule);
-                if (node.id !== "(indent)") {
+                // if (node.id === "(indent)" && node.value < root) {
+                //     return handleError({
+                //         code: "F1016",
+                //         stack: (new Error()).stack,
+                //         position: node.position,
+                //         line: node.line,
+                //         token: `${String(root)} spaces`,
+                //         value: `${String(node.value)} spaces`
+                //     });
+                // }
+                if (node.id !== "(indent)" || node.value < level) {
                     break;
                 }
-                advance("(indent)");
+                advance("(indent)", null, true);
             }
             return rules;
         };
 
+
+        // field wildcard (single level) OR flash rule
+        prefix('*', function (isFlash) {
+            if (isFlash) {
+                console.log('flashrule called as prefix', this);
+                var indent = this.indent;
+                this.type = 'flashrule';
+                if (node.id === '(') {
+                    var context = expression(75, true);
+                    advance(".", true, true);
+                    this.context = context.expressions;
+                    // console.log('flashrule registerred context. next node is', node);
+                }
+                this.path = expression(40, true);
+                var position = node.position;
+                var line = node.line;
+                if (node.id === '=') {
+                    advance('=', null, true);
+                    if (node.id !== '(end)' && node.id !== '(indent)') {
+                        this.expression = expression(0, true);
+                    } else {
+                        return handleError({
+                            code: "F1012",
+                            stack: (new Error()).stack,
+                            position: position,
+                            line: line,
+                            token: "="
+                        });
+                    }
+                }
+                if (node.id === ':=') { // user tried to assign into a path and not variable
+                    return handleError({
+                        code: "F1020",
+                        stack: (new Error()).stack,
+                        position,
+                        line,
+                        token: ':='
+                    });
+                }
+                // console.log('path detected', this.path);
+                if (this.path && this.path.type === 'flashrule') { // double * *
+                    return handleError({
+                        code: "F1022",
+                        stack: (new Error()).stack,
+                        position,
+                        line,
+                        token: '*'
+                    });
+                }
+                if (this.path && (this.path.type === 'variable' || this.path.id === ':=')) { // $ after *
+                    return handleError({
+                        code: "F1023",
+                        stack: (new Error()).stack,
+                        position,
+                        line,
+                        token: '$'
+                    });
+                }
+                if (this.path && this.path.id === '(end)') { // empty rule
+                    return handleError({
+                        code: "F1024",
+                        stack: (new Error()).stack,
+                        position: this.position,
+                        line: this.line,
+                        token: '*'
+                    });
+                }
+                this.indent = indent;
+                var subrules;
+                subrules = collectRules(indent + 2);
+                if (subrules.length > 0) this.rules = subrules;
+                console.log('flashrule nud returning', this);
+                return this;
+            } else {
+                this.type = "wildcard";
+                return this;
+            }
+        });
+
+        // The Instance: keyword is a prefix for the instance id expression that comes after it.
+        // It also initiates a flash block scanning, where the next token MUST be (instanceof),
+        // optionally followed by rules. Rules are collected and returned as children of the flashblock token.
         prefix('Instance:', function () {
-            console.log('Instance: called as prefix (nud)', JSON.stringify(this));
-            this.instance = expression(0); // this is the expression after Instance:
+            var instanceExpr = expression(0, true); // this is the expression after Instance:
+            // if it's a flashblock it means there is no expression between Instance: and InstanceOf:
+            if (instanceExpr.id === '(instanceof)') {
+                return handleError({
+                    code: "F1018",
+                    stack: (new Error()).stack,
+                    position: instanceExpr.position,
+                    line: instanceExpr.line,
+                    token: instanceExpr.id,
+                    value: 'InstanceOf:'
+                });
+            }
+            this.instance = instanceExpr;
             this.type = "flashblock";
             delete this.value;
-            // console.log('Instance: called as prefix (nud)', { returning: this });
+            console.log('Instance: expression is', this.instance);
             // advance(); // go ahead one token
-            console.log('token after Instance:', node);
+            console.log('node after collecting Instance: expression(0)', { ...node, indent: node && node.indent ? node.indent:  undefined});
             if (node.id !== '(instanceof)') {
                 // Instance: without InstanceOf:
                 return handleError({
@@ -1106,160 +1262,54 @@ const parser = (() => {
                     token: node.id
                 });
             }
-            if (node.indent !== this.indent) {
+            if (node.indent !== this.indent) { // indentation of InstanceOf: must be same as Instance:
                 return handleError({
                     code: "F1014",
                     stack: (new Error()).stack,
                     position: node.position,
                     line: node.line,
-                    token: node.id
+                    token: `${String(this.indent)} spaces`,
+                    value: `${String(node.indent)} spaces`
                 });
             }
             this.instanceof = node.value;
-            advance();
-            var rules = collectRules();
+            if (!this.instanceof || this.instanceof === '') {
+                return handleError({
+                    code: "F1019",
+                    stack: (new Error()).stack,
+                    position: this.position,
+                    line: this.line,
+                    token: "InstanceOf:"
+                });
+            }
+            advance(null, null, true); // proceeed to the next token after InstanceOf:
+            var rules = collectRules(this.indent, this.indent);
             if (rules.length > 0) this.rules = rules;
-            // advance();
             return this;
         });
 
+        // The InstanceOf: keyword is a prefix for the rules in a block initiated by it, not for the actual profile/resource identifier
+        // The identifier is "swallowed" by the 'InstanceOf:' token and used as it's value. This happens in the lexer.
+        // For this reason, it is treated as a terminal and has an id of (instanceof) and not the original keyword
+        // "InstanceOf:". Terminal symbols represent a token whose possible values cannot be predicted since
+        // they are user-defined and not fixed into the language's grammer.
+        // This token is optionally followed by rules.
+        // Rules are collected and returned as children of the flashblock token.
         prefix('(instanceof)', function () {
-            console.log('InstanceOf: called as prefix (nud)', JSON.stringify(this));
             this.type = "flashblock";
+            if (!this.value || this.value === '') {
+                return handleError({
+                    code: "F1019",
+                    stack: (new Error()).stack,
+                    position: this.position,
+                    line: this.line,
+                    token: "InstanceOf:"
+                });
+            }
             this.instanceof = this.value;
-            var rules = collectRules();
+            var rules = collectRules(this.indent, this.indent);
             if (rules.length > 0) this.rules = rules;
             delete this.value;
-            // console.log('Instance: called as prefix (nud)', { returning: this });
-            // advance();
-            return this;
-        });
-
-        // prefix('(instanceof)', function () {
-        //     console.log('InstanceOf: called as prefix (nud)', JSON.stringify(this));
-        //     this.type = "instanceof";
-        //     // this.expression = expression(0);
-        //     var rules = [];
-        //     while (node.id !== ")" && node.id !== "(end)") {
-        //         rules.push(expression(0));
-        //         if (node.id !== "(indent)") {
-        //             break;
-        //         }
-        //         advance("(indent)");
-        //     }
-        //     // console.log('Instance: called as prefix (nud)', { returning: this });
-        //     if (rules.length > 0) this.rules = rules;
-        //     return this;
-        // });
-
-        // infix('(instanceof)', 50, function (left) {
-        //     console.log('InstanceOf: called as infix (led)', JSON.stringify(this), { left });
-        //     this.type = "instanceof";
-        //     // if (left.type !== 'instance') {
-        //     //     return handleError({
-        //     //         code: "F1008",
-        //     //         stack: (new Error()).stack,
-        //     //         position: left.position,
-        //     //         line: left.line,
-        //     //         token: left.value
-        //     //     });
-        //     // }
-        //     this.instance = left.expression;
-        //     this.instance.indent = left.indent;
-        //     // this.expression = expression(0);
-        //     var rules = [];
-        //     while (node.id !== ")" && node.id !== "(end)") {
-        //         rules.push(expression(0));
-        //         if (node.id !== "(indent)") {
-        //             break;
-        //         }
-        //         advance("(indent)");
-        //     }
-        //     if (rules.length > 0) this.rules = rules;
-        //     return this;
-        // });
-
-        // prefix('=', function () {
-        //     this.expression = expression(70);
-        //     this.type = 'flashexpression';
-        //     return this;
-        // });
-
-        // prefix('InstanceOf:', function () {
-        //     console.log('InstanceOf: called as prefix (nud)');
-        //     var profileId;
-        //     profileId = expression(0);
-        //     // The profileId must be either a name, a url, or a binary '-' consisting of names only
-        //     if (profileId.type !== 'name' && profileId.type !== 'url') {
-        //         const fhirType = nodeToFhirTypeId(profileId);
-        //         if (fhirType) {
-        //             profileId.type = 'identifier';
-        //             profileId.value = fhirType;
-        //             delete profileId.lhs;
-        //             delete profileId.rhs;
-        //         } else {
-        //             return handleError({
-        //                 code: "F1003", // invalid FHIR type
-        //                 stack: (new Error()).stack,
-        //                 position: profileId.position,
-        //                 line: profileId.line,
-        //                 token: profileId.value
-        //             });
-        //         }
-        //     }
-        //     this.profileId = profileId;
-        //     this.type = "instanceof";
-        //     delete this.value;
-        //     console.log('InstanceOf: called as prefix (nud)', { returning: this });
-        //     return this;
-        // });
-
-
-        //     var expressions = [];
-        //     while (node.id !== ")") {
-        //         expressions.push(expression(0));
-        //         if (node.id !== ";") {
-        //             break;
-        //         }
-        //         advance(";");
-        //     }
-        //     advance(")", true);
-        //     this.type = 'block';
-        //     this.expressions = expressions;
-        //     return this;
-
-        // prefix('InstanceOf:', function () {
-        //     console.log('InstanceOf: called as prefix (nud)');
-        //     var profileIdParts = [];
-        //     while (node.id !== '(indent)') {
-        //         advance(null, true);
-        //         profileIdParts.push(node);
-        //     }
-
-        //     this.profileId = profileIdParts;
-        //     this.type = "instanceof";
-        //     delete this.value;
-        //     console.log('InstanceOf: called as prefix (nud)', { returning: this });
-        //     return this;
-        // });
-
-        // prefix('* ', function () {
-        //     // console.log('prefix "* "', node);
-        //     var path = expression(0);
-        //     var right = advance();
-        //     // console.log('after path and advance()', {right});
-        //     this.flashpath = path;
-        //     if (right.type !== 'operator' || right.value !== '* ' || right.id !== '(end)') {
-        //         this.expression = right;
-        //     }
-        //     this.type = 'flashrule';
-        //     // console.log('returning flash rule', JSON.stringify(this,null,2));
-        //     return this;
-        // });
-
-        // field wildcard (single level)
-        prefix('*', function () {
-            this.type = "wildcard";
             return this;
         });
 
@@ -1359,60 +1409,6 @@ const parser = (() => {
             this.expressions = expressions;
             return this;
         });
-
-        // flash block expression
-        // prefix("(indent)", function () {
-        //     console.log('prefix (indent) nud', { node }, { this: this });
-        //     var instanceStatement;
-        //     var instanceOfStatement;
-        //     var rules = [];
-        //     // var blockStart = this;
-        //     while (node.id !== ')' && node.id !== '(endflash)') {
-        //         // for (; ;) {
-        //         var right = advance();
-        //         // console.log({ right });
-        //         if (right.type === 'instance') {
-        //             if (!instanceStatement) {
-        //                 instanceStatement = right;
-        //             } else {
-        //                 return handleError({
-        //                     code: "F1004",
-        //                     stack: (new Error()).stack,
-        //                     position: right.position,
-        //                     line: right.line,
-        //                     token: right.value,
-        //                     value: right.type
-        //                 });
-        //             }
-        //         } else if (right.type === 'instanceof') {
-        //             if (!instanceOfStatement) {
-        //                 instanceOfStatement = right;
-        //             } else {
-        //                 return handleError({
-        //                     code: "F1005",
-        //                     stack: (new Error()).stack,
-        //                     position: right.position,
-        //                     line: right.line,
-        //                     token: right.value,
-        //                     value: right.type
-        //                 });
-        //             }
-        //         } else {
-        //             // console.log('pushing rule', right);
-        //             rules.push(right);
-        //         }
-        //         // console.log('prefix (indent)', { node });
-        //         if (node.id !== '(indent)') break;
-        //         advance('(indent)');
-        //         // }
-        //     }
-        //     advance("(endflash)", true);
-        //     this.type = 'flash';
-        //     this.instanceStatement = instanceStatement;
-        //     this.instanceOfStatement = instanceOfStatement;
-        //     this.rules = rules;
-        //     return this;
-        // });
 
         // array constructor
         prefix("[", function () {
@@ -1612,35 +1608,6 @@ const parser = (() => {
             return this;
         });
 
-        // FUME: flash rule
-        prefix('flashrule', function () {
-            console.log('flashrule called as prefix', node);
-            this.type = 'flashrule';
-            if (node.id === '(') {
-                var context = expression(75);
-                advance(".", true);
-                this.context = context.expressions;
-                console.log('flashrule registerred context. next node is', node);
-            }
-            this.path = expression(40);
-            if (node.id === '=') {
-                var position = node.position;
-                var line = node.line;
-                advance('=');
-                if (node.id !== '(end)' && node.id !== '(indent)')
-                    this.expression = expression(0);
-                else
-                    return handleError({
-                        code: "F1012",
-                        stack: (new Error()).stack,
-                        position: position,
-                        line: line,
-                        token: "="
-                    });
-            }
-            return this;
-        });
-
         // tail call optimization
         // this is invoked by the post parser to analyse lambda functions to see
         // if they make a tail call.  If so, it is replaced by a thunk which will
@@ -1775,7 +1742,7 @@ const parser = (() => {
         // converting them to arrays of steps which in turn may contain arrays of predicates.
         // following this, nodes containing '.' and '[' should be eliminated from the AST.
         var processAST = function (expr) {
-            console.log('processAST switch case', { type: expr.type });
+            // console.log('processAST switch case', { type: expr.type });
             var result;
             switch (expr.type) {
                 case 'binary':
@@ -2102,41 +2069,16 @@ const parser = (() => {
                 case 'descendant':
                 case 'variable':
                 case 'regex':
-                case 'instanceof':
-                case 'indent':
-                case 'flashexpression':
                 case 'flashblock':
                     result = expr;
                     break;
-                case 'flash':
-                    // console.log('processAST flash', { expr });
-                    result = expr;
-                    // if (!expr.instanceOfStatement) {
-                    //     throw {
-                    //         code: "F1007",
-                    //         stack: (new Error()).stack,
-                    //         position: expr.position,
-                    //         line: expr.line,
-                    //         token: expr.value
-                    //     };
-                    // }
-                    // array of rules - process each one
-                    result.rules = expr.rules.map(function (rule) {
-                        var part = processAST(rule);
-                        return part;
-                    });
-                    if (result.instanceStatement) {
-                        result.instanceStatement = processAST(result.instanceStatement);
-                    }
-                    break;
-                case 'instance':
-                case 'flashrule':
-                    // console.log(`processAST ${expr.type}`);
-                    result = expr;
-                    if (expr.expression && expr.expression.id !== '(end)') {
-                        result.expression = processAST(expr.expression);
-                    }
-                    break;
+                // case 'flashrule':
+                //     // console.log(`processAST ${expr.type}`);
+                //     result = expr;
+                //     if (expr.expression && expr.expression.id !== '(end)') {
+                //         result.expression = processAST(expr.expression);
+                //     }
+                //     break;
                 case 'operator':
                     // console.log(`processAST ${expr.type}`);
                     // the tokens 'and' and 'or' might have been used as a name rather than an operator
@@ -2190,14 +2132,14 @@ const parser = (() => {
 
         // now invoke the tokenizer and the parser and return the syntax tree
         lexer = tokenizer(source);
-        console.log('main call to advance()');
+        // console.log('main call to advance()');
         advance();
-        console.log('after main call to advance()');
+        // console.log('after main call to advance()');
         // parse the tokens
-        console.log('main call to expression(0)');
+        // console.log('main call to expression(0)');
         var expr = expression(0);
-        console.log('after main call to expression(0)');
-        console.log('expr', JSON.stringify(expr,null,2));
+        // console.log('after main call to expression(0)');
+        // console.log('expr', JSON.stringify(expr,null,2));
         // console.log('parser() expr', JSON.stringify(expr, null, 2));
         if (node.id !== '(end)') {
             var err = {

@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\n* a = b",
+    "data": null,
+    "bindings": {},
+    "undefinedResult": true
+}

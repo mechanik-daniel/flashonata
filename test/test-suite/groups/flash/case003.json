@@ -1,0 +1,6 @@
+{
+    "expr": "Instance: 1 InstanceOf: abc",
+    "data": null,
+    "bindings": {"a": "123"},
+    "code": "F1013"
+}

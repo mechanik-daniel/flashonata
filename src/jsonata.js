@@ -1400,7 +1400,10 @@ var jsonata = (function() {
         return defineFunction(transformer, '<(oa):o>');
     }
 
-    var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
+    // var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
+    // console.log(JSON.stringify(chainAST));
+
+    var chainAST = utils.chainAST;
 
     /**
      * Apply the function on the RHS using the sequence on the LHS as the first argument
@@ -2099,9 +2102,9 @@ var jsonata = (function() {
         "D3139": "The $single() function expected exactly 1 matching result.  Instead it matched 0.",
         "D3140": "Malformed URL passed to ${{{functionName}}}(): {{value}}",
         "D3141": "{{{message}}}",
-        "F1001": "Resource.id (value after 'Instance:' decleration) must be a string. Got: {{value}}",
+        "F1001": "Resource.id (expression after 'Instance:' decleration) must evaluate to a string. Got: {{value}}",
         "F1002": "The symbol {{token}} cannot be used as a binary operator",
-        "F1003": "Invalid FHIR type after `InstanceOf:`",
+        "F1003": "Invalid FHIR type/profile identifier after `InstanceOf:`",
         "F1004": "Duplicate `Instance:` declaration",
         "F1005": "Duplicate `InstanceOf:` declaration",
         "F1006": "Malformed FLASH rule",
@@ -2110,9 +2113,20 @@ var jsonata = (function() {
         "F1009": "An `Instance:` declaration must be immediately followed by `InstanceOf:`",
         "F1010": "`Instance:` declaration must come BEFORE `InstanceOf:`",
         "F1011": "A FLASH block can only contain FLASH rules (lines starting with `*`) or variable assignments ($v := value)",
-        "F1012": "Malformed FLASH rule: missing expression assignment after `=`",
+        "F1012": "Malformed FLASH rule: missing expression after `=`",
         "F1013": "An `InstanceOf:` declaration following `Instance:` must start on a new line",
-        "F1014": "`InstanceOf:` must have the same indentation as `Instance:`"
+        "F1014": "`InstanceOf:` must have the same indentation as `Instance:` ({{{token}}}). Instead got {{{value}}}",
+        "F1015": "Expected indentation of {{{token}}}. Instead found {{{value}}}",
+        "F1016": "Indentation in this FLASH block cannot be lower than {{{token}}}. Instead found {{{value}}}",
+        "F1017": "Indentation here cannot be greater than {{{token}}}. Instead found {{{value}}}",
+        "F1018": "Expected an expression after the `Instance:` keyword. Instead found {{{value}}}",
+        "F1019": "Expected a FHIR type/profile identifier after the `InstanceOf:` keyword.",
+        "F1020": "The `:=` operator is used to bind values to variable names (starting with $). Did you mean `=`?",
+        "F1021": "Indentation in FLASH blocks must be in increments of 2 spaces. Found {{{value}}}",
+        "F1022": "Malformed FLASH rule: Duplicate `*` operator",
+        "F1023": "Malformed FLASH rule: The path after the '*' cannot start with '$'. If you wanted to assign a variable, omit the * from the beginning of the line",
+        "F1024": "Malformed FLASH rule: Rule is empty",
+        "F1025": "Malformed variable assignment. Did you mean ':='?"
 
     };
 

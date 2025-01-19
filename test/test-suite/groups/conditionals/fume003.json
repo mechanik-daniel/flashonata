@@ -1,0 +1,6 @@
+{
+    "expr": "a.b.c ?? (a.b.d='f' ? 'f') ?? a",
+    "data": {"a": {"b": {"d":"d"}}},
+    "bindings": {},
+    "result": {"b": {"d":"d"}}
+}

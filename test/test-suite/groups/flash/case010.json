@@ -1,0 +1,6 @@
+{
+    "expr": "Instance: 123 \n  InstanceOf: Patient\n* path = something\n  * subpath = something\n    * subsub := a",
+    "data": null,
+    "bindings": {},
+    "code": "F1014"
+}

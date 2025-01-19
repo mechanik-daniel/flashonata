@@ -1,0 +1,15 @@
+{
+    "expr": "Instance: 123 \n  InstanceOf: Patient\n* path = something\n  * subpath = something\n    * subsub := a",
+    "data": {
+        "status": "active",
+        "first_name": "Jessica",
+        "last_name": "Rabbit",
+        "birth_date": "1988-06-22",
+        "primary_doctor": {
+          "full_name": "Dr. Dolittle",
+          "license": "1-820958"
+        }
+      },
+    "bindings": {},
+    "code": "F1014"
+}

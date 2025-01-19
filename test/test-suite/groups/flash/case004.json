@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\nInstance: abc",
+    "data": null,
+    "bindings": {"a": "123"},
+    "code": "F1010"
+}

@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\n* path = something\n  $subpath > something",
+    "data": null,
+    "bindings": {},
+    "code": "F1011"
+}
