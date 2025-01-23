@@ -2154,26 +2154,26 @@ var jsonata = (function() {
         // Otherwise retain the original `err.message`
     }
 
-    function shiftASTPositions(ast, shiftBy) {
-        if (typeof ast !== 'object' || ast === null) {
-            return ast; // Return non-object values as is
-        }
+    // function shiftASTPositions(ast, shiftBy) {
+    //     if (typeof ast !== 'object' || ast === null) {
+    //         return ast; // Return non-object values as is
+    //     }
     
-        // Create a copy of the AST to avoid mutating the original
-        const newAST = Array.isArray(ast) ? [] : {};
+    //     // Create a copy of the AST to avoid mutating the original
+    //     const newAST = Array.isArray(ast) ? [] : {};
     
-        for (const key in ast) {
-            if (key === 'position' && typeof ast[key] === 'number') {
-                // Shift position value
-                newAST[key] = ast[key] + shiftBy;
-            } else {
-                // Recursively process nested objects/arrays
-                newAST[key] = shiftASTPositions(ast[key], shiftBy);
-            }
-        }
+    //     for (const key in ast) {
+    //         if (key === 'position' && typeof ast[key] === 'number') {
+    //             // Shift position value
+    //             newAST[key] = ast[key] + shiftBy;
+    //         } else {
+    //             // Recursively process nested objects/arrays
+    //             newAST[key] = shiftASTPositions(ast[key], shiftBy);
+    //         }
+    //     }
     
-        return newAST;
-    }
+    //     return newAST;
+    // }
 
     /**
      * JSONata
@@ -2186,28 +2186,16 @@ var jsonata = (function() {
     function jsonata(expr, options) {
         var ast;
         var errors;
+        
         try {
             ast = parser(expr, options && options.recover);
-        } catch (e1) {
-            if (e1.code === 'S0201' && e1.token === ';') {
-                // FUME: Try again, this time wrapped inside a block
-                try {
-                    ast = parser(`(${expr})`, options && options.recover);
-                    ast = shiftASTPositions(ast, -1);
-                } catch (e2) {
-                    // insert second error message into structure
-                    const err = { ...e2, position: e2.position -1 }
-                    populateMessage(err); // possible side-effects on `err`
-                    throw err;
-                }
-            } else {
-                // throw original error
-                populateMessage(e1); // possible side-effects on `err`
-                throw e1;
-            }
+            errors = ast.errors;
+            delete ast.errors;
+        } catch(err) {
+            // insert error message into structure
+            populateMessage(err); // possible side-effects on `err`
+            throw err;
         }
-        errors = ast.errors;
-        delete ast.errors;
 
         var environment = createFrame(staticFrame);
 
