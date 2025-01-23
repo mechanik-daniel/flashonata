@@ -1,0 +1,6 @@
+{
+    "expr": "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status\r\n  $var := 'val'\r\n  * birthDate",
+    "data": null,
+    "bindings": {},
+    "undefinedResult": true
+}
