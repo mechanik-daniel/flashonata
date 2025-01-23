@@ -1147,14 +1147,11 @@ const parser = (() => {
         // field wildcard (single level) OR flash rule
         prefix('*', function (isFlash) {
             if (isFlash) {
-                console.log('flashrule called as prefix', this);
                 var indent = this.indent;
                 this.type = 'flashrule';
                 if (node.id === '(') {
-                    var context = expression(75, true);
+                    this.context = expression(75, true);
                     advance(".", true, true);
-                    this.context = context.expressions;
-                    // console.log('flashrule registerred context. next node is', node);
                 }
                 this.path = expression(40, true);
                 var position = node.position;
