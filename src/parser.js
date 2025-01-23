@@ -1211,7 +1211,6 @@ const parser = (() => {
                 var subrules;
                 subrules = collectRules(indent + 2);
                 if (subrules.length > 0) this.rules = subrules;
-                console.log('flashrule nud returning', this);
                 return this;
             } else {
                 this.type = "wildcard";
@@ -1238,9 +1237,6 @@ const parser = (() => {
             this.instance = instanceExpr;
             this.type = "flashblock";
             delete this.value;
-            console.log('Instance: expression is', this.instance);
-            // advance(); // go ahead one token
-            console.log('node after collecting Instance: expression(0)', { ...node, indent: node && node.indent ? node.indent:  undefined});
             if (node.id !== '(instanceof)') {
                 // Instance: without InstanceOf:
                 return handleError({
@@ -1522,7 +1518,7 @@ const parser = (() => {
         infix("{", operators['{'], objectParser);
 
         // bind variable
-        infixr(":=", operators[':='], function (left) {
+        infixr(":=", operators[':='], function (left, lookForFlash) {
             if (left.type !== 'variable') {
                 return handleError({
                     code: "S0212",
@@ -1533,7 +1529,7 @@ const parser = (() => {
                 });
             }
             this.lhs = left;
-            this.rhs = expression(operators[':='] - 1); // subtract 1 from bindingPower for right associative operators
+            this.rhs = expression(operators[':='] - 1, lookForFlash); // subtract 1 from bindingPower for right associative operators
             this.type = "binary";
             return this;
         });
