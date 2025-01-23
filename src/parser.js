@@ -521,10 +521,12 @@ const parser = (() => {
                 if (i === length || ' \t\n\r\v'.indexOf(ch) > -1 || Object.prototype.hasOwnProperty.call(operators, ch)) {
                     if (path.charAt(position) === '$') {
                         // variable reference
+                        var indent;
+                        if (firstInLine()) indent = indentNumber();
                         name = path.substring(position + 1, i);
                         position = i;
                         token = create('variable', name);
-                        if (firstInLine()) token.indent = indentNumber();
+                        if (indent && indent >= 0) token.indent = indent;
                         return token;
                     } else {
                         name = path.substring(position, i);
