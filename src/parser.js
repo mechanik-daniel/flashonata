@@ -1,6 +1,4 @@
-/* eslint-disable require-jsdoc */
 /* eslint-disable valid-jsdoc */
-/* eslint-disable no-console */
 /**
  * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
  *   Project name: JSONata
@@ -126,14 +124,6 @@ const parser = (() => {
                 if (isClosingSlash(position)) {
                     // end of regex found
                     pattern = path.substring(start, position);
-                    // if (pattern === '') {
-                    //     throw {
-                    //         code: "S0301",
-                    //         stack: (new Error()).stack,
-                    //         position,
-                    //         line
-                    //     };
-                    // }
                     position++;
                     currentChar = path.charAt(position);
                     // flags
@@ -198,7 +188,6 @@ const parser = (() => {
          * @returns {object|null} The next token object or null if end of input.
          */
         var next = function (prefix) {
-            // console.log('next', { position });
             if (position >= length) return null;
             var currentChar = path.charAt(position);
             // skip whitespace - but keep track of new lines and indentation
@@ -236,22 +225,14 @@ const parser = (() => {
             // - $ (assignment rules)
             // The last two are created only if we previously encountered one of the first two declarations,
             // since they are only significant inside flash blocks.
-            // NOTE: This approach ignores block closing since we don't track these kind of stuff in the scanner.
-            //      This means that even if we are after a flash block that has been closed,
-            //      or inside a regular epression block, we still get these indent
-            //      tokens on every line starting with * or $.
-            //      TODO: Find a proper way to handle this
             if (
                 position < length &&
-                // lookForFlash &&
                 '*$'.indexOf(currentChar) > -1 && // flash rule or assignment
                 firstInLine()
             ) {
                 // If we got here, it means we need to create an indent token
                 // But it may have already been created, so we need to check previous token
-                // console.log('indent tokenization', { previousToken, lineStart });
                 if (typeof previousToken === 'undefined' || previousToken.type !== 'indent' || previousToken.position < lineStart) {
-                    // console.log('creating indent token', { indentNumber: indentNumber(), position, line });
                     return create('indent', indentNumber());
                 }
             }
@@ -260,7 +241,6 @@ const parser = (() => {
                 path.substring(position, position + 9) === 'Instance:' ||
                 path.substring(position, position + 11) === 'InstanceOf:'
             ) {
-                // lookForFlash = true;
                 // If we got here, it means we need to create a block indent token
                 // But it may have already been created, so we need to check previous token
                 if (typeof previousToken === 'undefined' || previousToken.type !== 'blockindent' || previousToken.position < lineStart) {
@@ -304,8 +284,6 @@ const parser = (() => {
                 return next(prefix); // need this to swallow any following whitespace
             }
 
-            // console.log('after skipping comment', { currentChar });
-
             // FUME: capture URL's (including URN's)
             if (
                 /*lookForFlash &&*/ ( // only relevant if a flash block was encountered previously
@@ -338,14 +316,12 @@ const parser = (() => {
             // handle flash block declarations ("Instance:", "InstanceOf:" and "* " rules)
             var token;
             if (path.substring(position, position + 9) === 'Instance:') {
-                // console.log(' handle flash block declarations', 'Instance:');
                 position += 9;
                 token = create('operator', 'Instance:');
                 token.indent = indentNumber();
                 return token;
             }
             if (path.substring(position, position + 11) === 'InstanceOf:') {
-                // console.log(' handle flash block declarations', 'InstanceOf:');
                 position += 11;
                 var profileId = '';
                 while (position < length && ' \t\r\n'.indexOf(path.charAt(position)) > -1) {
@@ -361,10 +337,6 @@ const parser = (() => {
                 token.indent = indentNumber();
                 return token;
             }
-            // if (lookForFlash && currentChar === '*' && firstInLine()) {
-            //     position ++;
-            //     return create('operator', 'flashrule');
-            // }
             // test for regex
             if (prefix !== true && currentChar === '/') {
                 position++;
@@ -683,7 +655,6 @@ const parser = (() => {
             // objects (tokens), each containing a type (string) and a value (string or number).
             // In this implementation, the token array is built as we go, and the next token is returned by the lexer (next() function)
             // the node variable is currently set to the previous token
-            // console.log('advance()', { id, infix, node: { ...node, indent: node && node.indent ? node.indent:  undefined} });
             lookForFlash = lookForFlash || false;
             if (id && // id argument provided
                 node.id !== id // AND it's not the same as the previous node.id
@@ -723,10 +694,8 @@ const parser = (() => {
             if (node && node.id === '(indent)') {
                 indent = node.value; // Set to previous node's line
             }
-            // lookForFlash = (lookForFlash && lookForFlash === true) || (node && (node.type === 'instanceof' || node.id === '(indent)' || node.value === 'flashrule'));
             /** Fetch next simple token from the scanner */
             var next_token = lexer(infix, lookForFlash);
-            // console.log('advance()', { next_token });
             if (next_token === null) {
                 // When the scanner has no more tokens to consume from the source it returns null
                 // So we create an (end) token and return it, but not before we override the node variable
@@ -742,7 +711,6 @@ const parser = (() => {
             var value = next_token.value;
             var type = next_token.type;
             var symbol;
-            // console.log('advance() switch case', { type });
             switch (type) {
                 case 'name':
                 case 'variable':
@@ -784,7 +752,6 @@ const parser = (() => {
                     // Handle flash indentation tokens.
                     // var indentSymbol = symbol_table["(indent)"];
                     var indentValue = next_token.value; // this is the indent number
-                    // console.log('advance() found blockindent token', { token: next_token });
                     // go to next token
                     next_token = lexer(infix, true);
                     /* istanbul ignore else  */
@@ -800,8 +767,6 @@ const parser = (() => {
                         symbol.indent = indentValue;
                     }
                     value = next_token.value;
-                    // console.log('type after blockindent is: ', type);
-                    // console.log('symbol is: ', symbol);
                     break;
                 /* istanbul ignore next */
                 default:
@@ -815,8 +780,6 @@ const parser = (() => {
             }
             /** This is where we override the node variable with a new processed token */
             node = Object.create(symbol);
-            // console.log('advance(): processing symbol', { ...symbol, id: symbol.id, indent: symbol.indent});
-            // console.log('advance(): new node created');
             node.value = value;
             node.type = type;
             node.position = next_token.position;
@@ -827,7 +790,6 @@ const parser = (() => {
                 // the prototype object are hidden (like the id, lbp, nud and led)
                 node.indent = symbol.indent;
             }
-            // console.log('advance() returning', { ...node, id: node.id, lbp: node.lbp, nud: node.nud, led: node.led, indent: node.indent});
             return node;
         };
 
@@ -844,7 +806,6 @@ const parser = (() => {
          * @returns expression object
          */
         var expression = function (rbp, lookForFlash) {
-            // console.log(`expression(${rbp})`, { node });
             var left;
             var token = node; // save current node as token
             advance(null, true, lookForFlash); // advance node to the next token
@@ -854,7 +815,6 @@ const parser = (() => {
                 advance(null, null, lookForFlash);// advance node to next token
                 left = token.led(left, lookForFlash); // accumulate results of recursive calls to the tail handler
             }
-            // console.log(`expression(${rbp})`, { left });
             return left;
             // if we simulate parsing the expression `1 + 2 * 3` using expression(0) (rbp-0):
             // - current node is literal 1 (terminal)
@@ -1004,19 +964,6 @@ const parser = (() => {
             return this;
         });
 
-        // Since indent tokens are only separators for flash rules, they should not be called as prefixes
-        // If an indent token IS called as prefix, this means it comes immediaty after '*' and got scanned as a path.
-        // prefix("(indent)", function () {
-        //     return handleError({
-        //         code: "F1024",
-        //         stack: (new Error()).stack,
-        //         position: this.position,
-        //         line: this.line,
-        //         token: '*',
-        //         value: `${String(this.value)} spaces`
-        //     });
-        // });
-
         // since a flash block expression can be initialized both by Instance: and InstanceOf: keywords,
         // both prefix handlers should collect rules using the same function.
         // In both cases, this function is only called after the InstanceOf: keyword, so it should not encounter an
@@ -1024,7 +971,6 @@ const parser = (() => {
         // The only valid expression types are flashrule and ':=' (bind)
         var collectRules = function (level, root) {
             root = root || 0;
-            console.log('collectRules()', {level, root}, node);
             if (node.type === 'instance') {
                 // Instance:` declaration must come BEFORE `InstanceOf:`
                 return handleError({
@@ -1058,25 +1004,10 @@ const parser = (() => {
             }
             while (node.id !== ")" && node.id !== "(end)") {
                 var indent;
-                // var subrules = [];
                 if (node.id === "(indent)") {
                     if (node.value === level) {
                         indent = node.value;
                         advance("(indent)", null, true);
-                    // } else if (node.value > level) {
-                    //     if ((node.value - level) !== 2) {
-                    //         return handleError({
-                    //             code: "F1015",
-                    //             stack: (new Error()).stack,
-                    //             position: node.position,
-                    //             line: node.line,
-                    //             token: `${String(level)} spaces or ${String(level + 2)}`,
-                    //             value: `${String(node.value)} spaces`
-                    //         });
-                    //     } else {
-                    //         subrules = collectRules(level + 2, root);
-                    //         advance(null, null, true);
-                    //     }
                     } else {
                         if ((level - node.value) % 2 !== 0) {
                             return handleError({
@@ -1088,17 +1019,6 @@ const parser = (() => {
                                 value: `${String(node.value)} spaces`
                             });
                         }
-                        // if (node.value < root) {
-                        //     return handleError({
-                        //         code: "F1016",
-                        //         stack: (new Error()).stack,
-                        //         position: node.position,
-                        //         line: node.line,
-                        //         token: '(indent)',
-                        //         value: `${String(node.value)} spaces`
-                        //     });
-                        // }
-                        // advance();
                         break;
                     }
                 }
@@ -1123,18 +1043,8 @@ const parser = (() => {
                     }
                 }
                 rule.indent = rule.indent || indent;
-                // if (subrules.length > 0) rule.rules = subrules;
                 rules.push(rule);
-                // if (node.id === "(indent)" && node.value < root) {
-                //     return handleError({
-                //         code: "F1016",
-                //         stack: (new Error()).stack,
-                //         position: node.position,
-                //         line: node.line,
-                //         token: `${String(root)} spaces`,
-                //         value: `${String(node.value)} spaces`
-                //     });
-                // }
+                if (node.id === ';') advance(null, null, true);
                 if (node.id !== "(indent)" || node.value < level) {
                     break;
                 }
@@ -1179,7 +1089,6 @@ const parser = (() => {
                         token: ':='
                     });
                 }
-                // console.log('path detected', this.path);
                 if (this.path && this.path.type === 'flashrule') { // double * *
                     return handleError({
                         code: "F1022",
@@ -1737,7 +1646,6 @@ const parser = (() => {
         // converting them to arrays of steps which in turn may contain arrays of predicates.
         // following this, nodes containing '.' and '[' should be eliminated from the AST.
         var processAST = function (expr) {
-            // console.log('processAST switch case', { type: expr.type });
             var result;
             switch (expr.type) {
                 case 'binary':
@@ -1809,7 +1717,6 @@ const parser = (() => {
                             // predicated step
                             // LHS is a step or a predicated step
                             // RHS is the predicate expr
-                            // console.log('processAST [', { result, expr });
                             result = processAST(expr.lhs);
                             var step = result;
                             var type = 'predicate';
@@ -2047,7 +1954,6 @@ const parser = (() => {
                     // if so, need to mark the block as one that needs to create a new frame
                     break;
                 case 'name':
-                    // console.log(`processAST ${expr.type}`);
                     result = {type: 'path', steps: [expr]};
                     if (expr.keepArray) {
                         result.keepSingletonArray = true;
@@ -2098,7 +2004,6 @@ const parser = (() => {
                     }
                     break;
                 case 'operator':
-                    // console.log(`processAST ${expr.type}`);
                     // the tokens 'and' and 'or' might have been used as a name rather than an operator
                     if (expr.value === 'and' || expr.value === 'or' || expr.value === 'in') {
                         expr.type = 'name';
@@ -2150,15 +2055,9 @@ const parser = (() => {
 
         // now invoke the tokenizer and the parser and return the syntax tree
         lexer = tokenizer(source);
-        // console.log('main call to advance()');
         advance();
-        // console.log('after main call to advance()');
         // parse the tokens
-        // console.log('main call to expression(0)');
         var expr = expression(0);
-        // console.log('after main call to expression(0)');
-        // console.log('expr', JSON.stringify(expr,null,2));
-        // console.log('parser() expr', JSON.stringify(expr, null, 2));
         if (node.id !== '(end)') {
             var err = {
                 code: "S0201",

@@ -26,14 +26,11 @@ void async function () {
     // `, { recover: false });
 
     // var expression = "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status='active'\r\n* name\r\n  * given = first_name\r\n  * family = last_name\r\n  * period\r\n    * start = '2000-01-01'\r\n* birthDate = birth_date\r\n* generalPractitioner\r\n  * identifier\r\n    * assigner\r\n      * identifier\r\n        * assigner\r\n          * identifier\r\n            * assigner\r\n              * reference = 'Organization/123'\r\n  * display = primary_doctor.full_name";
-    var expression = "InstanceOf: Patient\n$a";
+    // var expression = "InstanceOf: Patient\n$a:=1\n* (somecontext).element = some_value\n  * c";
     // var expression = "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status='active'\r\n* name\r\n  * given = first_name\r\n  * family = last_name\r\n  * period\r\n    * start = '2000-01-01'\r\n* birthDate = birth_date\r\n* generalPractitioner\r\n  * identifier\r\n    * assigner\r\n      * identifier\r\n        * assigner\r\n          * identifier\r\n            * assigner\r\n              * reference = 'Organization/123'\r\n  * display = primary_doctor.full_name";
     // var expression = "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status='active'\r\n* birthDate";
     // var expression = "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status\r\n* birthDate";
-    // var expression = `
-    //     // Instance: 123
-    //     InstanceOf:
-    //     `;
+    var expression = "Instance: 'abc'\r\nInstanceOf: Patient\r\n* active = status\r\n  $var := 'val'\r\n  * birthDate";
     var expr = jsonata(expression);
     expr.evaluate(null, {a: 123}).then((res) => {
         console.log('Result', res);
