@@ -2064,16 +2064,39 @@ const parser = (() => {
                 case 'descendant':
                 case 'variable':
                 case 'regex':
-                case 'flashblock':
                     result = expr;
                     break;
-                // case 'flashrule':
-                //     // console.log(`processAST ${expr.type}`);
-                //     result = expr;
-                //     if (expr.expression && expr.expression.id !== '(end)') {
-                //         result.expression = processAST(expr.expression);
-                //     }
-                //     break;
+                case 'flashblock':
+                    result = {
+                        type: expr.type,
+                        position: expr.position,
+                        line: expr.line,
+                        instanceof: expr.instanceof
+                    };
+                    if (expr.instance) {
+                        result.instance = processAST(expr.instance);
+                    }
+                    if (expr.rules && expr.rules.length > 0) {
+                        result.rules = expr.rules.map((rule) => processAST(rule));
+                    }
+                    break;
+                case 'flashrule':
+                    result = {
+                        type: expr.type,
+                        position: expr.position,
+                        line: expr.line,
+                        path: processAST(expr.path)
+                    };
+                    if (expr.context) {
+                        result.context = processAST(expr.context);
+                    }
+                    if (expr.expression) {
+                        result.expression = processAST(expr.expression);
+                    }
+                    if (expr.rules && expr.rules.length > 0) {
+                        result.rules = expr.rules.map((rule) => processAST(rule));
+                    }
+                    break;
                 case 'operator':
                     // console.log(`processAST ${expr.type}`);
                     // the tokens 'and' and 'or' might have been used as a name rather than an operator
