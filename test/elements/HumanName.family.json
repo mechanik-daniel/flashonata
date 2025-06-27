@@ -1,0 +1,49 @@
+{
+    "id": "HumanName.family",
+    "path": "HumanName.family",
+    "short": "Family name (often called 'Surname')",
+    "definition": "The part of a name that links to the genealogy. In some cultures (e.g. Eritrea) the family name of a son is the first name of his father.",
+    "comment": "Family Name may be decomposed into specific parts using extensions (de, nl, es related cultures).",
+    "alias": [
+        "surname"
+    ],
+    "min": 0,
+    "max": "1",
+    "base": {
+        "path": "HumanName.family",
+        "min": 0,
+        "max": "1"
+    },
+    "type": [
+        {
+            "code": "string"
+        }
+    ],
+    "constraint": [
+        {
+            "key": "ele-1",
+            "severity": "error",
+            "human": "All FHIR elements must have a @value or children",
+            "expression": "hasValue() or (children().count() > id.count())",
+            "xpath": "@value|f:*|h:div",
+            "source": "http://hl7.org/fhir/StructureDefinition/Element"
+        }
+    ],
+    "isModifier": false,
+    "isSummary": true,
+    "mapping": [
+        {
+            "identity": "v2",
+            "map": "XPN.1/FN.1"
+        },
+        {
+            "identity": "rim",
+            "map": "./part[partType = FAM]"
+        },
+        {
+            "identity": "servd",
+            "map": "./FamilyName"
+        }
+    ],
+    "__fromDefinition": "http://hl7.org/fhir/StructureDefinition/HumanName"
+}

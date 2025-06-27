@@ -1,0 +1,51 @@
+{
+    "id": "Patient.birthDate",
+    "path": "Patient.birthDate",
+    "short": "The date of birth for the individual",
+    "definition": "The date of birth for the individual.",
+    "comment": "At least an estimated year should be provided as a guess if the real DOB is unknown  There is a standard extension \"patient-birthTime\" available that should be used where Time is required (such as in maternity/infant care systems).",
+    "requirements": "Age of the individual drives many clinical processes.",
+    "min": 0,
+    "max": "1",
+    "base": {
+        "path": "Patient.birthDate",
+        "min": 0,
+        "max": "1"
+    },
+    "type": [
+        {
+            "code": "date"
+        }
+    ],
+    "constraint": [
+        {
+            "key": "ele-1",
+            "severity": "error",
+            "human": "All FHIR elements must have a @value or children",
+            "expression": "hasValue() or (children().count() > id.count())",
+            "xpath": "@value|f:*|h:div",
+            "source": "http://hl7.org/fhir/StructureDefinition/Element"
+        }
+    ],
+    "isModifier": false,
+    "isSummary": true,
+    "mapping": [
+        {
+            "identity": "v2",
+            "map": "PID-7"
+        },
+        {
+            "identity": "rim",
+            "map": "player[classCode=PSN|ANM and determinerCode=INSTANCE]/birthTime"
+        },
+        {
+            "identity": "cda",
+            "map": ".patient.birthTime"
+        },
+        {
+            "identity": "loinc",
+            "map": "21112-8"
+        }
+    ],
+    "__fromDefinition": "http://hl7.org/fhir/StructureDefinition/Patient"
+}

@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: il-core-patient\r\n* [il-id].value = field1",
+    "data": null,
+    "bindings": {},
+    "code": "F1028"
+}

@@ -2,5 +2,5 @@
     "expr": "Instance: 'abc'\r\nInstanceOf: Patient\r\n$semivar := 'semival';\r\n* name.given = first_name\r\n  $var := 'val'\r\n  * birthDate",
     "data": null,
     "bindings": {},
-    "undefinedResult": true
+    "code": "F1029"
 }

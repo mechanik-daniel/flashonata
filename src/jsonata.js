@@ -14,6 +14,7 @@ var fn = require('./functions');
 var utils = require('./utils');
 var parser = require('./parser');
 var parseSignature = require('./signature');
+var processFlash = require('./fumeUtils/processFlash');
 
 /**
  * jsonata
@@ -49,6 +50,10 @@ var jsonata = (function() {
      */
     async function evaluate(expr, input, environment) {
         var result;
+
+        if (expr instanceof Promise) {
+            expr = await expr;
+        }
 
         var entryCallback = environment.lookup(Symbol.for('jsonata.__evaluate_entry'));
         if(entryCallback) {
@@ -90,6 +95,12 @@ var jsonata = (function() {
                 break;
             case 'block':
                 result = await evaluateBlock(expr, input, environment);
+                break;
+            case 'flashblock':
+                result = await evaluateFlashBlock(expr, input, environment);
+                break;
+            case 'flashrule':
+                result = await evaluateFlashRule(expr, input, environment);
                 break;
             case 'bind':
                 result = await evaluateBindExpression(expr, input, environment);
@@ -511,7 +522,6 @@ var jsonata = (function() {
      * @returns {*} Evaluated input data
      */
     async function evaluateUnary(expr, input, environment) {
-        console.log('jsonata.evaluateUnary called', { expr, input, environment })
         var result;
 
         switch (expr.value) {
@@ -561,32 +571,6 @@ var jsonata = (function() {
                 // object constructor - apply grouping
                 result = await evaluateGroupExpression(expr, input, environment);
                 break;
-            case 'Instance:':
-                // FLASH Instance: decleration
-                var idValue = await evaluate(expr.expression, input, environment);
-                if(typeof idValue === 'undefined') {
-                    result = {}
-                } else if (typeof idValue === 'string') {
-                    result = {
-                        id: idValue
-                    }
-                } else {
-                    throw {
-                        code: "F1001",
-                        stack: (new Error()).stack,
-                        position: expr.position,
-                        token: expr.value,
-                        value: idValue
-                    };
-                }
-                break;
-            case 'InstanceOf:':
-                // FLASH InstanceOf: decleration
-                result = {
-                    __fhirProfile: expr.expression
-                }
-                break;
-
         }
         return result;
     }
@@ -1144,6 +1128,91 @@ var jsonata = (function() {
     }
 
     /**
+     * Evaluate FLASH block against input data
+     * @param {Object} expr - JSONata expression
+     * @param {Object} input - Input data to evaluate against
+     * @param {Object} environment - Environment
+     * @returns {*} Evaluated FHIR instance
+     */
+    async function evaluateFlashBlock(expr, input, environment) {
+        var result = {};
+        var kind = expr.fhirType.kind;
+        var instance;
+        // create a new frame to limit the scope of variable assignments
+        // TODO, only do this if the post-parse stage has flagged this as required
+        var frame = createFrame(environment);
+        if (expr.instance) {
+            instance = await evaluate(expr.instance, input, frame);
+        }
+        if (kind === 'resource') {
+            result.resourceType = expr.fhirType.type;
+            // TODO: validate that the id (if set using 'instance') is a valid Resource.id or Element.id (if not a resource)
+        }
+        if (instance) {
+            result.id = instance;
+        }
+        // invoke each FLASH sub-rule in turn
+        if (expr.rules) {
+            for(var ii = 0; ii < expr.rules.length; ii++) {
+                var element = await evaluate(expr.rules[ii], input, frame);
+                if (element !== undefined) {
+                    result[expr.rules[ii].value] = element;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Evaluate FLASH rule against input data
+     * @param {Object} expr - JSONata expression
+     * @param {Object} input - Input data to evaluate against
+     * @param {Object} environment - Environment
+     * @returns {*} Evaluated FHIR element
+    */
+    async function evaluateFlashRule(expr, input, environment) {
+        var result = {};
+        // create a new frame to limit the scope of variable assignments
+        // TODO, only do this if the post-parse stage has flagged this as required
+        var frame = createFrame(environment);
+        // evaluate the rule's explicit (direct) expression, if there is one
+        var value;
+        // assess whether the element is a FHIR Primitive according the type's first character case
+        var fhirPrimitive = expr.elementDefinition.type[0].code.charAt(0).toLowerCase() === expr.elementDefinition.type[0].code.charAt(0);
+        if (expr.expression) {
+            value = await evaluate(expr.expression, input, frame);
+            if (value !== undefined) {
+                if (fhirPrimitive) {
+                    // if the element is a FHIR Primitive, then the value element is the element's value
+                    result[expr.value] = { value };
+                    // we need to mark this a FHIR primitive for later restructuring
+                    result[expr.value].__fhirPrimitive = true;
+                } else {
+                    // TODO: handle objects as inputs for complex elements, e.g. FHIR Complex Elements
+                    // also if it is a system primitive (not FHIR primitive), the value must be primitive
+
+                    // if the element is a FHIR Complex Element, then the value element is the element itself
+                    // also if it is a system primitive (not FHIR primitive), the same applies
+                    result[expr.value] = value;
+                }
+                
+            }
+        }
+        // invoke each FLASH sub-rule in turn
+        if (expr.rules) {
+            for(var ii = 0; ii < expr.rules.length; ii++) {
+                var element = await evaluate(expr.rules[ii], input, frame);
+                if (element !== undefined) {
+                    result = {...result, ...element};
+                }
+            }
+        }
+
+        return result;
+    }
+    
+    /**
      * Prepare a regex
      * @param {Object} expr - expression containing regex
      * @returns {Function} Higher order function representing prepared regex
@@ -1399,9 +1468,6 @@ var jsonata = (function() {
 
         return defineFunction(transformer, '<(oa):o>');
     }
-
-    // var chainAST = parser('function($f, $g) { function($x){ $g($f($x)) } }');
-    // console.log(JSON.stringify(chainAST));
 
     var chainAST = utils.chainAST;
 
@@ -1985,7 +2051,7 @@ var jsonata = (function() {
     staticFrame.bind('clone', defineFunction(functionClone, '<(oa)-:o>'));
     staticFrame.bind('startsWith', defineFunction(fn.startsWith, '<s-s:b>'));
     staticFrame.bind('endsWith', defineFunction(fn.endsWith, '<s-s:b>'));
-    staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<(sn)-:b>'));
+    staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<j-:b>'));
     staticFrame.bind('wait', defineFunction(fn.wait), '<n->');
     staticFrame.bind('thisInstant', defineFunction(fn.thisInstant), '<:n>')
 
@@ -2126,8 +2192,11 @@ var jsonata = (function() {
         "F1022": "Malformed FLASH rule: Duplicate `*` operator",
         "F1023": "Malformed FLASH rule: The path after the '*' cannot start with '$'. If you wanted to assign a variable, omit the * from the beginning of the line",
         "F1024": "Malformed FLASH rule: Rule is empty",
-        "F1025": "Malformed variable assignment. Did you mean ':='?"
-
+        "F1025": "Malformed variable assignment. Did you mean ':='?",
+        "F1026": "Could not find a FHIR type/profile definition with identifier {{value}}",
+        "F1027": "value after `InstanceOf:` must be FHIR type/profile identifier and cannot be an expression. Found: {{{value}}}",
+        "F1028": "Malformed FLASH rule: path is syntactically illegal",
+        "F1029": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}"
     };
 
     /**
@@ -2191,6 +2260,11 @@ var jsonata = (function() {
             ast = parser(expr, options && options.recover);
             errors = ast.errors;
             delete ast.errors;
+            if (ast && ast.containsFlash === true && options && options.getSnapshot && options.getElementDefinition) {
+                // this is where we should run the async processFlash and return a promise
+                // TODO: an equivalent of this should be implemented in the evalFunction
+                ast = processFlash(ast, options);
+            }
         } catch(err) {
             // insert error message into structure
             populateMessage(err); // possible side-effects on `err`
@@ -2213,7 +2287,7 @@ var jsonata = (function() {
             jsonata.RegexEngine = RegExp;
         }
 
-        return {
+        var jsonataObject = {
             evaluate: async function (input, bindings, callback) {
                 // throw if the expression compiled with syntax errors
                 if(typeof errors !== 'undefined') {
@@ -2276,6 +2350,15 @@ var jsonata = (function() {
                 return errors;
             }
         };
+        if (ast instanceof Promise) {
+            var asyncAst = async function (jsonataObject) {
+                jsonataObject.ast = async () => await ast;
+                return jsonataObject;
+            };
+            return asyncAst(jsonataObject);
+        } else {
+            return jsonataObject;
+        }
     }
 
     jsonata.parser = parser; // TODO remove this in a future release - use ast() instead

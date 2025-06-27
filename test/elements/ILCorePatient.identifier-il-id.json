@@ -1,0 +1,52 @@
+{
+    "id": "Patient.identifier:il-id",
+    "path": "Patient.identifier",
+    "short": "Israeli National Identifier",
+    "definition": "Israeli ID number (9 digit unchangeable number, including leading zeros and includes a control digit), including temporarily identification numbers assigned by Israeli National Insurance",
+    "requirements": "Patients are almost always assigned specific numerical identifiers.",
+    "min": 0,
+    "max": "1",
+    "base": {
+        "path": "Patient.identifier",
+        "min": 0,
+        "max": "*"
+    },
+    "type": [
+        {
+            "code": "Identifier"
+        }
+    ],
+    "constraint": [
+        {
+            "key": "ele-1",
+            "severity": "error",
+            "human": "All FHIR elements must have a @value or children",
+            "expression": "hasValue() or (children().count() > id.count())",
+            "xpath": "@value|f:*|h:div",
+            "source": "http://hl7.org/fhir/StructureDefinition/Element"
+        }
+    ],
+    "isModifier": false,
+    "isSummary": true,
+    "mapping": [
+        {
+            "identity": "w5",
+            "map": "FiveWs.identifier"
+        },
+        {
+            "identity": "v2",
+            "map": "PID-3"
+        },
+        {
+            "identity": "rim",
+            "map": "id"
+        },
+        {
+            "identity": "cda",
+            "map": ".id"
+        }
+    ],
+    "sliceName": "il-id",
+    "mustSupport": true,
+    "__fromDefinition": "http://fhir.health.gov.il/StructureDefinition/il-core-patient"
+}

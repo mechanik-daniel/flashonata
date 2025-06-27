@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable valid-jsdoc */
 /**
  * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
@@ -6,6 +7,8 @@
  */
 
 var parseSignature = require('./signature');
+var flattenFlashPath = require('./fumeUtils/flattenFlashPath');
+var transformFlashRule = require('./fumeUtils/transformFlashRule');
 
 const numregex = /^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/;
 
@@ -969,7 +972,7 @@ const parser = (() => {
         // In both cases, this function is only called after the InstanceOf: keyword, so it should not encounter an
         // 'Instance:' token after it. If it does, that's an error.
         // The only valid expression types are flashrule and ':=' (bind)
-        var collectRules = function (level, root) {
+        var collectRules = function (level, root, rootFhirType) {
             root = root || 0;
             if (node.type === 'instance') {
                 // Instance:` declaration must come BEFORE `InstanceOf:`
@@ -1043,6 +1046,7 @@ const parser = (() => {
                     }
                 }
                 rule.indent = rule.indent || indent;
+                rule.rootFhirType = rootFhirType;
                 rules.push(rule);
                 if (node.id === ';') advance(null, null, true);
                 if (node.id !== "(indent)" || node.value < level) {
@@ -1118,7 +1122,7 @@ const parser = (() => {
                 }
                 this.indent = indent;
                 var subrules;
-                subrules = collectRules(indent + 2);
+                subrules = collectRules(indent + 2, null, this.rootFhirType);
                 if (subrules.length > 0) this.rules = subrules;
                 return this;
             } else {
@@ -1186,8 +1190,9 @@ const parser = (() => {
                     token: "InstanceOf:"
                 });
             }
+
             advance(null, null, true); // proceeed to the next token after InstanceOf:
-            var rules = collectRules(this.indent, this.indent);
+            var rules = collectRules(this.indent, this.indent, this.instanceof);
             if (rules.length > 0) this.rules = rules;
             return this;
         });
@@ -1211,7 +1216,7 @@ const parser = (() => {
                 });
             }
             this.instanceof = this.value;
-            var rules = collectRules(this.indent, this.indent);
+            var rules = collectRules(this.indent, this.indent, this.instanceof);
             if (rules.length > 0) this.rules = rules;
             delete this.value;
             return this;
@@ -1341,7 +1346,7 @@ const parser = (() => {
         });
 
         // filter - predicate or array index
-        infix("[", operators['['], function (left) {
+        infix("[", operators['['], function (left, isFlash) {
             if (node.id === "]") {
                 // empty predicate means maintain singleton arrays in the output
                 var step = left;
@@ -1349,13 +1354,13 @@ const parser = (() => {
                     step = step.lhs;
                 }
                 step.keepArray = true;
-                advance("]");
+                advance("]", null, isFlash);
                 return left;
             } else {
                 this.lhs = left;
-                this.rhs = expression(operators[']']);
+                this.rhs = expression(operators[']'], isFlash);
                 this.type = 'binary';
-                advance("]", true);
+                advance("]", true, isFlash);
                 return this;
             }
         });
@@ -1637,6 +1642,27 @@ const parser = (() => {
                     slot = seekParent(step, slot);
                 }
             }
+        };
+
+        /**
+         * a flag indicating that the AST contains some FLASH, so a FHIR type analysis step must be performed
+         * on it before it can be evaluated against input.
+         */
+        var astContainsFlash = false;
+
+        /**
+         * Check if the string provided after InstanceOf: conforms to the limitations on URLs
+         * and FHIR type names and logical id's
+         * @param {string} profileId The FHIR type/profile identifier to test
+         * @returns {boolean} - True if the string conforms to the rules
+         */
+        var validateFhirTypeId = function(profileId) {
+            var chk = !/\s/.test(profileId) && ( // no whitespace AND:
+                /^(http(|s):\/\/|urn:(uuid|oid):).+[^\\s]$/.test(profileId) || // is url
+                /^[A-Za-z0-9\-.]{1,64}$/.test(profileId) || // OR possible resource id
+                /^[A-Za-z]([A-Za-z0-9\-._]){0,254}$/.test(profileId) // OR possible type/profile name
+            );
+            return chk;
         };
 
         // post-parse stage
@@ -1973,6 +1999,23 @@ const parser = (() => {
                     result = expr;
                     break;
                 case 'flashblock':
+                    astContainsFlash = true;
+                    if (!validateFhirTypeId(expr.instanceof)) {
+                        var typeIdError = {
+                            code: 'F1027',
+                            position: expr.position,
+                            line: expr.line,
+                            token: 'InstanceOf:',
+                            value: expr.instanceof
+                        };
+                        if (recover) {
+                            errors.push(typeIdError);
+                            return {type: 'error', error: typeIdError};
+                        } else {
+                            typeIdError.stack = (new Error()).stack;
+                            throw typeIdError;
+                        }
+                    }
                     result = {
                         type: expr.type,
                         position: expr.position,
@@ -1990,9 +2033,28 @@ const parser = (() => {
                     result = {
                         type: expr.type,
                         position: expr.position,
-                        line: expr.line,
-                        path: processAST(expr.path)
+                        line: expr.line
                     };
+                    var path;
+                    try {
+                        path = flattenFlashPath(processAST(expr.path));
+                    } catch (e) {
+                        var error = {
+                            code: "F1028",
+                            position: expr.position,
+                            line: expr.line,
+                            token: '(flashpath)',
+                            details: e
+                        };
+                        if (recover) {
+                            errors.push(error);
+                            return {type: 'error', error};
+                        } else {
+                            error.stack = (new Error()).stack;
+                            throw error;
+                        }
+                    }
+                    result.path = path;
                     if (expr.context) {
                         result.context = processAST(expr.context);
                     }
@@ -2001,6 +2063,25 @@ const parser = (() => {
                     }
                     if (expr.rules && expr.rules.length > 0) {
                         result.rules = expr.rules.map((rule) => processAST(rule));
+                    }
+                    result.rootFhirType = expr.rootFhirType;
+                    try {
+                        result = transformFlashRule(result);
+                    } catch (e) {
+                        error = {
+                            code: "F1028",
+                            position: expr.position,
+                            line: expr.line,
+                            token: '(flashpath)',
+                            details: e
+                        };
+                        if (recover) {
+                            errors.push(error);
+                            return {type: 'error', error};
+                        } else {
+                            error.stack = (new Error()).stack;
+                            throw error;
+                        }
                     }
                     break;
                 case 'operator':
@@ -2067,7 +2148,11 @@ const parser = (() => {
             };
             handleError(err);
         }
+
         expr = processAST(expr);
+        if (astContainsFlash === true) {
+            expr.containsFlash = true;
+        }
 
         if(expr.type === 'parent' || typeof expr.seekingParent !== 'undefined') {
             // error - trying to derive ancestor at top level

@@ -1,0 +1,47 @@
+{
+    "id": "Patient.name",
+    "path": "Patient.name",
+    "short": "A name associated with the patient",
+    "definition": "A name associated with the individual.",
+    "comment": "A patient may have multiple names with different uses or applicable periods. For animals, the name is a \"HumanName\" in the sense that is assigned and used by humans and has the same patterns.",
+    "requirements": "Need to be able to track the patient by multiple names. Examples are your official name and a partner name.",
+    "min": 0,
+    "max": "*",
+    "base": {
+        "path": "Patient.name",
+        "min": 0,
+        "max": "*"
+    },
+    "type": [
+        {
+            "code": "HumanName"
+        }
+    ],
+    "constraint": [
+        {
+            "key": "ele-1",
+            "severity": "error",
+            "human": "All FHIR elements must have a @value or children",
+            "expression": "hasValue() or (children().count() > id.count())",
+            "xpath": "@value|f:*|h:div",
+            "source": "http://hl7.org/fhir/StructureDefinition/Element"
+        }
+    ],
+    "isModifier": false,
+    "isSummary": true,
+    "mapping": [
+        {
+            "identity": "v2",
+            "map": "PID-5, PID-9"
+        },
+        {
+            "identity": "rim",
+            "map": "name"
+        },
+        {
+            "identity": "cda",
+            "map": ".patient.name"
+        }
+    ],
+    "__fromDefinition": "http://hl7.org/fhir/StructureDefinition/Patient"
+}

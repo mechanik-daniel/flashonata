@@ -15,6 +15,10 @@ var chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 var expect = chai.expect;
 
+var provider = require("./conformanceProvider");
+var getSnapshot = provider.getSnapshot;
+var getElementDefinition = provider.getElementDefinition;
+
 let groups = fs.readdirSync(path.join(__dirname, "test-suite", "groups")).filter((name) => !name.endsWith(".json"));
 
 /**
@@ -74,11 +78,13 @@ describe("JSONata Test Suite", () => {
                 }
 
                 // Create a test based on the data in this testcase
-                it(testcase.description+": "+testcase.expr, function() {
+                it(testcase.description+": "+testcase.expr, async function() {
                     var expr;
                     // Start by trying to compile the expression associated with this test case
                     try {
-                        expr = jsonata(testcase.expr);
+                        expr = await jsonata(testcase.expr, {
+                            getSnapshot, getElementDefinition
+                        });
                         // If there is a timelimit and depth limit for this case, use the
                         // `timeboxExpression` function to limit evaluation
                         if ("timelimit" in testcase && "depth" in testcase) {

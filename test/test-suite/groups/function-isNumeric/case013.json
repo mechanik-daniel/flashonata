@@ -1,0 +1,6 @@
+{
+    "expr": "$isNumeric(null)",
+    "data": null,
+    "bindings": {},
+    "result": false
+}

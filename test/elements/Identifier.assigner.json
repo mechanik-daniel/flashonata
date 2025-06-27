@@ -1,0 +1,49 @@
+{
+    "id": "Identifier.assigner",
+    "path": "Identifier.assigner",
+    "short": "Organization that issued id (may be just text)",
+    "definition": "Organization that issued/manages the identifier.",
+    "comment": "The Identifier.assigner may omit the .reference element and only contain a .display element reflecting the name or other textual information about the assigning organization.",
+    "min": 0,
+    "max": "1",
+    "base": {
+        "path": "Identifier.assigner",
+        "min": 0,
+        "max": "1"
+    },
+    "type": [
+        {
+            "code": "Reference",
+            "targetProfile": [
+                "http://hl7.org/fhir/StructureDefinition/Organization"
+            ]
+        }
+    ],
+    "constraint": [
+        {
+            "key": "ele-1",
+            "severity": "error",
+            "human": "All FHIR elements must have a @value or children",
+            "expression": "hasValue() or (children().count() > id.count())",
+            "xpath": "@value|f:*|h:div",
+            "source": "http://hl7.org/fhir/StructureDefinition/Element"
+        }
+    ],
+    "isModifier": false,
+    "isSummary": true,
+    "mapping": [
+        {
+            "identity": "v2",
+            "map": "CX.4 / (CX.4,CX.9,CX.10)"
+        },
+        {
+            "identity": "rim",
+            "map": "II.assigningAuthorityName but note that this is an improper use by the definition of the field.  Also Role.scoper"
+        },
+        {
+            "identity": "servd",
+            "map": "./IdentifierIssuingAuthority"
+        }
+    ],
+    "__fromDefinition": "http://hl7.org/fhir/StructureDefinition/Identifier"
+}

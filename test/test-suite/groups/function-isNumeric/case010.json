@@ -1,0 +1,6 @@
+{
+    "expr": "$isNumeric({\"no-blah\": \"'blah' is undefined\"})",
+    "data": null,
+    "bindings": {},
+    "result": false
+}
