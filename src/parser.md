@@ -61,4 +61,4 @@ Larger than that:
 
 This means that any indent token should have the base indent number subtructed from it, and if what remains is zero than it's a top level separator.
 If what remains is negative, it's an error.
-If it's larger there must be a previous top-level rule that is 2 less.
+If it's larger there must be a previous top-level rule that is 2 spaces less.

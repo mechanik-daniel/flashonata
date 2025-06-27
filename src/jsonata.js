@@ -9,11 +9,11 @@
  * @description JSON query and transformation language
  */
 
-var datetime = require('./datetime');
-var fn = require('./functions');
-var utils = require('./utils');
+var datetime = require('./utils/datetime');
+var fn = require('./utils/functions');
+var utils = require('./utils/utils');
 var parser = require('./parser');
-var parseSignature = require('./signature');
+var parseSignature = require('./utils/signature');
 var processFlash = require('./fumeUtils/processFlash');
 
 /**

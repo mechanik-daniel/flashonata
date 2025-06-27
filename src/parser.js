@@ -6,7 +6,7 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-var parseSignature = require('./signature');
+var parseSignature = require('./utils/signature');
 var flattenFlashPath = require('./fumeUtils/flattenFlashPath');
 var transformFlashRule = require('./fumeUtils/transformFlashRule');
 
