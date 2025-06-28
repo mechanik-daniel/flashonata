@@ -1,6 +1,6 @@
 /* eslint-disable valid-jsdoc */
-const escapes = require('./escapes');
-const operators = require('./operators');
+import escapes from './escapes.js';
+import operators from './operators.js';
 
 const numregex = /^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/;
 
@@ -15,8 +15,7 @@ const numregex = /^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/;
  * @param {string} path The source string
  * @returns {Function} the function that returns the next token
  */
-module.exports = function (path) {
-    'use strict';
+export default function (path) {
     var position = 0; // The char position in the source string
     var length = path.length; // Overall length of the source string
     var lineStart = 0; // Keep track of the current line's start position
@@ -467,4 +466,4 @@ module.exports = function (path) {
     };
 
     return next;
-};
+}

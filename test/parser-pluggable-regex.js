@@ -1,11 +1,10 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable require-jsdoc */
-"use strict";
 
-var fumifier = require('../src/fumifier');
-var assert = require('assert');
-var chai = require("chai");
-var chaiAsPromised = require("chai-as-promised");
+import fumifier from '../src/fumifier.js';
+import assert from 'assert';
+import chai from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
 
 describe('Invoke parser with custom RegexEngine param', function() {

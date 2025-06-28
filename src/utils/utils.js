@@ -5,7 +5,6 @@
  */
 
 const utils = (() => {
-    'use strict';
 
     /**
      * Check if value is a finite number
@@ -219,4 +218,4 @@ const utils = (() => {
     };
 })();
 
-module.exports = utils;
+export default utils;

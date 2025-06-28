@@ -148,4 +148,4 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     return result;
 };
 
-module.exports = transformFlashRule;
+export default transformFlashRule;

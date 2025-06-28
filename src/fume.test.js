@@ -1,12 +1,17 @@
 /* eslint-disable no-console */
 /* eslint-disable strict */
-var fumifier = require("./fumifier");
+import fumifier from './fumifier.js';
+import { FhirSnapshotGenerator } from 'fhir-snapshot-generator';
+import { FhirStructureNavigator } from '@outburn/structure-navigator';
+
+var context = ['il.core.fhir.r4#0.17.0'];
+
 
 // const fumeUrl = new URL("https://server.develop.fume.health");
-var provider = require("../test/conformanceProvider");
-var getSnapshot = provider.getSnapshot;
+// var provider = require("../test/conformanceProvider");
+// var getSnapshot = provider.getSnapshot;
 
-var getElementDefinition = provider.getElementDefinition;
+// var getElementDefinition = provider.getElementDefinition;
 
 void async function () {
     // var expression = `
@@ -46,11 +51,17 @@ void async function () {
     // // }
     // `;
 
+    var generator = await FhirSnapshotGenerator.create({
+        context,
+        cachePath: './test/.test-cache',
+        fhirVersion: '4.0.1',
+        cacheMode: 'lazy'
+    });
+
+    var navigator = new FhirStructureNavigator(generator);
 
     var expression = "InstanceOf: il-core-patient\r\n* identifier[il-id].value = a";
-    var expr = await fumifier(expression, {
-        getSnapshot, getElementDefinition
-    });
+    var expr = await fumifier(expression, { navigator });
     var res = await expr.evaluate({a: 123});
     console.log('ast', JSON.stringify(await expr.ast(), null, 2));
     console.log('Result', res);

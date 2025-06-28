@@ -2,7 +2,7 @@
  * Token binding powers (or precedence levels)
  */
 
-module.exports = {
+export default {
     '.': 75,
     '[': 80,
     ']': 0,

@@ -1,10 +1,10 @@
-"use strict";
+import fumifier from '../src/fumifier.js';
+import request from 'request';
+import chai from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
-var fumifier = require('../src/fumifier');
-var request = require('request');
-var chai = require("chai");
 var expect = chai.expect;
-var chaiAsPromised = require("chai-as-promised");
+
 chai.use(chaiAsPromised);
 
 var fumifierWithCallback = function(expr, data, bindings) {

@@ -5,8 +5,9 @@ fumifier.js
 fumifier.min.js
 fumifier-es5.js
 fumifier-es5.min.js
+!src/fumifier.js
 node_modules/
 npm-debug.log
 .idea/
 .nyc_output
-snapshots/
+test/.test-cache

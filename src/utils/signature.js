@@ -4,10 +4,9 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-var utils = require('./utils');
+import utils from './utils.js';
 
 const signature = (() => {
-    'use strict';
 
     // A mapping between the function signature symbols and the full plural of the type
     // Expected to be used in error messages
@@ -314,4 +313,4 @@ const signature = (() => {
     return parseSignature;
 })();
 
-module.exports = signature;
+export default signature;

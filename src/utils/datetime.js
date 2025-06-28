@@ -4,7 +4,7 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-const utils = require('./utils');
+import utils from './utils.js';
 
 /**
  * DateTime formatting and parsing functions
@@ -12,7 +12,6 @@ const utils = require('./utils');
  * @type {{formatInteger, formatDateTime, parseInteger, parseDateTime}}
  */
 const dateTime = (function () {
-    'use strict';
 
     const stringToArray = utils.stringToArray;
 
@@ -1353,4 +1352,5 @@ const dateTime = (function () {
     };
 })();
 
-module.exports = dateTime;
+export default dateTime;
+

@@ -5,20 +5,27 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-"use strict";
+import fs from "fs";
+import path from "path";
+import fumifier from "../src/fumifier.js";
+import chai from "chai";
+import chaiAsPromised from "chai-as-promised";
+import { FhirStructureNavigator } from "@outburn/structure-navigator";
+import { FhirSnapshotGenerator } from "fhir-snapshot-generator";
 
-var fs = require("fs");
-var path = require("path");
-var fumifier = require("../src/fumifier");
-var chai = require("chai");
-var chaiAsPromised = require("chai-as-promised");
+import { fileURLToPath } from 'url';
+
 chai.use(chaiAsPromised);
 var expect = chai.expect;
 
-var provider = require("./conformanceProvider");
-var getSnapshot = provider.getSnapshot;
-var getElementDefinition = provider.getElementDefinition;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// var provider = require("./conformanceProvider");
+// var getSnapshot = provider.getSnapshot;
+// var getElementDefinition = provider.getElementDefinition;
+
+const context = ['il.core.fhir.r4#0.17.0'];
 let groups = fs.readdirSync(path.join(__dirname, "test-suite", "groups")).filter((name) => !name.endsWith(".json"));
 
 /**
@@ -44,7 +51,14 @@ datasetnames.forEach((name) => {
 
 // This is the start of the set of tests associated with the test cases
 // found in the test-suite directory.
-describe("JSONata Test Suite", () => {
+describe("JSONata Test Suite", async () => {
+    const fsg = await FhirSnapshotGenerator.create({
+        context,
+        cachePath: './test/.test-cache',
+        fhirVersion: '4.0.1',
+        cacheMode: 'lazy'
+    });
+    const navigator = new FhirStructureNavigator(fsg);
     // Iterate over all groups of tests
     groups.forEach(group => {
         let filenames = fs.readdirSync(path.join(__dirname, "test-suite", "groups", group)).filter((name) => name.endsWith(".json"));
@@ -83,7 +97,7 @@ describe("JSONata Test Suite", () => {
                     // Start by trying to compile the expression associated with this test case
                     try {
                         expr = await fumifier(testcase.expr, {
-                            getSnapshot, getElementDefinition
+                            navigator
                         });
                         // If there is a timelimit and depth limit for this case, use the
                         // `timeboxExpression` function to limit evaluation

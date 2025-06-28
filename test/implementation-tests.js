@@ -8,11 +8,9 @@
  * in order to achieve 100% coverage for this implementation.
  */
 
-"use strict";
-
-var fumifier = require("../src/fumifier");
-var chai = require("chai");
-var chaiAsPromised = require("chai-as-promised");
+import fumifier from "../src/fumifier.js";
+import chai from "chai";
+import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 var expect = chai.expect;
 

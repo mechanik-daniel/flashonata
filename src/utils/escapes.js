@@ -1,5 +1,5 @@
 // JSON string escape sequences - see json.org
-module.exports = {
+export default {
     '"': '"',
     '\\': '\\',
     '/': '/',

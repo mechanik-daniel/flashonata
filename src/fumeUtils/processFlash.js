@@ -45,25 +45,29 @@
 // }
 // };
 
-var processFlash = async function (expr, options) {
-    'use strict';
-    var rootType;
-    var getElementDefinition = options.getElementDefinition;
+import createFhirFetchers from './createFhirFetchers.js';
+
+/**
+ * FLASH semantic processor
+ * @param {Object} expr - Parsed Fumifier expression
+ * @param {FhirStructureNavigator} navigator: FHIR structure navigator
+ * @param {Object} fhirTypeMeta - If inside a FLASH block, this is the resolved FHIR type metadata according to `InstanceOf`
+ * @param {string} parentPath - If inside a FLASH rule, this is the path of the parent FLASH rule
+ * @returns {{evaluate: evaluate, assign: assign}} Semantically enriched AST
+ */
+var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
     var result = expr;
-    var getSnapshot = options.getSnapshot;
+    const {
+        getElement,
+        // getChildren,
+        getTypeMeta
+    } = createFhirFetchers(navigator);
     switch (expr.type) {
         case 'flashblock':
-            rootType = await getSnapshot(expr.instanceof);
-            if (rootType) {
-                result.fhirType = {
-                    type: rootType.type,
-                    kind: rootType.kind,
-                    url: rootType.url,
-                    name: rootType.name,
-                    version: rootType.version,
-                    derivation: rootType.derivation,
-                    baseDefinition: rootType.baseDefinition
-                };
+            fhirTypeMeta = await getTypeMeta(expr.instanceof);
+
+            if (fhirTypeMeta) {
+                result.fhirTypeMeta = fhirTypeMeta;
             } else {
                 var typeError = {
                     code: 'F1026',
@@ -77,14 +81,13 @@ var processFlash = async function (expr, options) {
                 throw typeError;
             }
             if (expr.rules && expr.rules.length > 0) {
-                var rules = await Promise.all(expr.rules.map(async (rule) => await processFlash(rule, options)));
+                var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));
                 result.rules = rules;
             }
             break;
         case 'flashrule':
-            rootType = await getSnapshot(expr.rootFhirType);
             var path = expr.fullPath;
-            var ed = await getElementDefinition(rootType.url, path);
+            var ed = await getElement(fhirTypeMeta, path);
             if (ed) {
                 [
                     'mapping',
@@ -107,30 +110,30 @@ var processFlash = async function (expr, options) {
                     line: expr.line,
                     token: '(flashpath)',
                     value: path,
-                    fhirType: rootType.name
+                    fhirType: fhirTypeMeta.name
                 };
                 elementError.stack = (new Error()).stack;
                 throw elementError;
             }
             if (expr.rules && expr.rules.length > 0) {
-                var subrules = await Promise.all(expr.rules.map(async (rule) => await processFlash(rule, {...options, parentPath: path })));
+                var subrules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta, path)));
                 result.rules = subrules;
             }
             break;
         case 'block':
             /* istanbul ignore else */
             if (expr.expressions && expr.expressions.length > 0) {
-                result.expressions = await Promise.all(expr.expressions.map(async (expresion) => await processFlash(expresion, options)));
+                result.expressions = await Promise.all(expr.expressions.map((expresion) => processFlash(expresion, navigator, fhirTypeMeta, parentPath)));
             }
             break;
         case 'path':
             /* istanbul ignore else */
             if (expr.steps && expr.steps.length > 0) {
-                result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, options)));
+                result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, navigator, fhirTypeMeta, parentPath)));
             }
             break;
     }
     return result;
 };
 
-module.exports = processFlash;
+export default processFlash;

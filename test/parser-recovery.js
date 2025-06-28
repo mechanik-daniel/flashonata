@@ -1,8 +1,7 @@
-"use strict";
+import fumifier from '../src/fumifier.js';
+import assert from 'assert';
+import chai from 'chai';
 
-var fumifier = require('../src/fumifier');
-var assert = require('assert');
-var chai = require("chai");
 var expect = chai.expect;
 
 describe('Invoke parser with valid expression', function() {

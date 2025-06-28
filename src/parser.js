@@ -6,14 +6,13 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-const parseSignature = require('./utils/signature');
-const flattenFlashPath = require('./fumeUtils/flattenFlashPath');
-const transformFlashRule = require('./fumeUtils/transformFlashRule');
-const operators = require('./utils/operators');
-const tokenizer = require('./utils/tokenizer');
+import parseSignature from './utils/signature.js';
+import flattenFlashPath from './fumeUtils/flattenFlashPath.js';
+import transformFlashRule from './fumeUtils/transformFlashRule.js';
+import operators from './utils/operators.js';
+import tokenizer from './utils/tokenizer.js';
 
 const parser = (() => {
-    'use strict';
 
     /**
      * Runs the scanner/tokenizer/lexer on the whole input and return an array of simple tokens
@@ -1655,4 +1654,4 @@ const parser = (() => {
     return parser;
 })();
 
-module.exports = parser;
+export default parser;

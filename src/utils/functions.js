@@ -4,10 +4,9 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-var utils = require('./utils');
+import utils from './utils.js';
 
 const functions = (() => {
-    'use strict';
 
     var isNumeric = utils.isNumeric;
     var isArrayOfStrings = utils.isArrayOfStrings;
@@ -2132,4 +2131,4 @@ const functions = (() => {
     };
 })();
 
-module.exports = functions;
+export default functions;

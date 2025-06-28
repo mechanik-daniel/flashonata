@@ -92,4 +92,4 @@ var flattenFlashPath = function (ast) {
     };
 };
 
-module.exports = flattenFlashPath;
+export default flattenFlashPath;
