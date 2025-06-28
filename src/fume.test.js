@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable strict */
-var flashteval = require("./flashteval");
+var fumifier = require("./fumifier");
 
 // const fumeUrl = new URL("https://server.develop.fume.health");
 var provider = require("../test/conformanceProvider");
@@ -48,7 +48,7 @@ void async function () {
 
 
     var expression = "InstanceOf: il-core-patient\r\n* identifier[il-id].value = a";
-    var expr = await flashteval(expression, {
+    var expr = await fumifier(expression, {
         getSnapshot, getElementDefinition
     });
     var res = await expr.evaluate({a: 123});

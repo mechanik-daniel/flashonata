@@ -1,6 +1,6 @@
 "use strict";
 
-var flashteval = require('../src/flashteval');
+var fumifier = require('../src/fumifier');
 var assert = require('assert');
 var chai = require("chai");
 var expect = chai.expect;
@@ -8,7 +8,7 @@ var expect = chai.expect;
 describe('Invoke parser with valid expression', function() {
     describe('Account.Order[0]', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account.Order[0]', { recover: true });
+            var expr = fumifier('Account.Order[0]', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -47,7 +47,7 @@ describe('Invoke parser with valid expression', function() {
 describe('Invoke parser with incomplete expression', function() {
     describe('Account.', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account.', { recover: true });
+            var expr = fumifier('Account.', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -82,7 +82,7 @@ describe('Invoke parser with incomplete expression', function() {
 
     describe('Account[', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account[', { recover: true });
+            var expr = fumifier('Account[', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -130,7 +130,7 @@ describe('Invoke parser with incomplete expression', function() {
 
     describe('Account.Order[;0].Product', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account.Order[;0].Product', { recover: true });
+            var expr = fumifier('Account.Order[;0].Product', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -200,7 +200,7 @@ describe('Invoke parser with incomplete expression', function() {
 
     describe('Account.Order[0;].Product', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account.Order[0;].Product', { recover: true });
+            var expr = fumifier('Account.Order[0;].Product', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -250,7 +250,7 @@ describe('Invoke parser with incomplete expression', function() {
 
     describe('Account.Order[0].Product;', function() {
         it('should return ast', function() {
-            var expr = flashteval('Account.Order[0].Product;', { recover: true });
+            var expr = fumifier('Account.Order[0].Product;', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -305,7 +305,7 @@ describe('Invoke parser with incomplete expression', function() {
 
     describe('$inputSource[0].UnstructuredAnswers^()[0].Text', function() {
         it('should return ast', function() {
-            var expr = flashteval('$inputSource[0].UnstructuredAnswers^()[0].Text', { recover: true });
+            var expr = fumifier('$inputSource[0].UnstructuredAnswers^()[0].Text', { recover: true });
             var ast = expr.ast();
             var expected_ast = {
                 "type": "path",
@@ -466,7 +466,7 @@ describe('Invoke parser with incomplete expression', function() {
     describe('An expression with syntax error should not be executable', function() {
         describe('Account.', function() {
             it('should return ast', function() {
-                var expr = flashteval('Account.', { recover: true });
+                var expr = fumifier('Account.', { recover: true });
                 return expect(expr.evaluate({}))
                     .to.be.rejected
                     .to.eventually.deep.contain({position: 0, code: 'S0500'});

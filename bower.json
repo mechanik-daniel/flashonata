@@ -1,7 +1,7 @@
 {
   "name": "jsonata",
   "description": "JSON query and transformation language",
-  "main": "flashteval.js",
+  "main": "fumifier.js",
   "license": "MIT",
   "keywords": [
     "JSON",
