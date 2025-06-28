@@ -6,7 +6,7 @@
 
 /**
  * @module Fumifier
- * @description JSON query and transformation language
+ * @description FUME transformation evaluator
  */
 
 import datetime from './utils/datetime.js';
@@ -16,12 +16,6 @@ import parser from './parser.js';
 import parseSignature from './utils/signature.js';
 import processFlash from './fumeUtils/processFlash.js';
 
-/**
- * jsonata
- * @function
- * @param {Object} expr - JSONata expression
- * @returns {{evaluate: evaluate, assign: assign}} Evaluated expression
- */
 var fumifier = (function() {
 
     var isNumeric = utils.isNumeric;
@@ -42,10 +36,10 @@ var fumifier = (function() {
 
     /**
      * Evaluate expression against input data
-     * @param {Object} expr - JSONata expression
+     * @param {Object} expr - Fumifier expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluate(expr, input, environment) {
         var result;
@@ -162,7 +156,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluatePath(expr, input, environment) {
         var inputSequence;
@@ -250,7 +244,7 @@ var fumifier = (function() {
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
      * @param {boolean} lastStep - flag the last step in a path
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateStep(expr, input, environment, lastStep) {
         var result;
@@ -320,7 +314,7 @@ var fumifier = (function() {
      * @param {Object} input - Input data to evaluate against
      * @param {Object} tupleBindings - The tuple stream
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateTupleStep(expr, input, tupleBindings, environment) {
         var result;
@@ -394,7 +388,7 @@ var fumifier = (function() {
      * @param {Object} predicate - filter expression
      * @param {Object} input - Input data to apply predicates against
      * @param {Object} environment - Environment
-     * @returns {*} Result after applying predicates
+     * @returns {Promise<any>} Result after applying predicates
      */
     async function evaluateFilter(predicate, input, environment) {
         var results = createSequence();
@@ -456,7 +450,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateBinary(expr, input, environment) {
         var result;
@@ -518,7 +512,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateUnary(expr, input, environment) {
         var result;
@@ -581,7 +575,7 @@ var fumifier = (function() {
      * @param {Object} environment - Environment
      * @returns {*} Evaluated input data
      */
-    function evaluateName(expr, input, environment) {
+    function evaluateName(expr, input) {
         // lookup the 'name' item in the input
         return fn.lookup(input, expr.value);
     }
@@ -618,7 +612,6 @@ var fumifier = (function() {
             });
         }
 
-        //        result = normalizeSequence(results);
         return results;
     }
 
@@ -856,7 +849,7 @@ var fumifier = (function() {
      * @param {Object} lhs - LHS value
      * @param {Function} evalrhs - function to evaluate RHS value
      * @param {Object} op - opcode
-     * @returns {*} Result
+     * @returns {Promise<any>} Result
      */
     async function evaluateBooleanExpression(lhs, evalrhs, op) {
         var result;
@@ -906,7 +899,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {{}} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateGroupExpression(expr, input, environment) {
         var result = {};
@@ -1059,7 +1052,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateBindExpression(expr, input, environment) {
         // The RHS is the expression to evaluate
@@ -1074,7 +1067,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateCondition(expr, input, environment) {
         var result;
@@ -1092,7 +1085,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateCoalesce(expr, input, environment) {
         var result;
@@ -1110,7 +1103,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateBlock(expr, input, environment) {
         var result;
@@ -1131,7 +1124,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated FHIR instance
+     * @returns {Promise<any>} Evaluated FHIR instance
      */
     async function evaluateFlashBlock(expr, input, environment) {
         var result = {};
@@ -1168,7 +1161,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated FHIR element
+     * @returns {Promise<any>} Evaluated FHIR element
     */
     async function evaluateFlashRule(expr, input, environment) {
         var result = {};
@@ -1282,7 +1275,7 @@ var fumifier = (function() {
      * @param {Object} expr - AST for operator
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Ordered sequence
+     * @returns {Promise<any>} Ordered sequence
      */
     async function evaluateSortExpression(expr, input, environment) {
         var result;
@@ -1475,7 +1468,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateApplyExpression(expr, input, environment) {
         var result;
@@ -1516,7 +1509,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluateFunction(expr, input, environment, applyto) {
         var result;
@@ -1584,7 +1577,7 @@ var fumifier = (function() {
      * @param {Array} args - Arguments
      * @param {Object} input - input
      * @param {Object} environment - environment
-     * @returns {*} Result of procedure
+     * @returns {Promise<any>} Result of procedure
      */
     async function apply(proc, args, input, environment) {
         var result;
@@ -1614,7 +1607,7 @@ var fumifier = (function() {
      * @param {Array} args - Arguments
      * @param {Object} input - input
      * @param {Object} environment - environment
-     * @returns {*} Result of procedure
+     * @returns {Promise<any>} Result of procedure
      */
     async function applyInner(proc, args, input, environment) {
         var result;
@@ -1699,7 +1692,7 @@ var fumifier = (function() {
      * @param {Object} expr - JSONata expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
-     * @returns {*} Evaluated input data
+     * @returns {Promise<any>} Evaluated input data
      */
     async function evaluatePartialApplication(expr, input, environment) {
         // partially apply a function
@@ -1762,7 +1755,7 @@ var fumifier = (function() {
      * Apply procedure
      * @param {Object} proc - Procedure
      * @param {Array} args - Arguments
-     * @returns {*} Result of procedure
+     * @returns {Promise<any>} Result of procedure
      */
     async function applyProcedure(proc, args) {
         var result;
@@ -1834,7 +1827,7 @@ var fumifier = (function() {
      * Apply native function
      * @param {Object} proc - Procedure
      * @param {Object} env - Environment
-     * @returns {*} Result of applying native function
+     * @returns {Promise<any>} Result of applying native function
      */
     async function applyNativeFunction(proc, env) {
         var sigArgs = getNativeFunctionArguments(proc);
@@ -1886,7 +1879,7 @@ var fumifier = (function() {
     /**
      * parses and evaluates the supplied expression
      * @param {string} expr - expression to evaluate
-     * @returns {*} - result of evaluating the expression
+     * @returns {Promise<any>} - result of evaluating the expression
      */
     async function functionEval(expr, focus) {
         // undefined inputs always return undefined
@@ -2222,35 +2215,14 @@ var fumifier = (function() {
         // Otherwise retain the original `err.message`
     }
 
-    // function shiftASTPositions(ast, shiftBy) {
-    //     if (typeof ast !== 'object' || ast === null) {
-    //         return ast; // Return non-object values as is
-    //     }
-    
-    //     // Create a copy of the AST to avoid mutating the original
-    //     const newAST = Array.isArray(ast) ? [] : {};
-    
-    //     for (const key in ast) {
-    //         if (key === 'position' && typeof ast[key] === 'number') {
-    //             // Shift position value
-    //             newAST[key] = ast[key] + shiftBy;
-    //         } else {
-    //             // Recursively process nested objects/arrays
-    //             newAST[key] = shiftASTPositions(ast[key], shiftBy);
-    //         }
-    //     }
-    
-    //     return newAST;
-    // }
-
     /**
-     * JSONata
-     * @param {Object} expr - JSONata expression
-     * @param {Object} options
+     * Fumifier
+     * @param {string} expr - Fumifier expression string
+     * @param {FumifierOptions} options
      * @param {boolean} options.recover: attempt to recover on parse error
      * @param {Function} options.RegexEngine: RegEx class constructor to use
      * @param {FhirStructureNavigator} options.navigator: FHIR structure navigator
-     * @returns {{evaluate: evaluate, assign: assign}} Evaluated expression
+     * @returns {Promise<fumifier.Expression> | fumifier.Expression} Compiled expression object
      */
     function fumifier(expr, options) {
         var ast;
