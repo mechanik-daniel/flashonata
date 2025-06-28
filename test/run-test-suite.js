@@ -52,13 +52,6 @@ datasetnames.forEach((name) => {
 // This is the start of the set of tests associated with the test cases
 // found in the test-suite directory.
 describe("JSONata Test Suite", async () => {
-    const fsg = await FhirSnapshotGenerator.create({
-        context,
-        cachePath: './test/.test-cache',
-        fhirVersion: '4.0.1',
-        cacheMode: 'lazy'
-    });
-    const navigator = new FhirStructureNavigator(fsg);
     // Iterate over all groups of tests
     groups.forEach(group => {
         let filenames = fs.readdirSync(path.join(__dirname, "test-suite", "groups", group)).filter((name) => name.endsWith(".json"));
@@ -81,6 +74,18 @@ describe("JSONata Test Suite", async () => {
             }
         });
         describe("Group: " + group, () => {
+            var navigator;
+
+            before(async () => {
+                const fsg = await FhirSnapshotGenerator.create({
+                    context,
+                    cachePath: './test/.test-cache',
+                    fhirVersion: '4.0.1',
+                    cacheMode: 'lazy'
+                });
+                navigator = new FhirStructureNavigator(fsg);
+            });
+
             // Iterate over all cases
             for (let i = 0; i < cases.length; i++) {
                 // Extract the current test case of interest
