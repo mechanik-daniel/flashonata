@@ -1,10 +1,10 @@
 {
-  "name": "flashonata",
+  "name": "flashteval",
   "version": "1.0.0",
-  "description": "JSONata with adaptations for FUME",
-  "module": "jsonata.js",
-  "main": "jsonata.js",
-  "typings": "jsonata.d.ts",
+  "description": "FLASH Transformation Evaluator (FlashTEval) is FUME's mapping language parser and executor.",
+  "module": "flashteval.js",
+  "main": "flashteval.js",
+  "typings": "flashteval.d.ts",
   "scripts": {
     "fume-test": "node src/fume.test.js",
     "pretest": "npm run lint",
@@ -13,16 +13,16 @@
     "--posttest": "npm run check-coverage && npm run browserify && npm run minify && npm run build-es5",
     "build-es5": "npm run mkdir-dist && npm run regenerator && npm run browserify-es5 && npm run minify-es5",
     "check-coverage": "nyc check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
-    "browserify": "browserify src/jsonata.js --outfile jsonata.js --standalone jsonata",
+    "browserify": "browserify src/flashteval.js --outfile flashteval.js --standalone flashteval",
     "mkdir-dist": "mkdirp ./dist",
     "regenerator": "babel src --out-dir dist --presets=@babel/env",
-    "browserify-es5": "regenerator --include-runtime polyfill.js > jsonata-es5.js; browserify dist/jsonata.js --standalone jsonata >> jsonata-es5.js",
+    "browserify-es5": "regenerator --include-runtime polyfill.js > flashteval-es5.js; browserify dist/flashteval.js --standalone flashteval >> flashteval-es5.js",
     "prepublishOnly": "npm run browserify && npm run minify && npm run build-es5",
     "lint": "eslint src",
     "doc": "jsdoc --configure jsdoc.json .",
     "cover": "nyc _mocha",
-    "minify": "uglifyjs jsonata.js -o jsonata.min.js --compress --mangle",
-    "minify-es5": "uglifyjs jsonata-es5.js -o jsonata-es5.min.js --compress --mangle"
+    "minify": "uglifyjs flashteval.js -o flashteval.min.js --compress --mangle",
+    "minify-es5": "uglifyjs flashteval-es5.js -o flashteval-es5.min.js --compress --mangle"
   },
   "license": "MIT",
   "keywords": [

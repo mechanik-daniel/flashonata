@@ -2,8 +2,8 @@
 // Project: https://github.com/jsonata-js/jsonata
 // Definitions by: Nick <https://github.com/nick121212> and Michael M. Tiller <https://github.com/xogeny>
 
-declare function jsonata(str: string, options?: jsonata.JsonataOptions): jsonata.Expression;
-declare namespace jsonata {
+declare function flashteval(str: string, options?: flashteval.flashtevalOptions): flashteval.Expression;
+declare namespace flashteval {
 
   interface JsonataOptions {
     recover?: boolean,
@@ -69,4 +69,4 @@ declare namespace jsonata {
   }
 }
 
-export = jsonata;
+export = flashteval;

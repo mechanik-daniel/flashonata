@@ -2,7 +2,7 @@
 /* eslint-disable require-jsdoc */
 "use strict";
 
-var jsonata = require('../src/jsonata');
+var flashteval = require('../src/flashteval');
 var assert = require('assert');
 var chai = require("chai");
 var chaiAsPromised = require("chai-as-promised");
@@ -23,7 +23,7 @@ describe('Invoke parser with custom RegexEngine param', function() {
     }
 
     it('should call RegexEngine param constructure during evaluation', async function() {
-        var expr = jsonata('$replace(\"foo\", /bar/, \"baaz\")', { RegexEngine: RegexEngineSpy });
+        var expr = flashteval('$replace(\"foo\", /bar/, \"baaz\")', { RegexEngine: RegexEngineSpy });
         await expr.evaluate();
         assert.deepEqual(regexContentSpy.toString(), "/bar/g");
         assert.deepEqual(regexEvalSpy, "foo");

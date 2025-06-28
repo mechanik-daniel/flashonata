@@ -9,7 +9,7 @@
 
 var fs = require("fs");
 var path = require("path");
-var jsonata = require("../src/jsonata");
+var flashteval = require("../src/flashteval");
 var chai = require("chai");
 var chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
@@ -72,7 +72,7 @@ describe("JSONata Test Suite", () => {
                 // Extract the current test case of interest
                 let testcase = cases[i];
 
-                // if the testcase references an external jsonata file, read it in
+                // if the testcase references an external flashteval file, read it in
                 if(testcase['expr-file']) {
                     testcase.expr = fs.readFileSync(path.join(__dirname, "test-suite", "groups", group, testcase['expr-file'])).toString();
                 }
@@ -82,7 +82,7 @@ describe("JSONata Test Suite", () => {
                     var expr;
                     // Start by trying to compile the expression associated with this test case
                     try {
-                        expr = await jsonata(testcase.expr, {
+                        expr = await flashteval(testcase.expr, {
                             getSnapshot, getElementDefinition
                         });
                         // If there is a timelimit and depth limit for this case, use the
@@ -185,12 +185,12 @@ function timeboxExpression(expr, timeout, maxDepth) {
     };
 
     // register callbacks
-    expr.assign(Symbol.for('jsonata.__evaluate_entry'), function(expr, input, env) {
+    expr.assign(Symbol.for('flashteval.__evaluate_entry'), function(expr, input, env) {
         if (env.isParallelCall) return;
         depth++;
         checkRunnaway();
     });
-    expr.assign(Symbol.for('jsonata.__evaluate_exit'), function(expr, input, env) {
+    expr.assign(Symbol.for('flashteval.__evaluate_exit'), function(expr, input, env) {
         if (env.isParallelCall) return;
         depth--;
         checkRunnaway();
@@ -203,7 +203,7 @@ function timeboxExpression(expr, timeout, maxDepth) {
  *
  * @param {Object} datasets Object mapping dataset names to JS values
  * @param {Object} testcase Testcase data read from testcase file
- * @returns {any} The input data to use when evaluating the jsonata expression
+ * @returns {any} The input data to use when evaluating the flashteval expression
  */
 function resolveDataset(datasets, testcase) {
     if ("data" in testcase) {

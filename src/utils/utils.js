@@ -82,7 +82,7 @@ const utils = (() => {
      * @returns {boolean} - true if it is a function (lambda or built-in)
      */
     function isFunction(arg) {
-        return ((arg && (arg._jsonata_function === true || arg._jsonata_lambda === true)) || typeof arg === 'function');
+        return ((arg && (arg._flashteval_function === true || arg._flashteval_lambda === true)) || typeof arg === 'function');
     }
 
     /**
@@ -103,7 +103,7 @@ const utils = (() => {
      * @returns {boolean} - true if it is a lambda function
      */
     function isLambda(arg) {
-        return arg && arg._jsonata_lambda === true;
+        return arg && arg._flashteval_lambda === true;
     }
 
     // istanbul ignore next
