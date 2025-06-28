@@ -58,9 +58,10 @@ import createFhirFetchers from './createFhirFetchers.js';
 var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
     var result = expr;
     var fetchError;
+    var fhirChildren;
     const {
         getElement,
-        // getChildren,
+        getChildren,
         getTypeMeta
     } = createFhirFetchers(navigator);
     switch (expr.type) {
@@ -83,6 +84,25 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
                 };
                 typeError.stack = (fetchError ?? new Error()).stack;
                 throw typeError;
+            }
+            try {
+                fhirChildren = await getChildren(fhirTypeMeta);
+            } catch (e) {
+                fetchError = e;
+            }
+            if (fhirChildren) {
+                result.fhirChildren = fhirChildren;
+            } else {
+                var childrenError = {
+                    code: 'F1030',
+                    position: expr.position,
+                    line: expr.line,
+                    token: 'InstanceOf:',
+                    value: expr.instanceof,
+                    message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used in an 'InstanceOf:' declaration`
+                };
+                childrenError.stack = (fetchError ?? new Error()).stack;
+                throw childrenError;
             }
             if (expr.rules && expr.rules.length > 0) {
                 var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));

@@ -13,7 +13,7 @@ function createFhirFetchers(navigator) {
             return await navigator.getElement(snapshotId, path);
         },
         getChildren: async function (snapshotId, path) {
-            return await navigator.getChildren(snapshotId, path);
+            return await navigator.getChildren(snapshotId, path ?? '.');
         },
         getTypeMeta: async function (snapshotId) {
             return await navigator.getFsg().getMetadata(snapshotId);
