@@ -87,7 +87,13 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
             break;
         case 'flashrule':
             var path = expr.fullPath;
-            var ed = await getElement(fhirTypeMeta, path);
+            var ed;
+            var fetchError;
+            try {
+                ed = await getElement(fhirTypeMeta, path);
+            } catch (e) {
+                fetchError = e;
+            }
             if (ed) {
                 [
                     'mapping',
@@ -112,7 +118,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
                     value: path,
                     fhirType: fhirTypeMeta.name
                 };
-                elementError.stack = (new Error()).stack;
+                elementError.stack = (fetchError ?? new Error()).stack;
                 throw elementError;
             }
             if (expr.rules && expr.rules.length > 0) {
