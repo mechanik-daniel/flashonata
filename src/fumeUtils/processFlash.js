@@ -98,19 +98,6 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
                 fetchError = e;
             }
             if (ed) {
-                [
-                    'mapping',
-                    'mustSupport',
-                    'isSummary',
-                    'isModifier',
-                    'requirements',
-                    'comment',
-                    'definition',
-                    'isModifierReason',
-                    'meaningWhenMissing',
-                    'example',
-                    'short'
-                ].map((element) => delete ed[element]);
                 result.elementDefinition = ed;
             } else {
                 var elementError = {
