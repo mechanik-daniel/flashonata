@@ -60,7 +60,7 @@ void async function () {
 
     var navigator = new FhirStructureNavigator(generator);
 
-    var expression = "InstanceOf: Patient\n* a = b";
+    var expression = "InstanceOf: Binary";
     var expr = await fumifier(expression, { navigator });
     var res = await expr.evaluate({a: 123});
     console.log('ast', JSON.stringify(await expr.ast(), null, 2));
