@@ -57,6 +57,7 @@ import createFhirFetchers from './createFhirFetchers.js';
  */
 var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
     var result = expr;
+    var fetchError;
     const {
         getElement,
         // getChildren,
@@ -64,8 +65,11 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
     } = createFhirFetchers(navigator);
     switch (expr.type) {
         case 'flashblock':
-            fhirTypeMeta = await getTypeMeta(expr.instanceof);
-
+            try {
+                fhirTypeMeta = await getTypeMeta(expr.instanceof);
+            } catch (e) {
+                fetchError = e;
+            }
             if (fhirTypeMeta) {
                 result.fhirTypeMeta = fhirTypeMeta;
             } else {
@@ -77,7 +81,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
                     value: expr.instanceof,
                     message: `Could not find a FHIR type/profile definition with identifier '${expr.instanceof}'`
                 };
-                typeError.stack = (new Error()).stack;
+                typeError.stack = (fetchError ?? new Error()).stack;
                 throw typeError;
             }
             if (expr.rules && expr.rules.length > 0) {
@@ -88,7 +92,6 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
         case 'flashrule':
             var path = expr.fullPath;
             var ed;
-            var fetchError;
             try {
                 ed = await getElement(fhirTypeMeta, path);
             } catch (e) {
