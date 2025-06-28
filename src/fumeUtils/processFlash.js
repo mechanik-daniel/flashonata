@@ -121,13 +121,13 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
             }
             break;
         case 'block':
-            /* istanbul ignore else */
+            /* c8 ignore else */
             if (expr.expressions && expr.expressions.length > 0) {
                 result.expressions = await Promise.all(expr.expressions.map((expresion) => processFlash(expresion, navigator, fhirTypeMeta, parentPath)));
             }
             break;
         case 'path':
-            /* istanbul ignore else */
+            /* c8 ignore else */
             if (expr.steps && expr.steps.length > 0) {
                 result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, navigator, fhirTypeMeta, parentPath)));
             }

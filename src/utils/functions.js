@@ -1318,7 +1318,7 @@ const functions = (() => {
         if (precision) {
             // Shift back
             value = result.toString().split('e');
-            /* istanbul ignore next */
+            /* c8 ignore next */
             result = +(value[0] + 'e' + (value[1] ? (+value[1] - precision) : -precision));
         }
         if (Object.is(result, -0)) { // ESLint rule 'no-compare-neg-zero' suggests this way
@@ -2088,7 +2088,7 @@ const functions = (() => {
 
         if (typeof val === 'string') return isStrFhirDecimal(val);
 
-        /* istanbul ignore next */
+        /* c8 ignore next */
         return false;
     }
 

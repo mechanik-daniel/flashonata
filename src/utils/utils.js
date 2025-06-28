@@ -33,7 +33,7 @@ const utils = (() => {
      */
     function isArrayOfStrings(arg) {
         var result = false;
-        /* istanbul ignore else */
+        /* c8 ignore else */
         if(Array.isArray(arg)) {
             result = (arg.filter(function(item){return typeof item !== 'string';}).length === 0);
         }
@@ -105,7 +105,7 @@ const utils = (() => {
         return arg && arg._fumifier_lambda === true;
     }
 
-    // istanbul ignore next
+    /* c8 ignore next */
     var iteratorSymbol = (typeof Symbol === "function" ? Symbol : {}).iterator || "@@iterator";
 
     /**

@@ -237,7 +237,7 @@ const parser = (() => {
                     var indentValue = next_token.value; // this is the indent number
                     // go to next token
                     next_token = lexer(infix, true);
-                    /* istanbul ignore else  */
+                    /* c8 ignore else */
                     if (next_token.type === 'operator' && next_token.value === 'Instance:') {
                         // It's a FLASH Instance: delaration
                         type = 'instance';
@@ -251,7 +251,7 @@ const parser = (() => {
                     }
                     value = next_token.value;
                     break;
-                /* istanbul ignore next */
+                /* c8 ignore next */
                 default:
                     return handleError({
                         code: "S0205",
@@ -1569,7 +1569,7 @@ const parser = (() => {
                     if (expr.value === 'and' || expr.value === 'or' || expr.value === 'in') {
                         expr.type = 'name';
                         result = processAST(expr);
-                    } else /* istanbul ignore else */ if (expr.value === '?') {
+                    } else /* c8 ignore else */ if (expr.value === '?') {
                         // partial application
                         result = expr;
                     } else {
@@ -1590,7 +1590,7 @@ const parser = (() => {
                     break;
                 default:
                     var code = "S0206";
-                    /* istanbul ignore else */
+                    /* c8 ignore else */
                     if (expr.id === '(end)') {
                         code = "S0207";
                     }
