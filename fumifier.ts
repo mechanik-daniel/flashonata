@@ -2,12 +2,15 @@
 // Project: https://github.com/jsonata-js/jsonata
 // Definitions by: Nick <https://github.com/nick121212> and Michael M. Tiller <https://github.com/xogeny>
 
-declare function fumifier(str: string, options?: fumifier.fumifierOptions): fumifier.Expression;
+import { FhirStructureNavigator } from "@outburn/structure-navigator";
+
+declare function fumifier(str: string, options?: fumifier.FumifierOptions): Promise<fumifier.Expression> | fumifier.Expression;
 declare namespace fumifier {
 
-  interface JsonataOptions {
+  interface FumifierOptions {
     recover?: boolean,
-    RegexEngine?: RegExp
+    RegexEngine?: RegExp,
+    navigator?: FhirStructureNavigator
   }
 
   interface ExprNode {
@@ -43,7 +46,7 @@ declare namespace fumifier {
     rhs?: ExprNode;
   }
 
-  interface JsonataError extends Error {
+  interface FumifierError extends Error {
     code: string;
     position: number;
     token: string;
@@ -62,11 +65,11 @@ declare namespace fumifier {
   }
   interface Expression {
     evaluate(input: any, bindings?: Record<string, any>): Promise<any>;
-    evaluate(input: any, bindings: Record<string, any> | undefined, callback: (err: JsonataError, resp: any) => void): void;
+    evaluate(input: any, bindings: Record<string, any> | undefined, callback: (err: FumifierError, resp: any) => void): void;
     assign(name: string, value: any): void;
     registerFunction(name: string, implementation: (this: Focus, ...args: any[]) => any, signature?: string): void;
     ast(): ExprNode;
   }
 }
 
-export = fumifier;
+export default fumifier;
