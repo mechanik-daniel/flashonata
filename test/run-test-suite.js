@@ -1,4 +1,3 @@
-/* eslint-disable valid-jsdoc */
 /* eslint-disable no-prototype-builtins */
 /**
  * © Copyright IBM Corp. 2016 All Rights Reserved
@@ -13,129 +12,153 @@ import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { FhirStructureNavigator } from "@outburn/structure-navigator";
 import { FhirSnapshotGenerator } from "fhir-snapshot-generator";
+
 import { fileURLToPath } from 'url';
 
 chai.use(chaiAsPromised);
-const expect = chai.expect;
+var expect = chai.expect;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// var provider = require("./conformanceProvider");
+// var getSnapshot = provider.getSnapshot;
+// var getElementDefinition = provider.getElementDefinition;
+
 const context = ['il.core.fhir.r4#0.17.0'];
+let groups = fs.readdirSync(path.join(__dirname, "test-suite", "groups")).filter((name) => !name.endsWith(".json"));
 
-const groups = fs
-    .readdirSync(path.join(__dirname, "test-suite", "groups"))
-    .filter((name) => !name.endsWith(".json"));
+/**
+ * Simple function to read in JSON
+ * @param {string} dir - Directory containing JSON file
+ * @param {string} file - Name of JSON file (relative to directory)
+ * @returns {Object} Parsed JSON object
+ */
+function readJSON(dir, file) {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(__dirname, dir, file)).toString());
+    } catch(e) {
+        throw new Error("Error reading "+file+" in "+dir+": "+e.message);
+    }
+}
 
-const datasets = {};
-const datasetnames = fs.readdirSync(path.join(__dirname, "test-suite", "datasets"));
+let datasets = {};
+let datasetnames = fs.readdirSync(path.join(__dirname, "test-suite", "datasets"));
 
 datasetnames.forEach((name) => {
     datasets[name.replace(".json", "")] = readJSON(path.join("test-suite", "datasets"), name);
 });
 
-describe("JSONata Test Suite", () => {
-    let fsg;
-    let navigator;
-
-    before(async () => {
-        fsg = await FhirSnapshotGenerator.create({
-            context,
-            cachePath: './test/.test-cache',
-            fhirVersion: '4.0.1',
-            cacheMode: 'lazy'
-        });
-        navigator = new FhirStructureNavigator(fsg);
+// This is the start of the set of tests associated with the test cases
+// found in the test-suite directory.
+describe("JSONata Test Suite", async () => {
+    const fsg = await FhirSnapshotGenerator.create({
+        context,
+        cachePath: './test/.test-cache',
+        fhirVersion: '4.0.1',
+        cacheMode: 'lazy'
     });
-
+    const navigator = new FhirStructureNavigator(fsg);
+    // Iterate over all groups of tests
     groups.forEach(group => {
-        const filenames = fs
-            .readdirSync(path.join(__dirname, "test-suite", "groups", group))
-            .filter((name) => name.endsWith(".json"));
-
+        let filenames = fs.readdirSync(path.join(__dirname, "test-suite", "groups", group)).filter((name) => name.endsWith(".json"));
+        // Read JSON file containing all cases for this group
         let cases = [];
         filenames.forEach(name => {
             const spec = readJSON(path.join("test-suite", "groups", group), name);
-            if (Array.isArray(spec)) {
+            if(Array.isArray(spec)) {
                 spec.forEach(item => {
-                    if (!item.description) {
+                    if(!item.description) {
                         item.description = name;
                     }
                 });
                 cases = cases.concat(spec);
             } else {
-                if (!spec.description) {
+                if(!spec.description) {
                     spec.description = name;
                 }
                 cases.push(spec);
             }
         });
-
         describe("Group: " + group, () => {
+            // Iterate over all cases
             for (let i = 0; i < cases.length; i++) {
-                const testcase = cases[i];
+                // Extract the current test case of interest
+                let testcase = cases[i];
 
-                if (testcase['expr-file']) {
-                    testcase.expr = fs.readFileSync(
-                        path.join(__dirname, "test-suite", "groups", group, testcase['expr-file'])
-                    ).toString();
+                // if the testcase references an external fumifier file, read it in
+                if(testcase['expr-file']) {
+                    testcase.expr = fs.readFileSync(path.join(__dirname, "test-suite", "groups", group, testcase['expr-file'])).toString();
                 }
 
-                it(testcase.description + ": " + testcase.expr, async function () {
-                    let expr;
-
+                // Create a test based on the data in this testcase
+                it(testcase.description+": "+testcase.expr, async function() {
+                    var expr;
+                    // Start by trying to compile the expression associated with this test case
                     try {
-                        const maybePromise = fumifier(testcase.expr, { navigator });
-                        expr = (maybePromise && typeof maybePromise.then === 'function') ?
-                            await maybePromise :
-                            maybePromise;
-
+                        expr = await fumifier(testcase.expr, {
+                            navigator
+                        });
+                        // If there is a timelimit and depth limit for this case, use the
+                        // `timeboxExpression` function to limit evaluation
                         if ("timelimit" in testcase && "depth" in testcase) {
                             this.timeout(testcase.timelimit * 2);
                             timeboxExpression(expr, testcase.timelimit, testcase.depth);
                         }
                     } catch (e) {
+                        // If we get here, an error was thrown.  So check to see if this particular
+                        // testcase expects an exception (as indicated by the presence of the
+                        // `code` field in the testcase)
                         if (testcase.code) {
-                            const code = e?.code || (typeof e === 'object' ? e.code : undefined);
-                            expect(code).to.equal(testcase.code);
+                            // See if we go the code we expected
+                            expect(e.code).to.equal(testcase.code);
+                            // If a token was specified, check for that too
                             if (testcase.hasOwnProperty("token")) {
                                 expect(e.token).to.equal(testcase.token);
                             }
-                            return;
                         } else {
-                            throw new Error("Got an unexpected exception: " + (e?.message || e));
+                            // If we get here, something went wrong because an exception
+                            // was thrown when we didn't expect one to be thrown.
+                            throw new Error("Got an unexpected exception: " + e.message);
                         }
                     }
+                    // If we managed to compile the expression...
+                    if (expr) {
+                        // Load the input data set.  First, check to see if the test case defines its own input
+                        // data (testcase.data).  If not, then look for a dataset number.  If it is -1, then that
+                        // means there is no data (so use undefined).  If there is a dataset number, look up the
+                        // input data in the datasets array.
+                        let dataset = resolveDataset(datasets, testcase);
 
-                    if (!expr) {
-                        throw new Error("No expression was parsed");
-                    }
-
-                    const dataset = resolveDataset(datasets, testcase);
-
-                    if ("undefinedResult" in testcase) {
-                        const result = await expr.evaluate(dataset, testcase.bindings);
-                        return expect(result).to.deep.equal(undefined);
-                    } else if ("result" in testcase) {
-                        const result = await expr.evaluate(dataset, testcase.bindings);
-                        return expect(result).to.deep.equal(testcase.result);
-                    } else if ("error" in testcase) {
-                        try {
-                            await expr.evaluate(dataset, testcase.bindings);
-                            throw new Error("Expected evaluation to fail, but it succeeded.");
-                        } catch (e) {
-                            expect(e).to.deep.contain(testcase.error);
+                        // Test cases have three possible outcomes from evaluation...
+                        if ("undefinedResult" in testcase) {
+                            // First is that we have an undefined result.  So, check
+                            // to see if the result we get from evaluation is undefined
+                            let result = expr.evaluate(dataset, testcase.bindings);
+                            return expect(result).to.eventually.deep.equal(undefined);
+                        } else if ("result" in testcase) {
+                            // Second is that a (defined) result was provided.  In this case,
+                            // we do a deep equality check against the expected result.
+                            let result = expr.evaluate(dataset, testcase.bindings);
+                            return expect(result).to.eventually.deep.equal(testcase.result);
+                        } else if ("error" in testcase) {
+                            // If an error was expected,
+                            // we do a deep equality check against the expected error structure.
+                            return expect(expr.evaluate(dataset, testcase.bindings))
+                                .to.be.rejected
+                                .to.eventually.deep.contain(testcase.error);
+                        } else if ("code" in testcase) {
+                            // Finally, if a `code` field was specified, we expected the
+                            // evaluation to fail and include the specified code in the
+                            // thrown exception.
+                            return expect(expr.evaluate(dataset, testcase.bindings))
+                                .to.be.rejected
+                                .to.eventually.have.property("code", testcase.code);
+                        } else {
+                            // If we get here, it means there is something wrong with
+                            // the test case data because there was nothing to check.
+                            throw new Error("Nothing to test in this test case");
                         }
-                    } else if ("code" in testcase) {
-                        try {
-                            await expr.evaluate(dataset, testcase.bindings);
-                            throw new Error(`Expected evaluation to fail with code '${testcase.code}', but it succeeded.`);
-                        } catch (e) {
-                            const code = e?.code || (typeof e === 'object' ? e.code : undefined);
-                            expect(code).to.equal(testcase.code);
-                        }
-                    } else {
-                        throw new Error("Nothing to test in this test case");
                     }
                 });
             }
@@ -144,32 +167,29 @@ describe("JSONata Test Suite", () => {
 });
 
 /**
- * Reads and parses JSON from disk
- */
-function readJSON(dir, file) {
-    try {
-        return JSON.parse(fs.readFileSync(path.join(__dirname, dir, file)).toString());
-    } catch (e) {
-        throw new Error("Error reading " + file + " in " + dir + ": " + e.message);
-    }
-}
-
-/**
- * Protect the process/browser from a runaway expression
+ * Protect the process/browser from a runnaway expression
+ * i.e. Infinite loop (tail recursion), or excessive stack growth
+ *
+ * @param {Object} expr - expression to protect
+ * @param {Number} timeout - max time in ms
+ * @param {Number} maxDepth - max stack depth
  */
 function timeboxExpression(expr, timeout, maxDepth) {
-    let depth = 0;
-    const time = Date.now();
+    var depth = 0;
+    var time = Date.now();
 
-    const checkRunnaway = () => {
+    var checkRunnaway = function() {
         if (maxDepth > 0 && depth > maxDepth) {
+            // stack too deep
             throw {
-                message: "Stack overflow error: Check for non-terminating recursive function.",
+                message:
+                    "Stack overflow error: Check for non-terminating recursive function.  Consider rewriting as tail-recursive.",
                 stack: new Error().stack,
                 code: "U1001"
             };
         }
         if (Date.now() - time > timeout) {
+            // expression has run for too long
             throw {
                 message: "Expression evaluation timeout: Check for infinite loop",
                 stack: new Error().stack,
@@ -178,12 +198,13 @@ function timeboxExpression(expr, timeout, maxDepth) {
         }
     };
 
-    expr.assign(Symbol.for('fumifier.__evaluate_entry'), (expr, input, env) => {
+    // register callbacks
+    expr.assign(Symbol.for('fumifier.__evaluate_entry'), function(expr, input, env) {
         if (env.isParallelCall) return;
         depth++;
         checkRunnaway();
     });
-    expr.assign(Symbol.for('fumifier.__evaluate_exit'), (expr, input, env) => {
+    expr.assign(Symbol.for('fumifier.__evaluate_exit'), function(expr, input, env) {
         if (env.isParallelCall) return;
         depth--;
         checkRunnaway();
@@ -191,19 +212,22 @@ function timeboxExpression(expr, timeout, maxDepth) {
 }
 
 /**
- * Determines what input data to use in the test case
+ * Based on the collection of datasets and the information provided as part of the testcase,
+ * determine what input data to use in the case (may return undefined).
+ *
+ * @param {Object} datasets Object mapping dataset names to JS values
+ * @param {Object} testcase Testcase data read from testcase file
+ * @returns {any} The input data to use when evaluating the fumifier expression
  */
 function resolveDataset(datasets, testcase) {
     if ("data" in testcase) {
         return testcase.data;
     }
-    if (testcase.dataset === null) {
+    if (testcase.dataset===null) {
         return undefined;
     }
     if (datasets.hasOwnProperty(testcase.dataset)) {
         return datasets[testcase.dataset];
     }
-    throw new Error("Unable to find dataset " + testcase.dataset +
-        " among known datasets, are you sure the datasets directory has a file named " +
-        testcase.dataset + ".json?");
+    throw new Error("Unable to find dataset "+testcase.dataset+" among known datasets, are you sure the datasets directory has a file named "+testcase.dataset+".json?");
 }
