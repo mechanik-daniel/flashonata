@@ -1,5 +1,5 @@
 import fumifier from '../src/fumifier.js';
-import request from 'request';
+import fetch from 'node-fetch';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -7,33 +7,26 @@ var expect = chai.expect;
 
 chai.use(chaiAsPromised);
 
-var fumifierWithCallback = function(expr, data, bindings) {
-    return expr.evaluate(data, bindings, function(error, response) {
-        if(error) {
-            // eslint-disable-next-line no-console
-            console.error(error);
-            return;
-        }
-        return response;
-    });
+const fumifierWithCallback = async function(expr, data, bindings) {
+    return expr.evaluate(data, bindings);
 };
 
-var httpget = function(url) {
-    return new Promise(function(resolve, reject) {
-        request(url, function(error, response, body) {
-            if(error) {
-                reject(error);
-                return;
-            }
-            resolve(JSON.parse(body));
-        });
+const httpget = async (url) => {
+    return Promise.resolve().then(async () => {
+        const res = await fetch(url);
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Failed to parse JSON from ${url}:\n${text}`);
+        }
     });
 };
 
 describe('Invoke JSONata with callback', function() {
     describe('Make HTTP request', function() {
         it('should return promise to results', function() {
-            var expr = fumifier('$httpget("https://api.npmjs.org/downloads/range/2016-09-01:2017-03-31/fumifier").downloads{ $substring(day, 0, 7): $sum(downloads) }');
+            var expr = fumifier('$httpget("https://api.npmjs.org/downloads/range/2016-09-01:2017-03-31/jsonata").downloads{ $substring(day, 0, 7): $sum(downloads) }');
             expr.assign('httpget', httpget);
             return expect(fumifierWithCallback(expr)).to.eventually.deep.equal({
                 '2016-09': 205,
