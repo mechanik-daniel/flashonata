@@ -48,6 +48,7 @@
 import createFhirFetchers from './createFhirFetchers.js';
 import createMetaProfileRule from './createMetaProfileRule.js';
 import createVirtualRule from './createVirtualRule.js';
+import extractSystemFhirType from './extractSystemFhirType.js';
 
 const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -170,6 +171,26 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           throw typeError;
         }
         result.elementDefinition = ed;
+        const kind = ed.type[0].__kind;
+        const elementTypeCode = kind === 'system' ? extractSystemFhirType(ed.type[0]) : ed.type[0].code;
+        // if element has fixed value, set it as `fixed`
+        const fixedValueKey = `fixed${initCap(elementTypeCode)}`;
+        if (kind === 'primitive-type' && (ed[fixedValueKey] || ed['_' + fixedValueKey])) {
+          // create an object combining the value and siblings
+          const fixedValue = { value: ed[fixedValueKey], ...(ed['_' + fixedValueKey] ?? {}) };
+          result.fixed = fixedValue;
+        } else if (ed[fixedValueKey]) {
+          result.fixed = ed[fixedValueKey];
+        }
+        // if element has pattern[x] value, set it as `pattern`
+        const patternValueKey = `pattern${initCap(elementTypeCode)}`;
+        if (kind === 'primitive-type' && (ed[patternValueKey] || ed['_' + patternValueKey])) {
+          // create an object combining the value and siblings
+          const patternValue = { value: ed[patternValueKey], ...(ed['_' + patternValueKey] ?? {}) };
+          result.pattern = patternValue;
+        } else if (ed[patternValueKey]) {
+          result.pattern = ed[patternValueKey];
+        }
       } else {
         var elementError = {
           code: 'F1029',

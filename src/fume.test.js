@@ -60,9 +60,13 @@ void async function () {
 
   var navigator = new FhirStructureNavigator(generator);
 
-  var expression = `Account.Order.Product.( $parent := %; %.OrderID )`;
+  var expression = `
+//   Instance: field1 & '-abc'
+  InstanceOf: ext-il-hmo
+  * url
+  `;
   var expr = await fumifier(expression, { navigator });
-  var res = await expr.evaluate({'in':{'a': '123', 'b': {'c': '456'}}});
+  var res = await expr.evaluate({'field1': 'http://example.com/field1'});
   console.log('ast', JSON.stringify(await expr.ast(), null, 2));
   console.log('Result', res);
 }();
