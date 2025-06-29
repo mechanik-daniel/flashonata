@@ -14,82 +14,82 @@
  * @returns {Object} The trasformed AST branch
  */
 var flattenFlashPath = function (ast) {
-    if (ast.type !== "path") {
-        throw new Error("Invalid AST: Expected a path type");
+  if (ast.type !== "path") {
+    throw new Error("Invalid AST: Expected a path type");
+  }
+
+  function flattenBinaryDash(expr) {
+    if (expr.type === "binary" && expr.value === "-") {
+      return `${flattenBinaryDash(expr.lhs)}-${flattenBinaryDash(expr.rhs)}`;
+    }
+    if (expr.type === "path" && expr.steps.length === 1 && expr.steps[0].type === "name") {
+      return expr.steps[0].value;
+    }
+    throw new Error("Invalid binary '-' operation structure");
+  }
+
+  function transformStep(step) {
+    if (step.type !== "name") {
+      throw new Error(`Invalid step type: ${step.type}`);
     }
 
-    function flattenBinaryDash(expr) {
-        if (expr.type === "binary" && expr.value === "-") {
-            return `${flattenBinaryDash(expr.lhs)}-${flattenBinaryDash(expr.rhs)}`;
-        }
-        if (expr.type === "path" && expr.steps.length === 1 && expr.steps[0].type === "name") {
-            return expr.steps[0].value;
-        }
-        throw new Error("Invalid binary '-' operation structure");
+    if (step.index) {
+      throw new Error("Can't bind index in a FLASH path");
     }
 
-    function transformStep(step) {
-        if (step.type !== "name") {
-            throw new Error(`Invalid step type: ${step.type}`);
-        }
-
-        if (step.index) {
-            throw new Error("Can't bind index in a FLASH path");
-        }
-
-        let transformedStep = {
-            value: step.value,
-            type: "name",
-            position: step.position,
-            line: step.line,
-            slices: []
-        };
-
-        if (step.stages) {
-            for (let stage of step.stages) {
-                if (stage.type !== "filter") {
-                    throw new Error(`Invalid stage type: ${stage.type}`);
-                }
-
-                let expr = stage.expr;
-
-                if (expr.type === "binary") {
-                    if (expr.value !== "-") {
-                        throw new Error(`Forbidden binary operation: ${expr.value}`);
-                    }
-                    transformedStep.slices.push({
-                        value: flattenBinaryDash(expr),
-                        type: "name",
-                        position: expr.rhs.steps[0].position,
-                        line: expr.rhs.steps[0].line
-                    });
-                } else if (expr.type === "path" && expr.steps.length === 1 && expr.steps[0].type === "name") {
-                    transformedStep.slices.push({
-                        value: expr.steps[0].value,
-                        type: "name",
-                        position: expr.steps[0].position,
-                        line: expr.steps[0].line
-                    });
-                } else if (expr.type === "number") {
-                    transformedStep.slices.push({
-                        value: expr.value.toString(),
-                        type: "name",
-                        position: expr.position,
-                        line: expr.line
-                    });
-                } else {
-                    throw new Error("Invalid slice value");
-                }
-            }
-        }
-        if (transformedStep.slices.length === 0) delete transformedStep.slices;
-        return transformedStep;
-    }
-
-    return {
-        type: "flashpath",
-        steps: ast.steps.map(transformStep)
+    let transformedStep = {
+      value: step.value,
+      type: "name",
+      position: step.position,
+      line: step.line,
+      slices: []
     };
+
+    if (step.stages) {
+      for (let stage of step.stages) {
+        if (stage.type !== "filter") {
+          throw new Error(`Invalid stage type: ${stage.type}`);
+        }
+
+        let expr = stage.expr;
+
+        if (expr.type === "binary") {
+          if (expr.value !== "-") {
+            throw new Error(`Forbidden binary operation: ${expr.value}`);
+          }
+          transformedStep.slices.push({
+            value: flattenBinaryDash(expr),
+            type: "name",
+            position: expr.rhs.steps[0].position,
+            line: expr.rhs.steps[0].line
+          });
+        } else if (expr.type === "path" && expr.steps.length === 1 && expr.steps[0].type === "name") {
+          transformedStep.slices.push({
+            value: expr.steps[0].value,
+            type: "name",
+            position: expr.steps[0].position,
+            line: expr.steps[0].line
+          });
+        } else if (expr.type === "number") {
+          transformedStep.slices.push({
+            value: expr.value.toString(),
+            type: "name",
+            position: expr.position,
+            line: expr.line
+          });
+        } else {
+          throw new Error("Invalid slice value");
+        }
+      }
+    }
+    if (transformedStep.slices.length === 0) delete transformedStep.slices;
+    return transformedStep;
+  }
+
+  return {
+    type: "flashpath",
+    steps: ast.steps.map(transformStep)
+  };
 };
 
 export default flattenFlashPath;

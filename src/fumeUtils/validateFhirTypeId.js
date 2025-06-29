@@ -6,12 +6,12 @@
  */
 
 const validateFhirTypeId = function(profileId) {
-    var chk = !/\s/.test(profileId) && ( // no whitespace AND:
-        /^(http(|s):\/\/|urn:(uuid|oid):).+[^\\s]$/.test(profileId) || // is url
+  var chk = !/\s/.test(profileId) && ( // no whitespace AND:
+    /^(http(|s):\/\/|urn:(uuid|oid):).+[^\\s]$/.test(profileId) || // is url
                 /^[A-Za-z0-9\-.]{1,64}$/.test(profileId) || // OR possible resource id
                 /^[A-Za-z]([A-Za-z0-9\-._]){0,254}$/.test(profileId) // OR possible type/profile name
-    );
-    return chk;
+  );
+  return chk;
 };
 
 export default validateFhirTypeId;

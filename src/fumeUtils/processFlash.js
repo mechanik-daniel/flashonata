@@ -56,100 +56,100 @@ import createFhirFetchers from './createFhirFetchers.js';
  * @returns {{evaluate: evaluate, assign: assign}} Semantically enriched AST
  */
 var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
-    var result = expr;
-    var fetchError;
-    var fhirChildren;
-    const {
-        getElement,
-        getChildren,
-        getTypeMeta
-    } = createFhirFetchers(navigator);
-    switch (expr.type) {
-        case 'flashblock':
-            try {
-                fhirTypeMeta = await getTypeMeta(expr.instanceof);
-            } catch (e) {
-                fetchError = e;
-            }
-            if (fhirTypeMeta) {
-                result.fhirTypeMeta = fhirTypeMeta;
-            } else {
-                var typeError = {
-                    code: 'F1026',
-                    position: expr.position,
-                    line: expr.line,
-                    token: 'InstanceOf:',
-                    value: expr.instanceof,
-                    message: `Could not find a FHIR type/profile definition with identifier '${expr.instanceof}'`
-                };
-                typeError.stack = (fetchError ?? new Error()).stack;
-                throw typeError;
-            }
-            try {
-                fhirChildren = await getChildren(fhirTypeMeta);
-            } catch (e) {
-                fetchError = e;
-            }
-            if (fhirChildren) {
-                result.fhirChildren = fhirChildren;
-            } else {
-                var childrenError = {
-                    code: 'F1030',
-                    position: expr.position,
-                    line: expr.line,
-                    token: 'InstanceOf:',
-                    value: expr.instanceof,
-                    message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used in an 'InstanceOf:' declaration`
-                };
-                childrenError.stack = (fetchError ?? new Error()).stack;
-                throw childrenError;
-            }
-            if (expr.rules && expr.rules.length > 0) {
-                var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));
-                result.rules = rules;
-            }
-            break;
-        case 'flashrule':
-            var path = expr.fullPath;
-            var ed;
-            try {
-                ed = await getElement(fhirTypeMeta, path);
-            } catch (e) {
-                fetchError = e;
-            }
-            if (ed) {
-                result.elementDefinition = ed;
-            } else {
-                var elementError = {
-                    code: 'F1029',
-                    position: expr.position,
-                    line: expr.line,
-                    token: '(flashpath)',
-                    value: path,
-                    fhirType: fhirTypeMeta.name
-                };
-                elementError.stack = (fetchError ?? new Error()).stack;
-                throw elementError;
-            }
-            if (expr.rules && expr.rules.length > 0) {
-                var subrules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta, path)));
-                result.rules = subrules;
-            }
-            break;
-        case 'block':
-            /* c8 ignore else */
-            if (expr.expressions && expr.expressions.length > 0) {
-                result.expressions = await Promise.all(expr.expressions.map((expresion) => processFlash(expresion, navigator, fhirTypeMeta, parentPath)));
-            }
-            break;
-        case 'path':
-            /* c8 ignore else */
-            if (expr.steps && expr.steps.length > 0) {
-                result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, navigator, fhirTypeMeta, parentPath)));
-            }
-            break;
-    }
-    return result;
+  var result = expr;
+  var fetchError;
+  var fhirChildren;
+  const {
+    getElement,
+    getChildren,
+    getTypeMeta
+  } = createFhirFetchers(navigator);
+  switch (expr.type) {
+    case 'flashblock':
+      try {
+        fhirTypeMeta = await getTypeMeta(expr.instanceof);
+      } catch (e) {
+        fetchError = e;
+      }
+      if (fhirTypeMeta) {
+        result.fhirTypeMeta = fhirTypeMeta;
+      } else {
+        var typeError = {
+          code: 'F1026',
+          position: expr.position,
+          line: expr.line,
+          token: 'InstanceOf:',
+          value: expr.instanceof,
+          message: `Could not find a FHIR type/profile definition with identifier '${expr.instanceof}'`
+        };
+        typeError.stack = (fetchError ?? new Error()).stack;
+        throw typeError;
+      }
+      try {
+        fhirChildren = await getChildren(fhirTypeMeta);
+      } catch (e) {
+        fetchError = e;
+      }
+      if (fhirChildren) {
+        result.fhirChildren = fhirChildren;
+      } else {
+        var childrenError = {
+          code: 'F1030',
+          position: expr.position,
+          line: expr.line,
+          token: 'InstanceOf:',
+          value: expr.instanceof,
+          message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used in an 'InstanceOf:' declaration`
+        };
+        childrenError.stack = (fetchError ?? new Error()).stack;
+        throw childrenError;
+      }
+      if (expr.rules && expr.rules.length > 0) {
+        var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));
+        result.rules = rules;
+      }
+      break;
+    case 'flashrule':
+      var path = expr.fullPath;
+      var ed;
+      try {
+        ed = await getElement(fhirTypeMeta, path);
+      } catch (e) {
+        fetchError = e;
+      }
+      if (ed) {
+        result.elementDefinition = ed;
+      } else {
+        var elementError = {
+          code: 'F1029',
+          position: expr.position,
+          line: expr.line,
+          token: '(flashpath)',
+          value: path,
+          fhirType: fhirTypeMeta.name
+        };
+        elementError.stack = (fetchError ?? new Error()).stack;
+        throw elementError;
+      }
+      if (expr.rules && expr.rules.length > 0) {
+        var subrules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta, path)));
+        result.rules = subrules;
+      }
+      break;
+    case 'block':
+      /* c8 ignore else */
+      if (expr.expressions && expr.expressions.length > 0) {
+        result.expressions = await Promise.all(expr.expressions.map((expresion) => processFlash(expresion, navigator, fhirTypeMeta, parentPath)));
+      }
+      break;
+    case 'path':
+      /* c8 ignore else */
+      if (expr.steps && expr.steps.length > 0) {
+        result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, navigator, fhirTypeMeta, parentPath)));
+      }
+      break;
+  }
+  return result;
 };
 
 export default processFlash;

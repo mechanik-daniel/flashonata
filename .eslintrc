@@ -31,7 +31,7 @@
     "dot-notation": "error",
     "eqeqeq": "error",
     "ideal/no-tabs-in-file": "error",
-    "indent": ["error", 4, {"SwitchCase": 1}],
+    "indent": ["error", 2, {"SwitchCase": 1}],
     "max-len": ["error", 1000, {"ignoreComments": true}],
     "new-cap": ["error", {"capIsNewExceptions": ["Router"]}],
     "no-console": "error",

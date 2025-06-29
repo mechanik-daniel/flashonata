@@ -8,17 +8,17 @@
  */
 
 function createFhirFetchers(navigator) {
-    return {
-        getElement: async function (snapshotId, path) {
-            return await navigator.getElement(snapshotId, path);
-        },
-        getChildren: async function (snapshotId, path) {
-            return await navigator.getChildren(snapshotId, path ?? '.');
-        },
-        getTypeMeta: async function (snapshotId) {
-            return await navigator.getFsg().getMetadata(snapshotId);
-        }
-    };
+  return {
+    getElement: async function (snapshotId, path) {
+      return await navigator.getElement(snapshotId, path);
+    },
+    getChildren: async function (snapshotId, path) {
+      return await navigator.getChildren(snapshotId, path ?? '.');
+    },
+    getTypeMeta: async function (snapshotId) {
+      return await navigator.getFsg().getMetadata(snapshotId);
+    }
+  };
 }
 
 export default createFhirFetchers;
