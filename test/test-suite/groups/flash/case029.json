@@ -3,7 +3,7 @@
     "data": null,
     "bindings": {},
     "result": {
-        "result": "Patient",
+        "resourceType": "Patient",
         "meta": {
             "profile": [
                 "http://fhir.health.gov.il/StructureDefinition/il-core-patient"
