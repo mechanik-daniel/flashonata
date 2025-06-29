@@ -69,4 +69,6 @@ void async function () {
   var res = await expr.evaluate({'field1': 'http://example.com/field1'});
   console.log('ast', JSON.stringify(await expr.ast(), null, 2));
   console.log('Result', res);
+
+//   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
 }();

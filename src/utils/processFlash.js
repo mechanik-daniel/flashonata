@@ -64,10 +64,12 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
   var result = expr;
   var fetchError;
   var fhirChildren;
+  var primitiveValueEd;
   const {
     getElement,
     getChildren,
-    getTypeMeta
+    getTypeMeta,
+    getBaseTypeMeta
   } = createFhirFetchers(navigator);
   switch (expr.type) {
     case 'flashblock':
@@ -124,8 +126,6 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         delete result.instance; // remove the instance property
       }
       if (expr.rules && expr.rules.length > 0) {
-        // print preprocessed rules
-        console.log('FLASH rules preprocessed', JSON.stringify(expr.rules, null, 2));
         var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));
         result.rules = rules;
       }
@@ -133,6 +133,8 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
     case 'flashrule':
       var path = expr.fullPath;
       var ed;
+      var kind;
+      var fhirTypeCode;
       try {
         ed = await getElement(fhirTypeMeta, path);
       } catch (e) {
@@ -171,10 +173,12 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           throw typeError;
         }
         result.elementDefinition = ed;
-        const kind = ed.type[0].__kind;
-        const elementTypeCode = kind === 'system' ? extractSystemFhirType(ed.type[0]) : ed.type[0].code;
+        kind = ed.type[0].__kind;
+        result.kind = kind;
+        // if system primitive, there should still be a fhir type code set in an extension
+        fhirTypeCode = kind === 'system' ? extractSystemFhirType(ed.type[0]) : ed.type[0].code;
         // if element has fixed value, set it as `fixed`
-        const fixedValueKey = `fixed${initCap(elementTypeCode)}`;
+        const fixedValueKey = `fixed${initCap(fhirTypeCode)}`;
         if (kind === 'primitive-type' && (ed[fixedValueKey] || ed['_' + fixedValueKey])) {
           // create an object combining the value and siblings
           const fixedValue = { value: ed[fixedValueKey], ...(ed['_' + fixedValueKey] ?? {}) };
@@ -183,7 +187,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           result.fixed = ed[fixedValueKey];
         }
         // if element has pattern[x] value, set it as `pattern`
-        const patternValueKey = `pattern${initCap(elementTypeCode)}`;
+        const patternValueKey = `pattern${initCap(fhirTypeCode)}`;
         if (kind === 'primitive-type' && (ed[patternValueKey] || ed['_' + patternValueKey])) {
           // create an object combining the value and siblings
           const patternValue = { value: ed[patternValueKey], ...(ed['_' + patternValueKey] ?? {}) };
@@ -204,7 +208,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         throw elementError;
       }
       // if this is not a system kind, then it should have children
-      if (ed.type && ed.type.length === 1 && ed.type[0].__kind !== 'system') {
+      if (kind !== 'system') {
         try {
           fhirChildren = await getChildren(fhirTypeMeta, path);
         } catch (e) {
@@ -222,6 +226,37 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           };
           childrenError.stack = (fetchError ?? new Error()).stack;
           throw childrenError;
+        }
+      }
+      // if this is a fhir or system primitive then we need to find the regex for the value
+      if (kind === 'primitive-type') {
+        // the regex of a fhir primitive is hiding in the "value" child element. Find it in fhirChildren:
+        primitiveValueEd = fhirChildren.find((child) => child.path.endsWith('.value'));
+      } else if (kind === 'system') {
+        // for system primitives, we need to fetch the type's "value" element
+        // fhirTypeCode holds the FHIR type code of the system primitive
+        try {
+          const baseTypeMeta = await getBaseTypeMeta(
+            fhirTypeCode,
+            { // filter scope using source package, so the correct core fhir version is used
+              id: fhirTypeMeta.__packageId,
+              version: fhirTypeMeta.version
+            }
+          );
+          if (baseTypeMeta) {
+            // use getElement to fetch the "value" element definition
+            primitiveValueEd = await getElement(baseTypeMeta, 'value');
+          }
+        } catch {
+        // ignore errors related to fetching the primitiveValueEd, it will be undefined if not found
+        }
+      }
+      // if primitiveValueEd is found, then we can extract the regex from it
+      if (primitiveValueEd) {
+        // get the regex from the value child
+        const regexStr = primitiveValueEd.type[0].extension?.find((ext) => ext.url === 'http://hl7.org/fhir/StructureDefinition/regex')?.valueString;
+        if (regexStr) {
+          result.regexStr = regexStr;
         }
       }
       if (expr.rules && expr.rules.length > 0) {

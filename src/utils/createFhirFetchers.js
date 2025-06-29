@@ -17,6 +17,9 @@ function createFhirFetchers(navigator) {
     },
     getTypeMeta: async function (snapshotId) {
       return await navigator.getFsg().getMetadata(snapshotId);
+    },
+    getBaseTypeMeta: async function (typeCode, sourcePackage) {
+      return await navigator.getFsg().getMetadata(typeCode, sourcePackage);
     }
   };
 }
