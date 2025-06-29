@@ -1163,6 +1163,9 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated FHIR element
     */
     async function evaluateFlashRule(expr, input, environment) {
+        // if a fixed value is set, just return it and skip all rule evaluation logic
+        if (expr.fixed) return expr.fixed;
+        // TODO: handle pattern[x]
         var result = {};
         // create a new frame to limit the scope of variable assignments
         // TODO, only do this if the post-parse stage has flagged this as required
