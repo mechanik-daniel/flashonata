@@ -46,6 +46,8 @@
 // };
 
 import createFhirFetchers from './createFhirFetchers.js';
+import createMetaProfileRule from './createMetaProfileRule.js';
+import createVirtualRule from './createVirtualRule.js';
 
 /**
  * FLASH semantic processor
@@ -99,12 +101,30 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
           line: expr.line,
           token: 'InstanceOf:',
           value: expr.instanceof,
-          message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used in an 'InstanceOf:' declaration`
+          message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used as an 'InstanceOf:' declaration`
         };
         childrenError.stack = (fetchError ?? new Error()).stack;
         throw childrenError;
       }
+      if (!expr.rules) {
+        expr.rules = [];
+      }
+      // if this is a profile on a resource, add a meta.profile rule
+      if (fhirTypeMeta.kind === 'resource' && fhirTypeMeta.derivation === 'constraint') {
+        const metaProfileRule = createMetaProfileRule(expr, fhirTypeMeta.url);
+        // add the meta.profile rule to the top of the rules
+        expr.rules.unshift(metaProfileRule);
+      }
+      // Convert `instance` to a virtual flash rule on the `id` element
+      if (expr.instance) {
+        const idRule = createVirtualRule(expr, 'id');
+        // add the id rule to the top of the rules
+        expr.rules.unshift(idRule);
+        delete result.instance; // remove the instance property
+      }
       if (expr.rules && expr.rules.length > 0) {
+        // print preprocessed rules
+        console.log('FLASH rules preprocessed', JSON.stringify(expr.rules, null, 2));
         var rules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta)));
         result.rules = rules;
       }
@@ -131,6 +151,28 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
         elementError.stack = (fetchError ?? new Error()).stack;
         throw elementError;
       }
+      // if this is not a system kind, then it should have children
+      if (ed.type && ed.type.length === 1 && ed.type[0].__kind !== 'system') {
+        try {
+          fhirChildren = await getChildren(fhirTypeMeta, path);
+        } catch (e) {
+          fetchError = e;
+        }
+        if (fhirChildren) {
+          result.fhirChildren = fhirChildren;
+        } else {
+          childrenError = {
+            code: 'F1030',
+            position: expr.position,
+            line: expr.line,
+            token: '(flashpath)',
+            value: path,
+            message: `Failed to fetch definition of children for '${fhirTypeMeta.name}.${path}'.`
+          };
+          childrenError.stack = (fetchError ?? new Error()).stack;
+          throw childrenError;
+        }
+      }
       if (expr.rules && expr.rules.length > 0) {
         var subrules = await Promise.all(expr.rules.map((rule) => processFlash(rule, navigator, fhirTypeMeta, path)));
         result.rules = subrules;
@@ -145,7 +187,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
     case 'path':
       /* c8 ignore else */
       if (expr.steps && expr.steps.length > 0) {
-        result.steps = await Promise.all(expr.steps.map(async (step) => await processFlash(step, navigator, fhirTypeMeta, parentPath)));
+        result.steps = await Promise.all(expr.steps.map((step) => processFlash(step, navigator, fhirTypeMeta, parentPath)));
       }
       break;
   }
