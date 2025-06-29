@@ -138,6 +138,19 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         fetchError = e;
       }
       if (ed) {
+        // ensure element is not forbidden
+        if (ed.max === '0') {
+          var forbiddenError = {
+            code: 'F1032',
+            position: expr.position,
+            line: expr.line,
+            token: '(flashpath)',
+            value: path,
+            fhirType: fhirTypeMeta.name
+          };
+          forbiddenError.stack = (fetchError ?? new Error()).stack;
+          throw forbiddenError;
+        }
         // ensure element has a single type
         if (ed.type && ed.type.length > 1) {
           // take last part of path and remove the last 3 chars ("[x]") to get the base name

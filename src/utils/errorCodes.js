@@ -142,6 +142,7 @@ const errorCodes = {
   "F1029": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
   "F1030": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
   "F1031": "'{{value}}' is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
+  "F1032": "'{{value}}' is a forbidden element according to profile: {{fhirType}}."
 };
 
 /**
