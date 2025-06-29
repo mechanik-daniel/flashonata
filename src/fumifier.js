@@ -1169,16 +1169,16 @@ var fumifier = (function() {
         var frame = createFrame(environment);
         // evaluate the rule's explicit (inline) expression, if there is one
         var value;
-        // assess whether the element is a FHIR Primitive
-        var fhirPrimitive = expr.elementDefinition.type[0].__kind === 'primitive-type';
+        const kind = expr.elementDefinition.type[0].__kind;
         if (expr.inlineExpression) {
             value = await evaluate(expr.inlineExpression, input, frame);
             if (value !== undefined) {
-                if (fhirPrimitive) {
+                if (kind === 'system') {
+                    // if the element is a system primitive, then the inline value element is the element's value itself
+                    result = value;
+                } else if (kind === 'primitive-type') {
                     // if the element is a FHIR Primitive, then the inline value element is the element's value child
-                    result[expr.value] = { value };
-                    // we need to mark this a FHIR primitive for later restructuring
-                    result[expr.value].__fhirPrimitive = true;
+                    result.value = value;
                 } else {
                     // TODO: handle objects as inputs for complex elements, e.g. FHIR Complex Elements
                     // also if it is a system primitive (not FHIR primitive), the value must be primitive
@@ -1195,7 +1195,7 @@ var fumifier = (function() {
             for(var ii = 0; ii < expr.rules.length; ii++) {
                 var element = await evaluate(expr.rules[ii], input, frame);
                 if (element !== undefined) {
-                    result = {...result, ...element};
+                    result[expr.rules[ii].value] = element;
                 }
             }
         }
