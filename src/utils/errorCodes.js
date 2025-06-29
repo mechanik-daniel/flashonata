@@ -140,7 +140,8 @@ const errorCodes = {
   "F1027": "value after `InstanceOf:` must be FHIR type/profile identifier and cannot be an expression. Found: {{{value}}}",
   "F1028": "Malformed FLASH rule: path is syntactically illegal",
   "F1029": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
-  "F1030": "The FHIR type/profile definition with identifier {{value}} does not have any children. It cannot be used in an `InstanceOf:` declaration"
+  "F1030": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
+  "F1031": "'{{value}}' is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
 };
 
 /**

@@ -49,6 +49,8 @@ import createFhirFetchers from './createFhirFetchers.js';
 import createMetaProfileRule from './createMetaProfileRule.js';
 import createVirtualRule from './createVirtualRule.js';
 
+const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
 /**
  * FLASH semantic processor
  * @param {Object} expr - Parsed Fumifier expression
@@ -57,7 +59,7 @@ import createVirtualRule from './createVirtualRule.js';
  * @param {string} parentPath - If inside a FLASH rule, this is the path of the parent FLASH rule
  * @returns {{evaluate: evaluate, assign: assign}} Semantically enriched AST
  */
-var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
+const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
   var result = expr;
   var fetchError;
   var fhirChildren;
@@ -81,8 +83,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
           position: expr.position,
           line: expr.line,
           token: 'InstanceOf:',
-          value: expr.instanceof,
-          message: `Could not find a FHIR type/profile definition with identifier '${expr.instanceof}'`
+          value: expr.instanceof
         };
         typeError.stack = (fetchError ?? new Error()).stack;
         throw typeError;
@@ -100,8 +101,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
           position: expr.position,
           line: expr.line,
           token: 'InstanceOf:',
-          value: expr.instanceof,
-          message: `The FHIR type/profile definition with identifier '${expr.instanceof}' does not have any children. It cannot be used as an 'InstanceOf:' declaration`
+          value: expr.instanceof
         };
         childrenError.stack = (fetchError ?? new Error()).stack;
         throw childrenError;
@@ -138,6 +138,24 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
         fetchError = e;
       }
       if (ed) {
+        // ensure element has a single type
+        if (ed.type && ed.type.length > 1) {
+          // take last part of path and remove the last 3 chars ("[x]") to get the base name
+          const lastPart = ed.path.split('.').pop();
+          const baseName = lastPart.endsWith('[x]') ? lastPart.slice(0, -3) : lastPart;
+          const allowedNames = ed.type.map((t) => `${baseName}${initCap(t.code)}`).join(', ');
+          console.log('allowedNames', allowedNames);
+          typeError = {
+            code: 'F1031',
+            position: expr.position,
+            line: expr.line,
+            token: '(flashpath)',
+            value: baseName,
+            allowedNames
+          };
+          typeError.stack = (fetchError ?? new Error()).stack;
+          throw typeError;
+        }
         result.elementDefinition = ed;
       } else {
         var elementError = {
@@ -166,8 +184,7 @@ var processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
             position: expr.position,
             line: expr.line,
             token: '(flashpath)',
-            value: path,
-            message: `Failed to fetch definition of children for '${fhirTypeMeta.name}.${path}'.`
+            value: `${fhirTypeMeta.name}.${path}`
           };
           childrenError.stack = (fetchError ?? new Error()).stack;
           throw childrenError;
