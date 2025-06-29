@@ -77,13 +77,15 @@ describe("JSONata Test Suite", async () => {
             var navigator;
 
             before(async () => {
-                const fsg = await FhirSnapshotGenerator.create({
-                    context,
-                    cachePath: './test/.test-cache',
-                    fhirVersion: '4.0.1',
-                    cacheMode: 'lazy'
-                });
-                navigator = new FhirStructureNavigator(fsg);
+                if (group === "flash") {
+                    const fsg = await FhirSnapshotGenerator.create({
+                        context,
+                        cachePath: './test/.test-cache',
+                        fhirVersion: '4.0.1',
+                        cacheMode: 'lazy'
+                    });
+                    navigator = new FhirStructureNavigator(fsg);
+                }
             });
 
             // Iterate over all cases
@@ -101,9 +103,9 @@ describe("JSONata Test Suite", async () => {
                     var expr;
                     // Start by trying to compile the expression associated with this test case
                     try {
-                        expr = await fumifier(testcase.expr, {
+                        expr = await fumifier(testcase.expr, navigator ? {
                             navigator
-                        });
+                        } : undefined);
                         // If there is a timelimit and depth limit for this case, use the
                         // `timeboxExpression` function to limit evaluation
                         if ("timelimit" in testcase && "depth" in testcase) {
