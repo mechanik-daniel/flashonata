@@ -14,7 +14,7 @@ import fn from './utils/functions.js';
 import utils from './utils/utils.js';
 import parser from './parser.js';
 import parseSignature from './utils/signature.js';
-import processFlash from './fumeUtils/processFlash.js';
+import processFlash from './utils/processFlash.js';
 import { populateMessage } from './utils/errorCodes.js';
 import registerNativeFn from './utils/registerNativeFn.js';
 
