@@ -40,7 +40,7 @@ const parser = (() => {
     var remainingTokens = function () {
       var remaining = [];
       if (node.id !== '(end)') {
-        remaining.push({type: node.type, value: node.value, position: node.position, line: node.line});
+        remaining.push({type: node.type, value: node.value, position: node.position, line: node.line, start: node.start});
       }
       var nxt = lexer();
       while (nxt !== null) {
@@ -67,6 +67,7 @@ const parser = (() => {
           code: 'S0211',
           token: this.value,
           position: this.position,
+          start: this.start,
           line: this.line
         };
 
@@ -154,6 +155,7 @@ const parser = (() => {
         var err = {
           code: code,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: node.value,
           value: id
@@ -183,6 +185,7 @@ const parser = (() => {
         // So we create an (end) token and return it, but not before we override the node variable
         node = symbol_table["(end)"];
         node.position = source.length;
+        node.start = source.length - 1;
         node.line = line;
         return node;
       }
@@ -205,6 +208,7 @@ const parser = (() => {
               code: "S0204",
               stack: (new Error()).stack,
               position: next_token.position,
+              start: next_token.start,
               line: next_token.line,
               token: value
             });
@@ -256,6 +260,7 @@ const parser = (() => {
             code: "S0205",
             stack: (new Error()).stack,
             position: next_token.position,
+            start: next_token.start,
             line: next_token.line,
             token: value
           });
@@ -265,6 +270,7 @@ const parser = (() => {
       node.value = value;
       node.type = type;
       node.position = next_token.position;
+      node.start = next_token.start;
       node.line = next_token.line;
       if (Object.prototype.hasOwnProperty.call(symbol, 'indent')) {
         // we explicitly add the indent member to the node so it would show in the resulting tree when stringified.
@@ -459,6 +465,7 @@ const parser = (() => {
           code: "F1010",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: node.id
         });
@@ -469,6 +476,7 @@ const parser = (() => {
           code: "F1017",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: `${String(level)} spaces`,
           value: `${String(node.value)} spaces`
@@ -479,6 +487,7 @@ const parser = (() => {
           code: "F1016",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: `${String(root)} spaces`,
           value: `${String(node.value)} spaces`
@@ -496,6 +505,7 @@ const parser = (() => {
                 code: "F1021",
                 stack: (new Error()).stack,
                 position: node.position,
+                start: node.start,
                 line: node.line,
                 token: '(indent)',
                 value: `${String(node.value)} spaces`
@@ -511,6 +521,7 @@ const parser = (() => {
               code: "F1025",
               stack: (new Error()).stack,
               position: rule.position,
+              start: rule.start,
               line: rule.line,
               token: rule.id
             });
@@ -519,6 +530,7 @@ const parser = (() => {
               code: "F1011",
               stack: (new Error()).stack,
               position: rule.position,
+              start: rule.start,
               line: rule.line,
               token: rule.id
             });
@@ -558,6 +570,7 @@ const parser = (() => {
               code: "F1012",
               stack: (new Error()).stack,
               position: position,
+              start: node.start,
               line: line,
               token: "="
             });
@@ -595,6 +608,7 @@ const parser = (() => {
             code: "F1024",
             stack: (new Error()).stack,
             position: this.position,
+            start: this.start,
             line: this.line,
             token: '*'
           });
@@ -621,6 +635,7 @@ const parser = (() => {
           code: "F1018",
           stack: (new Error()).stack,
           position: instanceExpr.position,
+          start: instanceExpr.start,
           line: instanceExpr.line,
           token: instanceExpr.id,
           value: 'InstanceOf:'
@@ -635,6 +650,7 @@ const parser = (() => {
           code: "F1009",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: node.id
         });
@@ -645,6 +661,7 @@ const parser = (() => {
           code: "F1013",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: node.id
         });
@@ -654,6 +671,7 @@ const parser = (() => {
           code: "F1014",
           stack: (new Error()).stack,
           position: node.position,
+          start: node.start,
           line: node.line,
           token: `${String(this.indent)} spaces`,
           value: `${String(node.indent)} spaces`
@@ -665,6 +683,7 @@ const parser = (() => {
           code: "F1019",
           stack: (new Error()).stack,
           position: this.position,
+          start: this.start,
           line: this.line,
           token: "InstanceOf:"
         });
@@ -690,6 +709,7 @@ const parser = (() => {
           code: "F1019",
           stack: (new Error()).stack,
           position: this.position,
+          start: this.start,
           line: this.line,
           token: "InstanceOf:"
         });
@@ -743,6 +763,7 @@ const parser = (() => {
               code: "S0208",
               stack: (new Error()).stack,
               position: arg.position,
+              start: arg.start,
               line: arg.line,
               token: arg.value,
               value: index + 1
@@ -770,6 +791,7 @@ const parser = (() => {
           } catch (err) {
             // insert the position into this error
             err.position = sigPos + err.offset;
+            err.start = sigPos;
             err.line = node.line;
             return handleError(err);
           }
@@ -1035,6 +1057,7 @@ const parser = (() => {
       var err = {
         code: "S0201",
         position: node.position,
+        start: node.start,
         line: node.line,
         token: node.value
       };
@@ -1052,6 +1075,7 @@ const parser = (() => {
         code: "S0217",
         token: expr.type,
         position: expr.position,
+        start: expr.start,
         line: expr.line
       };
     }

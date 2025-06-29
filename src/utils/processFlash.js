@@ -20,6 +20,7 @@
 //         var typeError = {
 //             code: 'F1026',
 //             position: expr.position,
+//             start: expr.start,
 //             line: expr.line,
 //             token: typeName,
 //             value: expr.instanceof,
@@ -84,6 +85,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         var typeError = {
           code: 'F1026',
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: 'InstanceOf:',
           value: expr.instanceof
@@ -102,6 +104,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         var childrenError = {
           code: 'F1030',
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: 'InstanceOf:',
           value: expr.instanceof
@@ -146,6 +149,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           var forbiddenError = {
             code: 'F1032',
             position: expr.position,
+            start: expr.start,
             line: expr.line,
             token: '(flashpath)',
             value: path,
@@ -164,6 +168,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           typeError = {
             code: 'F1031',
             position: expr.position,
+            start: expr.start,
             line: expr.line,
             token: '(flashpath)',
             value: baseName,
@@ -199,6 +204,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         var elementError = {
           code: 'F1029',
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: '(flashpath)',
           value: path,
@@ -220,6 +226,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           childrenError = {
             code: 'F1030',
             position: expr.position,
+            start: expr.start,
             line: expr.line,
             token: '(flashpath)',
             value: `${fhirTypeMeta.name}.${path}`

@@ -41,6 +41,7 @@ var flattenFlashPath = function (ast) {
       value: step.value,
       type: "name",
       position: step.position,
+      start: step.start,
       line: step.line,
       slices: []
     };
@@ -61,6 +62,7 @@ var flattenFlashPath = function (ast) {
             value: flattenBinaryDash(expr),
             type: "name",
             position: expr.rhs.steps[0].position,
+            start: expr.rhs.steps[0].start,
             line: expr.rhs.steps[0].line
           });
         } else if (expr.type === "path" && expr.steps.length === 1 && expr.steps[0].type === "name") {
@@ -68,6 +70,7 @@ var flattenFlashPath = function (ast) {
             value: expr.steps[0].value,
             type: "name",
             position: expr.steps[0].position,
+            start: expr.steps[0].start,
             line: expr.steps[0].line
           });
         } else if (expr.type === "number") {
@@ -75,6 +78,7 @@ var flattenFlashPath = function (ast) {
             value: expr.value.toString(),
             type: "name",
             position: expr.position,
+            start: expr.start,
             line: expr.line
           });
         } else {

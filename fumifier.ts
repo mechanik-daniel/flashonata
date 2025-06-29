@@ -49,6 +49,8 @@ declare namespace fumifier {
   interface FumifierError extends Error {
     code: string;
     position: number;
+    start: number;
+    line: number;
     token: string;
   }
 

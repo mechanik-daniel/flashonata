@@ -40,6 +40,7 @@ const seekParent = function (node, slot, ancestorWrapper) {
         code: "S0217",
         token: node.type,
         position: node.position,
+        start: node.start,
         line: node.line
       };
   }

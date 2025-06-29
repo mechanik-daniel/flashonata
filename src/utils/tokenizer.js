@@ -16,7 +16,8 @@ const numregex = /^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/;
  * @returns {Function} the function that returns the next token
  */
 export default function (path) {
-  var position = 0; // The char position in the source string
+  var position = 0; // The char position in the source string (last character scanned)
+  var start = 0; // The start position of the current token
   var length = path.length; // Overall length of the source string
   var lineStart = 0; // Keep track of the current line's start position
   var line = 1; // The current line number in the source, starting from 1
@@ -30,7 +31,13 @@ export default function (path) {
      * @returns {object} A token object containing type, value, and the current position.
      */
   var create = function (type, value) {
-    var obj = {type, value, position, line};
+    var obj = {
+      type,
+      value,
+      position,           // end position (as in the original JSONata tokenizer)
+      start,              // start position (added for better error marking in FUME)
+      line                // line number (added for clear error reporting in FUME)
+    };
     previousToken = obj;
     return obj;
   };
@@ -38,7 +45,7 @@ export default function (path) {
   var scanRegex = function () {
     // the prefix '/' will have been previously scanned. Find the end of the regex.
     // search for closing '/' ignoring any that are escaped, or within brackets
-    var start = position;
+    start = position;
     var depth = 0;
     var pattern;
     var flags;
@@ -85,6 +92,7 @@ export default function (path) {
       code: "S0302",
       stack: (new Error()).stack,
       position,
+      start,
       line
     };
   };
@@ -154,6 +162,7 @@ export default function (path) {
         currentChar = path.charAt(position);
       }
     }
+    start = position; // remember the start of the token
     // Handle indent tokenization
     // We create one for every newline that starts with one of the following:
     // - Instance:
@@ -178,16 +187,16 @@ export default function (path) {
                 path.substring(position, position + 9) === 'Instance:' ||
                 path.substring(position, position + 11) === 'InstanceOf:'
     ) {
-      // If we got here, it means we need to create a block indent token
-      // But it may have already been created, so we need to check previous token
+      // If we got here, it means we need a block indent token,
+      // But it may have already been created so we need to check previous token
       if (typeof previousToken === 'undefined' || previousToken.type !== 'blockindent' || previousToken.position < lineStart) {
         return create('blockindent', indentNumber());
       }
     }
     // skip comments (regular jsonata comments /* */)
     if (currentChar === '/' && path.charAt(position + 1) === '*') {
-      var commentStart = position;
       position += 2;
+      start = position; // remember the start of the comment
       currentChar = path.charAt(position);
       while (!(currentChar === '*' && path.charAt(position + 1) === '/')) {
         currentChar = path.charAt(++position);
@@ -196,7 +205,8 @@ export default function (path) {
           throw {
             code: "S0106",
             stack: (new Error()).stack,
-            position: commentStart,
+            position,
+            start,
             line
           };
         }
@@ -220,7 +230,7 @@ export default function (path) {
       currentChar = path.charAt(position);
       return next(prefix); // need this to swallow any following whitespace
     }
-
+    start = position; // remember the start of the token
     // FUME: capture URL's (including URN's)
     if (
     /*lookForFlash &&*/ ( // only relevant if a flash block was encountered previously
@@ -249,7 +259,7 @@ export default function (path) {
       // currentChar = path.charAt(position);
       return next(prefix); // need this to swallow any following whitespace
     }
-
+    start = position; // remember the start of the token
     // handle flash block declarations ("Instance:", "InstanceOf:" and "* " rules)
     var token;
     if (path.substring(position, position + 9) === 'Instance:') {
@@ -265,6 +275,7 @@ export default function (path) {
         // skip any whitespace after the keyword
         position ++;
       }
+      start = position; // remember the start of the profile identifier
       while (') \t\r\n'.indexOf(path.charAt(position)) === -1) {
         // swallow everything until the first whitespace or ')'
         profileId += path.charAt(position);
@@ -357,6 +368,7 @@ export default function (path) {
                 code: "S0104",
                 stack: (new Error()).stack,
                 position,
+                start,
                 line
               };
             }
@@ -366,10 +378,10 @@ export default function (path) {
               code: "S0103",
               stack: (new Error()).stack,
               position,
+              start,
               line,
               token: currentChar
             };
-
           }
         } else if (currentChar === quoteType) {
           position++;
@@ -383,6 +395,7 @@ export default function (path) {
         code: "S0101",
         stack: (new Error()).stack,
         position,
+        start,
         line
       };
     }
@@ -398,6 +411,7 @@ export default function (path) {
           code: "S0102",
           stack: (new Error()).stack,
           position,
+          start,
           line,
           token: match[0]
         };
@@ -419,6 +433,7 @@ export default function (path) {
         code: "S0105",
         stack: (new Error()).stack,
         position,
+        start,
         line
       };
     }

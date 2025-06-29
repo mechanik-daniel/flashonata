@@ -65,6 +65,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
       value: firstValue,
       fullPath: accumulatedPath,
       position: firstStep.position,
+      start: firstStep.start,
       line: firstStep.line,
       path: { type: "flashpath", steps: [firstStep] },
     };
@@ -89,6 +90,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     rootFhirType,
     fullPath: `${accumulatedPath}.${constructValue(steps[1])}`,
     position: steps[1].position,
+    start: steps[1].start,
     line: steps[1].line,
     path: {
       type: "flashpath",
@@ -107,6 +109,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
       rootFhirType,
       fullPath: `${current.fullPath}.${constructValue(steps[i])}`,
       position: steps[i].position,
+      start: steps[i].start,
       line: steps[i].line,
       path: {
         type: "flashpath",
@@ -140,6 +143,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     rootFhirType,
     fullPath: accumulatedPath,
     position: steps[0].position,
+    start: steps[0].start,
     line: steps[0].line,
     path: { type: "flashpath", steps: [{ ...steps[0], value: steps[0].value }] },
     rules: [nestedRule]

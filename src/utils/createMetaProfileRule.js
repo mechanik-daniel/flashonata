@@ -3,6 +3,7 @@ const createMetaProfileRule = (expr, url) => {
     type: "flashrule",
     isVirtual: true,
     position: expr.position,
+    start: expr.start,
     line: expr.line,
     path: {
       type: "flashpath",
@@ -11,6 +12,7 @@ const createMetaProfileRule = (expr, url) => {
           value: "meta",
           type: "name",
           position: expr.position,
+          start: expr.start,
           line: expr.line
         }
       ]
@@ -28,6 +30,7 @@ const createMetaProfileRule = (expr, url) => {
         rootFhirType: expr.rootFhirType,
         fullPath: "meta.profile",
         position: expr.position,
+        start: expr.start,
         line: expr.line,
         path: {
           type: "flashpath",
@@ -36,6 +39,7 @@ const createMetaProfileRule = (expr, url) => {
               value: "profile",
               type: "name",
               position: expr.position,
+              start: expr.start,
               line: expr.line
             }
           ]
@@ -44,6 +48,7 @@ const createMetaProfileRule = (expr, url) => {
           value: url,
           type: "string",
           position: expr.position,
+          start: expr.start,
           line: expr.line
         }
       }

@@ -467,6 +467,7 @@ var fumifier = (function() {
                 return await evaluateBooleanExpression(lhs, evalrhs, op);
             } catch(err) {
                 err.position = expr.position;
+                err.start = expr.start;
                 err.token = op;
                 throw err;
             }
@@ -504,6 +505,7 @@ var fumifier = (function() {
             }
         } catch(err) {
             err.position = expr.position;
+            err.start = expr.start;
             err.token = op;
             throw err;
         }
@@ -532,6 +534,8 @@ var fumifier = (function() {
                         code: "D1002",
                         stack: (new Error()).stack,
                         position: expr.position,
+start: expr.start,
+                        start: expr.start,
                         token: expr.value,
                         value: result
                     };
@@ -929,6 +933,8 @@ var fumifier = (function() {
                         code: "T1003",
                         stack: (new Error()).stack,
                         position: expr.position,
+start: expr.start,
+                        start: expr.start,
                         value: key
                     };
                 }
@@ -944,6 +950,7 @@ var fumifier = (function() {
                                 code: "D1009",
                                 stack: (new Error()).stack,
                                 position: expr.position,
+start: expr.start,
                                 value: key
                             };
                         }
@@ -1241,6 +1248,7 @@ var fumifier = (function() {
                                 code: "D1004",
                                 stack: (new Error()).stack,
                                 position: expr.position,
+start: expr.start,
                                 value: expr.value.source
                             };
                         }
@@ -1331,6 +1339,7 @@ var fumifier = (function() {
                         code: "T2008",
                         stack: (new Error()).stack,
                         position: expr.position,
+start: expr.start,
                         value: !(atype === 'string' || atype === 'number') ? aa : bb
                     };
                 }
@@ -1341,6 +1350,7 @@ var fumifier = (function() {
                         code: "T2007",
                         stack: (new Error()).stack,
                         position: expr.position,
+start: expr.start,
                         value: aa,
                         value2: bb
                     };
@@ -1422,6 +1432,7 @@ var fumifier = (function() {
                                 code: "T2011",
                                 stack: (new Error()).stack,
                                 position: expr.update.position,
+                                start: expr.update.start,
                                 value: update
                             };
                         }
@@ -1445,6 +1456,7 @@ var fumifier = (function() {
                                     code: "T2012",
                                     stack: (new Error()).stack,
                                     position: expr.delete.position,
+                                    start: expr.delete.start,
                                     value: val
                                 };
                             }
@@ -1489,6 +1501,7 @@ var fumifier = (function() {
                     code: "T2006",
                     stack: (new Error()).stack,
                     position: expr.position,
+                    start: expr.start,
                     value: func
                 };
             }
@@ -1529,6 +1542,7 @@ var fumifier = (function() {
                 code: "T1005",
                 stack: (new Error()).stack,
                 position: expr.position,
+                start: expr.start,
                 token: expr.procedure.steps[0].value
             };
         }
@@ -1558,12 +1572,14 @@ var fumifier = (function() {
             if(typeof proc === 'object') {
                 proc.token = procName;
                 proc.position = expr.position;
+                proc.start = expr.start;
             }
             result = await apply(proc, evaluatedArgs, input, environment);
         } catch (err) {
             if(!err.position) {
                 // add the position field to the error
                 err.position = expr.position;
+                err.start = expr.start;
             }
             if (!err.token) {
                 // and the function identifier
@@ -1594,6 +1610,7 @@ var fumifier = (function() {
                 next.token = result.body.procedure.value;
             }
             next.position = result.body.procedure.position;
+            next.start = result.body.procedure.start;
             var evaluatedArgs = [];
             for(var ii = 0; ii < result.body.arguments.length; ii++) {
                 evaluatedArgs.push(await evaluate(result.body.arguments[ii], result.input, result.environment));
@@ -1658,6 +1675,7 @@ var fumifier = (function() {
                     err.token = proc.token;
                 }
                 err.position = proc.position || err.position;
+                err.start = proc.start || err.start;
             }
             throw err;
         }
@@ -1718,6 +1736,7 @@ var fumifier = (function() {
                 code: "T1007",
                 stack: (new Error()).stack,
                 position: expr.position,
+                start: expr.start,
                 token: expr.procedure.steps[0].value
             };
         }
@@ -1732,6 +1751,7 @@ var fumifier = (function() {
                 code: "T1008",
                 stack: (new Error()).stack,
                 position: expr.position,
+                start: expr.start,
                 token: expr.procedure.type === 'path' ? expr.procedure.steps[0].value : expr.procedure.value
             };
         }

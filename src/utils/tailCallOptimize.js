@@ -6,7 +6,7 @@
 const tailCallOptimize = function (expr) {
   var result;
   if (expr.type === 'function' && !expr.predicate) {
-    var thunk = {type: 'lambda', thunk: true, arguments: [], position: expr.position, line: expr.line};
+    var thunk = {type: 'lambda', thunk: true, arguments: [], position: expr.position, start: expr.start, line: expr.line};
     thunk.body = expr;
     result = thunk;
   } else if (expr.type === 'condition') {

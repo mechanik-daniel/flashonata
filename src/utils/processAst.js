@@ -55,6 +55,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
                 code: "S0213",
                 stack: (new Error()).stack,
                 position: step.position,
+                start: step.start,
                 line: step.line,
                 value: step.value
               };
@@ -97,6 +98,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
               code: "S0209",
               stack: (new Error()).stack,
               position: expr.position,
+              start: expr.start,
               line: expr.line
             };
           }
@@ -114,7 +116,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
             });
             pushAncestry(step, predicate);
           }
-          step[type].push({type: 'filter', expr: predicate, position: expr.position, line: expr.line});
+          step[type].push({type: 'filter', expr: predicate, position: expr.position, start: expr.start, line: expr.line});
           break;
         case '{':
           // group-by
@@ -126,6 +128,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
               code: "S0210",
               stack: (new Error()).stack,
               position: expr.position,
+              start: expr.start,
               line: expr.line
             };
           }
@@ -135,6 +138,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
               return [processAST(pair[0], ancestorWrapper, switchOnFlashFlag, recover, errors), processAST(pair[1], ancestorWrapper, switchOnFlashFlag, recover, errors)];
             }),
             position: expr.position,
+            start: expr.start,
             line: expr.line
           };
           break;
@@ -146,7 +150,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
           if (result.type !== 'path') {
             result = {type: 'path', steps: [result]};
           }
-          var sortStep = {type: 'sort', position: expr.position, line: expr.line};
+          var sortStep = {type: 'sort', position: expr.position, start: expr.start, line: expr.line};
           sortStep.terms = expr.rhs.map(function (terms) {
             var expression = processAST(terms.expression, ancestorWrapper, switchOnFlashFlag, recover, errors);
             pushAncestry(sortStep, expression);
@@ -159,7 +163,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
           resolveAncestry(result, ancestorWrapper);
           break;
         case ':=':
-          result = {type: 'bind', value: expr.value, position: expr.position ,line: expr.line};
+          result = {type: 'bind', value: expr.value, position: expr.position, start: expr.start, line: expr.line};
           result.lhs = processAST(expr.lhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           result.rhs = processAST(expr.rhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           pushAncestry(result, result.rhs);
@@ -177,6 +181,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
               code: "S0215",
               stack: (new Error()).stack,
               position: expr.position,
+              start: expr.start,
               line: expr.line
             };
           }
@@ -186,6 +191,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
               code: "S0216",
               stack: (new Error()).stack,
               position: expr.position,
+              start: expr.start,
               line: expr.line
             };
           }
@@ -210,18 +216,18 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
           if (typeof step.stages === 'undefined') {
             step.index = expr.rhs.value;
           } else {
-            step.stages.push({type: 'index', value: expr.rhs.value, position: expr.position, line: expr.line});
+            step.stages.push({type: 'index', value: expr.rhs.value, position: expr.position, start: expr.start, line: expr.line});
           }
           step.tuple = true;
           break;
         case '~>':
-          result = {type: 'apply', value: expr.value, position: expr.position, line: expr.line};
+          result = {type: 'apply', value: expr.value, position: expr.position, start: expr.start, line: expr.line};
           result.lhs = processAST(expr.lhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           result.rhs = processAST(expr.rhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           result.keepArray = result.lhs.keepArray || result.rhs.keepArray;
           break;
         default:
-          result = {type: expr.type, value: expr.value, position: expr.position, line: expr.line};
+          result = {type: expr.type, value: expr.value, position: expr.position, start: expr.start, line: expr.line};
           result.lhs = processAST(expr.lhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           result.rhs = processAST(expr.rhs, ancestorWrapper, switchOnFlashFlag, recover, errors);
           pushAncestry(result, result.lhs);
@@ -229,7 +235,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       }
       break;
     case 'unary':
-      result = {type: expr.type, value: expr.value, position: expr.position, line: expr.line};
+      result = {type: expr.type, value: expr.value, position: expr.position, start: expr.start, line: expr.line};
       if (expr.value === '[') {
         // array constructor - process each item
         result.expressions = expr.expressions.map(function (item) {
@@ -260,7 +266,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       break;
     case 'function':
     case 'partial':
-      result = {type: expr.type, name: expr.name, value: expr.value, position: expr.position, line: expr.line};
+      result = {type: expr.type, name: expr.name, value: expr.value, position: expr.position, start: expr.start, line: expr.line};
       result.arguments = expr.arguments.map(function (arg) {
         var argAST = processAST(arg, ancestorWrapper, switchOnFlashFlag, recover, errors);
         pushAncestry(result, argAST);
@@ -274,13 +280,14 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         arguments: expr.arguments,
         signature: expr.signature,
         position: expr.position,
+        start: expr.start,
         line: expr.line
       };
       var body = processAST(expr.body, ancestorWrapper, switchOnFlashFlag, recover, errors);
       result.body = tailCallOptimize(body);
       break;
     case 'condition':
-      result = {type: expr.type, position: expr.position, line: expr.line};
+      result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
       result.condition = processAST(expr.condition, ancestorWrapper, switchOnFlashFlag, recover, errors);
       pushAncestry(result, result.condition);
       result.then = processAST(expr.then, ancestorWrapper, switchOnFlashFlag, recover, errors);
@@ -291,14 +298,14 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       }
       break;
     case 'coalesce':
-      result = {type: expr.type, position: expr.position, line: expr.line};
+      result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
       result.condition = processAST(expr.condition, ancestorWrapper, switchOnFlashFlag, recover, errors);
       pushAncestry(result, result.condition);
       result.else = processAST(expr.else, ancestorWrapper, switchOnFlashFlag, recover, errors);
       pushAncestry(result, result.else);
       break;
     case 'transform':
-      result = {type: expr.type, position: expr.position, line: expr.line};
+      result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
       result.pattern = processAST(expr.pattern, ancestorWrapper, switchOnFlashFlag, recover, errors);
       result.update = processAST(expr.update, ancestorWrapper, switchOnFlashFlag, recover, errors);
       if (typeof expr.delete !== 'undefined') {
@@ -306,7 +313,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       }
       break;
     case 'block':
-      result = {type: expr.type, position: expr.position, line: expr.line};
+      result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
       // array of expressions - process each one
       result.expressions = expr.expressions.map(function (item) {
         var part = processAST(item, ancestorWrapper, switchOnFlashFlag, recover, errors);
@@ -351,6 +358,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         var typeIdError = {
           code: 'F1027',
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: 'InstanceOf:',
           value: expr.instanceof
@@ -366,6 +374,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       result = {
         type: expr.type,
         position: expr.position,
+        start: expr.start,
         line: expr.line,
         instanceof: expr.instanceof
       };
@@ -380,6 +389,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       result = {
         type: expr.type,
         position: expr.position,
+        start: expr.start,
         line: expr.line
       };
       var path;
@@ -389,6 +399,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         var error = {
           code: "F1028",
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: '(flashpath)',
           details: e
@@ -418,6 +429,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         error = {
           code: "F1028",
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: '(flashpath)',
           details: e
@@ -444,6 +456,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
           code: "S0201",
           stack: (new Error()).stack,
           position: expr.position,
+          start: expr.start,
           line: expr.line,
           token: expr.value
         };
@@ -464,6 +477,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       var err = {
         code: code,
         position: expr.position,
+        start: expr.start,
         line: expr.line,
         token: expr.value
       };
