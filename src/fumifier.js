@@ -1141,10 +1141,6 @@ var fumifier = (function() {
         }
         if (kind === 'resource') {
             result.resourceType = expr.fhirTypeMeta.type;
-            // TODO: validate that the id (if set using 'instance') is a valid Resource.id or Element.id (if not a resource)
-        }
-        if (instance) {
-            result.id = instance;
         }
         // invoke each FLASH sub-rule in turn
         if (expr.rules) {
@@ -1171,15 +1167,15 @@ var fumifier = (function() {
         // create a new frame to limit the scope of variable assignments
         // TODO, only do this if the post-parse stage has flagged this as required
         var frame = createFrame(environment);
-        // evaluate the rule's explicit (direct) expression, if there is one
+        // evaluate the rule's explicit (inline) expression, if there is one
         var value;
-        // assess whether the element is a FHIR Primitive according the type's first character case
-        var fhirPrimitive = expr.elementDefinition.type[0].code.charAt(0).toLowerCase() === expr.elementDefinition.type[0].code.charAt(0);
-        if (expr.expression) {
-            value = await evaluate(expr.expression, input, frame);
+        // assess whether the element is a FHIR Primitive
+        var fhirPrimitive = expr.elementDefinition.type[0].__kind === 'primitive-type';
+        if (expr.inlineExpression) {
+            value = await evaluate(expr.inlineExpression, input, frame);
             if (value !== undefined) {
                 if (fhirPrimitive) {
-                    // if the element is a FHIR Primitive, then the value element is the element's value
+                    // if the element is a FHIR Primitive, then the inline value element is the element's value child
                     result[expr.value] = { value };
                     // we need to mark this a FHIR primitive for later restructuring
                     result[expr.value].__fhirPrimitive = true;

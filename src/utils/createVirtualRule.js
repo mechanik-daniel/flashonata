@@ -15,7 +15,7 @@ const createVirtualRule = (expr, elementName) => {
         }
       ]
     },
-    expression: expr.instance,
+    inlineExpression: expr.instance,
     rootFhirType: expr.rootFhirType,
     name: elementName,
     value: elementName,
