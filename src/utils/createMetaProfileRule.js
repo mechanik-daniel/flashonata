@@ -1,6 +1,7 @@
 const createMetaProfileRule = (expr, url) => {
   return {
     type: "flashrule",
+    isVirtual: true,
     position: expr.position,
     line: expr.line,
     path: {
@@ -21,6 +22,7 @@ const createMetaProfileRule = (expr, url) => {
     rules: [
       {
         type: "flashrule",
+        isVirtual: true,
         name: "profile",
         value: "profile",
         rootFhirType: expr.rootFhirType,

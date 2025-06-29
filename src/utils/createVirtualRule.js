@@ -1,6 +1,7 @@
 const createVirtualRule = (expr, elementName) => {
   return {
     type: "flashrule",
+    isVirtual: true,
     position: expr.position,
     line: expr.line,
     path: {
