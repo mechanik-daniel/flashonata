@@ -494,7 +494,7 @@ const parser = (() => {
         });
       }
       while (node.id !== ")" && node.id !== "(end)") {
-        var indent;
+        var indent = node.indent;
         if (node.id === "(indent)") {
           if (node.value === level) {
             indent = node.value;
