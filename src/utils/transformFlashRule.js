@@ -41,7 +41,6 @@
 var transformFlashRule = function (ast, parentFullPath = "") {
 
   let steps = ast.path.steps;
-  let rootFhirType = ast.rootFhirType;
 
   // Helper function to construct `value` from `name` and `slices`
   function constructValue(step) {
@@ -72,7 +71,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
 
     // Transform rules **AFTER** fullPath is computed
     let transformedRules = ast.rules ?
-      ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r, rootFhirType }, accumulatedPath)) :
+      ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r }, accumulatedPath)) :
       [];
 
     if (transformedRules.length > 0) {
@@ -87,7 +86,6 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     type: "flashrule",
     name: steps[1].value,
     value: constructValue(steps[1]),
-    rootFhirType,
     fullPath: `${accumulatedPath}.${constructValue(steps[1])}`,
     position: steps[1].position,
     start: steps[1].start,
@@ -106,7 +104,6 @@ var transformFlashRule = function (ast, parentFullPath = "") {
       type: "flashrule",
       name: steps[i].value,
       value: constructValue(steps[i]),
-      rootFhirType,
       fullPath: `${current.fullPath}.${constructValue(steps[i])}`,
       position: steps[i].position,
       start: steps[i].start,
@@ -122,7 +119,7 @@ var transformFlashRule = function (ast, parentFullPath = "") {
 
   // **Fix:** Ensure transformed `rules` are nested at the correct depth
   let transformedRules = ast.rules ?
-    ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r, rootFhirType }, current.fullPath)) :
+    ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r }, current.fullPath)) :
     [];
 
   if (transformedRules.length > 0) {
@@ -140,7 +137,6 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     ...ast,
     name: steps[0].value,
     value: firstValue,
-    rootFhirType,
     fullPath: accumulatedPath,
     position: steps[0].position,
     start: steps[0].start,

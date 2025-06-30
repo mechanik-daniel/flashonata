@@ -457,7 +457,7 @@ const parser = (() => {
     // In both cases, this function is only called after the InstanceOf: keyword, so it should not encounter an
     // 'Instance:' token after it. If it does, that's an error.
     // The only valid expression types are flashrule and ':=' (bind)
-    var collectRules = function (level, root, rootFhirType) {
+    var collectRules = function (level, root) {
       root = root || 0;
       if (node.type === 'instance') {
         // Instance:` declaration must come BEFORE `InstanceOf:`
@@ -537,7 +537,6 @@ const parser = (() => {
           }
         }
         rule.indent = rule.indent || indent;
-        rule.rootFhirType = rootFhirType;
         rules.push(rule);
         if (node.id === ';') advance(null, null, true);
         if (node.id !== "(indent)" || node.value < level) {
@@ -615,7 +614,7 @@ const parser = (() => {
         }
         this.indent = indent;
         var subrules;
-        subrules = collectRules(indent + 2, null, this.rootFhirType);
+        subrules = collectRules(indent + 2, null);
         if (subrules.length > 0) this.rules = subrules;
         return this;
       } else {

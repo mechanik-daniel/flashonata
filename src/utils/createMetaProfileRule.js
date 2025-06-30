@@ -17,7 +17,6 @@ const createMetaProfileRule = (expr, url) => {
         }
       ]
     },
-    rootFhirType: expr.rootFhirType,
     name: "meta",
     value: "meta",
     fullPath: "meta",
@@ -27,7 +26,6 @@ const createMetaProfileRule = (expr, url) => {
         isVirtual: true,
         name: "profile",
         value: "profile",
-        rootFhirType: expr.rootFhirType,
         fullPath: "meta.profile",
         position: expr.position,
         start: expr.start,

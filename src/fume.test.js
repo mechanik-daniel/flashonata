@@ -6,13 +6,6 @@ import { FhirStructureNavigator } from '@outburn/structure-navigator';
 
 var context = ['il.core.fhir.r4#0.17.0'];
 
-
-// const fumeUrl = new URL("https://server.develop.fume.health");
-// var provider = require("../test/conformanceProvider");
-// var getSnapshot = provider.getSnapshot;
-
-// var getElementDefinition = provider.getElementDefinition;
-
 void async function () {
   // var expression = `
   // Instance: 'instance'
@@ -61,12 +54,27 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-//   Instance: field1 & '-abc'
-  InstanceOf: ext-il-hmo
-  * url
+// Instance: 'abc'
+InstanceOf: Patient
+// * (context ?? undefined).active = status='active'
+// * name
+//   * given = first_name
+//   * family = last_name
+//   * period
+//     * start = '2000-01-01'
+// * birthDate = birth_date
+* generalPractitioner
+  * (abc).identifier
+//     * assigner
+//       * identifier
+//         * assigner
+//           * identifier
+//             * assigner
+//             //   * (some_path.context_value).reference = 'Organization/123'
+// //   * display = primary_doctor.full_name
   `;
   var expr = await fumifier(expression, { navigator });
-  var res = await expr.evaluate({'field1': 'http://example.com/field1'});
+  var res = await expr.evaluate({'field1': 'http://example.com/field1', field2: 'parent!'});
   console.log('ast', JSON.stringify(await expr.ast(), null, 2));
   console.log('Result', res);
 

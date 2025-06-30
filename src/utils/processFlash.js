@@ -1,50 +1,8 @@
 /* eslint-disable no-console */
 /**
  * © Copyright Outburn Ltd. 2022-2024 All Rights Reserved
- *   Project name: FUME-COMMUNITY
+ *   Project name: Fumifier
  */
-
-// var primitiveParsers = {}; // cache for FHIR primitive value RegExp parsers
-
-// var getPrimitiveParser = async function (typeName) {
-// // returns a regex that will be used to validate a primitive value
-// // expressions are cached in memory so they are only fetched once
-// if (primitiveParsers[typeName]) {
-//     // exists in cache, return from there
-//     return primitiveParsers[typeName];
-// } else {
-//     // find the regex for the primitive type
-//     var resEx;
-//     var sDef = await getSnapshot(typeName);
-//     if (sDef === undefined) {
-//         var typeError = {
-//             code: 'F1026',
-//             position: expr.position,
-//             start: expr.start,
-//             line: expr.line,
-//             token: typeName,
-//             value: expr.instanceof,
-//             message: `Could not find a FHIR type/profile definition with identifier '${typeName}'`
-//         };
-//         typeError.stack = (new Error()).stack;
-//         throw typeError;
-//         return thrower.throwRuntimeError(`error fetching structure definition for type ${typeName}`)
-//     };
-//     const valueElementDef = sDef?.snapshot?.element[3]; // 4th element in a primitive's structdef is always the actual primitive value
-//     // get regular expression string from the standard extension
-//     const regexStr: string = valueElementDef?.type[0]?.extension?.filter((ext: any) => ext?.url === 'http://hl7.org/fhir/StructureDefinition/regex')[0]?.valueString;
-//     if (regexStr) {
-//     // found regex, compile it
-//     const fn = new RegExp(`^${regexStr}$`);
-//     resFn = (value: string): boolean => fn.test(value);
-//     } else {
-//     // no regex - function will just test for empty strings
-//     resFn = (value: string): boolean => value.trim() !== '';
-//     }
-//     primitiveParsers[typeName] = resFn; // cache the function
-//     return resFn;
-// }
-// };
 
 import createFhirFetchers from './createFhirFetchers.js';
 import createMetaProfileRule from './createMetaProfileRule.js';
