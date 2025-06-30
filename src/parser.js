@@ -689,7 +689,7 @@ const parser = (() => {
       }
 
       advance(null, null, true); // proceeed to the next token after InstanceOf:
-      var rules = collectRules(this.indent, this.indent, this.instanceof);
+      var rules = collectRules(this.indent, this.indent);
       if (rules.length > 0) this.rules = rules;
       return this;
     });
@@ -714,7 +714,7 @@ const parser = (() => {
         });
       }
       this.instanceof = this.value;
-      var rules = collectRules(this.indent, this.indent, this.instanceof);
+      var rules = collectRules(this.indent, this.indent);
       if (rules.length > 0) this.rules = rules;
       delete this.value;
       return this;
