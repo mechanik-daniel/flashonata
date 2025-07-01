@@ -12,7 +12,8 @@ import extractSystemFhirType from './extractSystemFhirType.js';
 const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /**
- * FLASH semantic processor
+ * FLASH semantic processor. After parsing a Fumifier expression and running it through processAst,
+ * if the expression has FLASH it will be flagged as such and passed here for FHIR semantic enrichment.
  * @param {Object} expr - Parsed Fumifier expression
  * @param {FhirStructureNavigator} navigator: FHIR structure navigator
  * @param {Object} fhirTypeMeta - If inside a FLASH block, this is the resolved FHIR type metadata according to `InstanceOf`
@@ -122,7 +123,6 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           const lastPart = ed.path.split('.').pop();
           const baseName = lastPart.endsWith('[x]') ? lastPart.slice(0, -3) : lastPart;
           const allowedNames = ed.type.map((t) => `${baseName}${initCap(t.code)}`).join(', ');
-          console.log('allowedNames', allowedNames);
           typeError = {
             code: 'F1031',
             position: expr.position,
