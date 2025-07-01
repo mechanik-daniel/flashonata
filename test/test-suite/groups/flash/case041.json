@@ -1,5 +1,5 @@
 {
-    "expr": "InstanceOf: il-core-patient\r\n$a:=val\r\n* identifier[il-id][enc].value.extension[dar]\r\n  $a:=ttt\r\n  * url = expr1\r\n  $a := something",
+    "expr": "InstanceOf: il-core-patient\r\n$a:=val\r\n* identifier[il-id].value.extension[dar]\r\n  $a:=ttt\r\n  * url = expr1\r\n  $a := something",
     "data": null,
     "bindings": {},
     "code": "F1029"

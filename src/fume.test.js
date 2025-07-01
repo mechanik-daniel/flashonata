@@ -54,29 +54,15 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-// Instance: 'abc'
-InstanceOf: Patient
-// * (context ?? undefined).active = status='active'
-// * name
-//   * given = first_name
-//   * family = last_name
-//   * period
-//     * start = '2000-01-01'
-// * birthDate = birth_date
-* generalPractitioner
-  * (abc).identifier
-//     * assigner
-//       * identifier
-//         * assigner
-//           * identifier
-//             * assigner
-//             //   * (some_path.context_value).reference = 'Organization/123'
-// //   * display = primary_doctor.full_name
+
+InstanceOf: il-core-patient
+* identifier[2 - 1].value = field1
+
   `;
   var expr = await fumifier(expression, { navigator });
   var res = await expr.evaluate({'field1': 'http://example.com/field1', field2: 'parent!'});
-  console.log('ast', JSON.stringify(await expr.ast(), null, 2));
-  console.log('Result', res);
+  //   console.log('ast', JSON.stringify(await expr.ast(), null, 2));
+  console.log('Result', JSON.stringify(res, null, 2));
 
 //   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
 }();
