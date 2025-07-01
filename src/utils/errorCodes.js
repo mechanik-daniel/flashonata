@@ -138,7 +138,7 @@ const errorCodes = {
   "F1025": "Malformed variable assignment. Did you mean ':='?",
   "F1026": "Could not find a FHIR type/profile definition with identifier {{value}}",
   "F1027": "value after `InstanceOf:` must be FHIR type/profile identifier and cannot be an expression. Found: {{{value}}}",
-  "F1028": "Malformed FLASH rule: path is syntactically illegal",
+  "F1028": "FLASH path is syntactically illegal. Token {{value}} is unexpected here.",
   "F1029": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
   "F1030": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
   "F1031": "'{{value}}' is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
