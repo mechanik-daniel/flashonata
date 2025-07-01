@@ -1139,26 +1139,26 @@ start: expr.start,
     async function evaluateFlashBlock(expr, input, environment) {
         var result = {};
         var kind = expr.fhirTypeMeta.kind;
-        var instance;
         // create a new frame to limit the scope of variable assignments
         // TODO, only do this if the post-parse stage has flagged this as required
         var frame = createFrame(environment);
-        if (expr.instance) {
-            instance = await evaluate(expr.instance, input, frame);
-        }
         if (kind === 'resource') {
             result.resourceType = expr.fhirTypeMeta.type;
         }
-        // invoke each FLASH sub-rule in turn
+        // invoke each FLASH rule in turn
         if (expr.rules) {
             for(var ii = 0; ii < expr.rules.length; ii++) {
-                var element = await evaluate(expr.rules[ii], input, frame);
+                const rule = expr.rules[ii];
+                // if this rule is a path node, this means it is a contextualized rule,
+                // so the element name must be taken from the flashrule in the right hand side
+                // which is the second step in the path node
+                const elementName = rule.type === 'path' ? rule.steps[1].name : rule.name;
+                var element = await evaluate(rule, input, frame);
                 if (element !== undefined) {
-                    result[expr.rules[ii].value] = element;
+                    result[elementName] = element;
                 }
             }
         }
-
         return result;
     }
 
@@ -1170,7 +1170,6 @@ start: expr.start,
      * @returns {Promise<any>} Evaluated FHIR element
     */
     async function evaluateFlashRule(expr, input, environment) {
-        // TODO: if context is undefined, return undefined
         // if a fixed value is set, just return it and skip all rule evaluation logic
         if (expr.fixed) return expr.fixed;
         // TODO: handle pattern[x]
@@ -1196,17 +1195,20 @@ start: expr.start,
 
                     // if the element is a FHIR Complex Element, then the value element is the element itself
                     // also if it is a system primitive (not FHIR primitive), the same applies
-                    result[expr.value] = value;
+                    result = value;
                 }
-                
             }
         }
         // invoke each FLASH sub-rule in turn
         if (expr.rules) {
             for(var ii = 0; ii < expr.rules.length; ii++) {
-                var element = await evaluate(expr.rules[ii], input, frame);
+                const rule = expr.rules[ii];
+                // if this rule is a path node, this means it is a contextualized rule,
+                // so the element name must be taken from the flashrule in the right hand side
+                const elementName = rule.type === 'path' ? rule.steps[1].name : rule.name;
+                var element = await evaluate(rule, input, frame);
                 if (element !== undefined) {
-                    result[expr.rules[ii].value] = element;
+                    result[elementName] = element;
                 }
             }
         }

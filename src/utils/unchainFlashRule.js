@@ -7,7 +7,7 @@
  */
 
 /**
- * This function restructures a flashrule AST, converting a flat path (flashpath.steps) into a nested hierarchy of
+ * This function restructures a flashrule AST, converting a chained path (flashpath.steps length > 1) into a nested hierarchy of
  * flashrule branches.
  * 1. Handling flashpath.steps
  *
@@ -16,31 +16,44 @@
  * If flashpath.steps has multiple steps, restructure them into nested flashrule objects.
  * The first step becomes the top-level path.
  * Each subsequent step becomes a nested flashrule inside the previous step’s rules array.
- * The deepest flashrule (last step) receives the expression and rules.
+ * The deepest flashrule (last step) receives the inline expression and any subsequest indented rules.
  *
- * 2. Handling context
+ * 2. Handling sub-rules
  *
- * If context exists, it remains at the top level and is not moved down.
+ * If sub-rules exist:
+ * They are unchained recursively using the same function.
  *
- * 3. Handling rules
- *
- * If rules exist in the original AST:
- * They are transformed recursively using the same function.
- * If flashpath.steps has only one step, rules remain at the same level.
- * If flashpath.steps has multiple steps, rules are moved to the deepest flashrule.
- *
- * 4. Path tracking
+ * 3. Path tracking
  *
  * Each flashrule.path will have a name (the actual element name, no other steps or slices),
  * a value (element name suffixed with slices in square brackets),
- * and a fullPath - The accumulating series of values that represents the current path in the hierarchy
+ * and a fullPath - The accumulating series of values that represents the current path in the hierarchy.
+ *
  * @param {Object} ast A flashrule AST branch
  * @param {string} parentFullPath Accumulating path in currenct flash block
  * @returns {Object} The transformed AST branch
  */
-var transformFlashRule = function (ast, parentFullPath = "") {
+var unchainFlashRule = function (ast, parentFullPath = "") {
+  if (!ast.path || !ast.path.steps) {
+    // No need to unchain this rule, it is already a single step or of a type that does not require path unchaining
+    return ast;
+  }
 
-  let steps = ast.path.steps;
+  const _conditionalTransform = (rule, currentFullPath) => {
+    if (rule.type === 'bind') {
+      // Bind rules are not transformed, they remain as is
+      return rule;
+    }
+    if (rule.type === 'binary') {
+      // Binary rules (assumining they are '.', used for a rule's context) have only their right-hand side transformed
+      return {
+        ...rule,
+        rhs: unchainFlashRule(rule.rhs, currentFullPath)
+      };
+    }
+    // For all other rules, apply the transformation directly (assuming they are flashrules)
+    return unchainFlashRule(rule, currentFullPath);
+  };
 
   // Helper function to construct `value` from `name` and `slices`
   function constructValue(step) {
@@ -50,11 +63,15 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     return step.value + sliceString;
   }
 
+  console.log("Transforming FLASH rule", JSON.stringify(ast, null, 2));
+
+  let steps = ast.path.steps;
+
   // Compute fullPath **before** transforming rules
   let firstValue = constructValue(steps[0]);
   let accumulatedPath = parentFullPath ? `${parentFullPath}.${firstValue}` : firstValue;
 
-  // Case 1: Single-step path → Keep `path` structured consistently
+  // Case 1: Single-step path
   if (steps.length === 1) {
     let firstStep = steps[0];
 
@@ -69,9 +86,9 @@ var transformFlashRule = function (ast, parentFullPath = "") {
       path: { type: "flashpath", steps: [firstStep] },
     };
 
-    // Transform rules **AFTER** fullPath is computed
+    // Unchain sub-rules **AFTER** fullPath is computed
     let transformedRules = ast.rules ?
-      ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r }, accumulatedPath)) :
+      ast.rules.map(r => _conditionalTransform(r, accumulatedPath)) :
       [];
 
     if (transformedRules.length > 0) {
@@ -117,10 +134,8 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     current = newRule;
   }
 
-  // **Fix:** Ensure transformed `rules` are nested at the correct depth
   let transformedRules = ast.rules ?
-    ast.rules.map(r => r.type === 'bind' ? r : transformFlashRule({ ...r }, current.fullPath)) :
-    [];
+    ast.rules.map(r => _conditionalTransform(r, current.fullPath)) : [];
 
   if (transformedRules.length > 0) {
     current.rules = transformedRules;
@@ -132,7 +147,6 @@ var transformFlashRule = function (ast, parentFullPath = "") {
     delete ast.inlineExpression;
   }
 
-  // Preserve `context` at the top level if it exists
   let result = {
     ...ast,
     name: steps[0].value,
@@ -148,4 +162,4 @@ var transformFlashRule = function (ast, parentFullPath = "") {
   return result;
 };
 
-export default transformFlashRule;
+export default unchainFlashRule;

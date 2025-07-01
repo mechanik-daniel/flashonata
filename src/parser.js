@@ -10,6 +10,9 @@ import parseSignature from './utils/signature.js';
 import operators from './utils/operators.js';
 import tokenizer from './utils/tokenizer.js';
 import processAST from './utils/processAst.js';
+import contextualizeRule from './utils/contextualizeRule.js';
+import normalizeFlashPath from './utils/normalizeFlashPath.js';
+import unchainFlashRule from './utils/unchainFlashRule.js';
 
 const parser = (() => {
 
@@ -537,6 +540,27 @@ const parser = (() => {
           }
         }
         rule.indent = rule.indent || indent;
+        if (rule.type === 'flashrule' && rule.path) {
+          // try to normalize the path, catch any errors and bubble them up
+          try {
+            rule.path = normalizeFlashPath(rule.path);
+          } catch (e) {
+            return handleError(
+              e.value ? e : {
+                code: "F1028",
+                stack: e.stack,
+                position: rule.path.position,
+                start: rule.path.start,
+                line: rule.path.line,
+                value: rule.path.value
+              });
+          }
+          rule = unchainFlashRule(rule);
+          console.log(`Unchained flash rule: ${JSON.stringify(rule, null, 2)}`);
+        }
+        if (rule.context) {
+          rule = contextualizeRule(rule);
+        }
         rules.push(rule);
         if (node.id === ';') advance(null, null, true);
         if (node.id !== "(indent)" || node.value < level) {
@@ -1063,10 +1087,14 @@ const parser = (() => {
       handleError(err);
     }
 
+    console.log("Initital parsing BEFORE processing AST", JSON.stringify(expr, null, 2));
+
     expr = processAST(expr, ancestorWrapper, switchOnFlashFlag, recover, errors);
     if (astContainsFlash === true) {
       expr.containsFlash = true;
     }
+
+    console.log("Final parsing AFTER processing AST", JSON.stringify(expr, null, 2));
 
     if(expr.type === 'parent' || typeof expr.seekingParent !== 'undefined') {
       // error - trying to derive ancestor at top level

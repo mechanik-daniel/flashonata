@@ -1,5 +1,4 @@
-import flattenFlashPath from './flattenFlashPath.js';
-import transformFlashRule from './transformFlashRule.js';
+/* eslint-disable no-console */
 import validateFhirTypeId from './validateFhirTypeId.js';
 import resolveAncestry from './resolveAncestry.js';
 import pushAncestry from './pushAncestry.js';
@@ -325,6 +324,7 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       });
       // TODO scan the array of expressions to see if any of them assign variables
       // if so, need to mark the block as one that needs to create a new frame
+      if (expr.rootFhirType) result.rootFhirType = expr.rootFhirType;
       break;
     case 'name':
       result = {type: 'path', steps: [expr]};
@@ -386,36 +386,17 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       }
       break;
     case 'flashrule':
+      // console.log('Processing flashrule', JSON.stringify(expr, null, 2));
       result = {
         type: expr.type,
         position: expr.position,
         start: expr.start,
-        line: expr.line
+        line: expr.line,
+        name: expr.name,
+        value: expr.value,
+        fullPath: expr.fullPath,
+        path: expr.path
       };
-      var path;
-      try {
-        path = flattenFlashPath(processAST(expr.path, ancestorWrapper, switchOnFlashFlag, recover, errors));
-      } catch (e) {
-        var error = {
-          code: "F1028",
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
-          token: '(flashpath)',
-          details: e
-        };
-        if (recover) {
-          errors.push(error);
-          return {type: 'error', error};
-        } else {
-          error.stack = (new Error()).stack;
-          throw error;
-        }
-      }
-      result.path = path;
-      if (expr.context) {
-        result.context = processAST(expr.context, ancestorWrapper, switchOnFlashFlag, recover, errors);
-      }
       if (expr.inlineExpression) {
         result.inlineExpression = processAST(expr.inlineExpression, ancestorWrapper, switchOnFlashFlag, recover, errors);
       }
@@ -423,25 +404,6 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
       }
       result.rootFhirType = expr.rootFhirType;
-      try {
-        result = transformFlashRule(result);
-      } catch (e) {
-        error = {
-          code: "F1028",
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
-          token: '(flashpath)',
-          details: e
-        };
-        if (recover) {
-          errors.push(error);
-          return {type: 'error', error};
-        } else {
-          error.stack = (new Error()).stack;
-          throw error;
-        }
-      }
       break;
     case 'operator':
       // the tokens 'and' and 'or' might have been used as a name rather than an operator
