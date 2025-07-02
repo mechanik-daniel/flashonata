@@ -141,10 +141,10 @@ var unchainFlashRule = function (ast, parentFullPath = "") {
     current.rules = transformedRules;
   }
 
-  // Assign `inlineExpression` to the deepest rule
-  if (ast.inlineExpression) {
-    current.inlineExpression = ast.inlineExpression;
-    delete ast.inlineExpression;
+  // Assign `expression` to the deepest rule
+  if (ast.expression) {
+    current.expression = ast.expression;
+    delete ast.expression;
   }
 
   let result = {

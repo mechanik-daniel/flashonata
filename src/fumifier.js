@@ -1182,8 +1182,8 @@ var fumifier = (function() {
     // evaluate the rule's explicit (inline) expression, if there is one
     var value;
     const kind = expr.elementDefinition.type[0].__kind;
-    if (expr.inlineExpression) {
-      value = await evaluate(expr.inlineExpression, input, frame);
+    if (expr.expression) {
+      value = await evaluate(expr.expression, input, frame);
       if (value !== undefined) {
         if (kind === 'system') {
           // if the element is a system primitive, then the inline value element is the element's value itself
@@ -1999,8 +1999,6 @@ var fumifier = (function() {
         framePushCallback(enclosingEnvironment, newFrame);
       }
     }
-
-
     return newFrame;
   }
 

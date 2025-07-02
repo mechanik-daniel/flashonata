@@ -42,7 +42,7 @@ const createMetaProfileRule = (expr, url) => {
             }
           ]
         },
-        inlineExpression: {
+        expression: {
           value: url,
           type: "string",
           position: expr.position,

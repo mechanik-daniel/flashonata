@@ -587,7 +587,7 @@ const parser = (() => {
         if (node.id === '=') {
           advance('=', null, true);
           if (node.id !== '(end)' && node.id !== '(indent)') {
-            this.inlineExpression = expression(0, true);
+            this.expression = expression(0, true);
           } else {
             return handleError({
               code: "F1012",

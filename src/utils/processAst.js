@@ -397,8 +397,8 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
         fullPath: expr.fullPath,
         path: expr.path
       };
-      if (expr.inlineExpression) {
-        result.inlineExpression = processAST(expr.inlineExpression, ancestorWrapper, switchOnFlashFlag, recover, errors);
+      if (expr.expression) {
+        result.expression = processAST(expr.expression, ancestorWrapper, switchOnFlashFlag, recover, errors);
       }
       if (expr.rules && expr.rules.length > 0) {
         result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
