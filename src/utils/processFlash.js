@@ -93,6 +93,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
       }
       break;
     case 'flashrule':
+      // console.log('Processing FLASH rule', JSON.stringify(expr, null, 2));
       var path = expr.fullPath;
       var ed;
       var kind;

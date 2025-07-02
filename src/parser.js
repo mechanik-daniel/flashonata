@@ -556,7 +556,7 @@ const parser = (() => {
               });
           }
           rule = unchainFlashRule(rule);
-          console.log(`Unchained flash rule: ${JSON.stringify(rule, null, 2)}`);
+          // console.log(`Unchained flash rule: ${JSON.stringify(rule, null, 2)}`);
         }
         if (rule.context) {
           rule = contextualizeRule(rule);
@@ -1087,7 +1087,7 @@ const parser = (() => {
       handleError(err);
     }
 
-    console.log("Initital parsing BEFORE processing AST", JSON.stringify(expr, null, 2));
+    // console.log("Initital parsing BEFORE processing AST", JSON.stringify(expr, null, 2));
 
     expr = processAST(expr, ancestorWrapper, switchOnFlashFlag, recover, errors);
     if (astContainsFlash === true) {
@@ -1110,7 +1110,7 @@ const parser = (() => {
     if (errors.length > 0) {
       expr.errors = errors;
     }
-
+    console.log('reached final line of the parser!');
     return expr;
   };
 

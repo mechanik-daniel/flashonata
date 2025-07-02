@@ -63,7 +63,7 @@ var unchainFlashRule = function (ast, parentFullPath = "") {
     return step.value + sliceString;
   }
 
-  console.log("Transforming FLASH rule", JSON.stringify(ast, null, 2));
+  // console.log("Transforming FLASH rule", JSON.stringify(ast, null, 2));
 
   let steps = ast.path.steps;
 

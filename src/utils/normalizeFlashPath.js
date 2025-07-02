@@ -21,7 +21,7 @@
  * @returns {Object} The trasformed AST branch
  */
 function normalizeFlashPath(ast) {
-  console.log('normalizeFlashPath', JSON.stringify(ast, null, 2));
+  // console.log('normalizeFlashPath', JSON.stringify(ast, null, 2));
   function flattenBinaryDash(expr) {
     if (expr.type === 'binary' && expr.value === '-') {
       const lhs = flattenBinaryDash(expr.lhs);
