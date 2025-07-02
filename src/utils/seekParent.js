@@ -19,9 +19,10 @@ const seekParent = function (node, slot, ancestorWrapper) {
       break;
     case 'block':
       // look in last expression in the block
-      if(node.expressions.length > 0) {
+      if (node.expressions.length > 0) {
         node.tuple = true;
-        slot = seekParent(node.expressions[node.expressions.length - 1], slot, ancestorWrapper);
+        const last = node.expressions[node.expressions.length - 1];
+        slot = seekParent(last, slot, ancestorWrapper);
       }
       break;
     case 'path':
