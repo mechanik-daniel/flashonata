@@ -2087,7 +2087,7 @@ var fumifier = (function() {
 
         var it;
         try {
-          it = await evaluate(ast, input, exec_env);
+          it = await evaluate(await ast, input, exec_env);
           if (typeof callback === "function") {
             callback(null, it);
           }
