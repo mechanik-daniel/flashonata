@@ -14,6 +14,7 @@ import tailCallOptimize from './tailCallOptimize.js';
 
 const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, errors) {
   var result;
+  var slot;
   switch (expr.type) {
     case 'binary':
       switch (expr.value) {
@@ -333,13 +334,15 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       }
       break;
     case 'parent':
+      slot = {
+        label: '!' + ancestorWrapper.bumpLabel(),
+        level: 1,
+        index: ancestorWrapper.bumpIndex()
+      };
       result = {
         type: 'parent',
-        slot: {
-          label: '!' + ancestorWrapper.bumpLabel(),
-          level: 1,
-          index: ancestorWrapper.bumpIndex()
-        }
+        slot
+        // seekingParent: [slot]
       };
       ancestorWrapper.pushAncestor(result);
       break;
