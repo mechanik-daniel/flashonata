@@ -1,6 +1,0 @@
-{
-    "expr": "InstanceOf: Patient\n* a = b",
-    "data": null,
-    "bindings": {},
-    "code": "F1029"
-}

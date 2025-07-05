@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\nInstance: abc",
+    "description": "`Instance:` declaration must come BEFORE `InstanceOf:`",
+    "data": null,
+    "code": "F1010"
+}

@@ -1,0 +1,6 @@
+{
+  "expr": "InstanceOf: Basic\n* id = 'abc_123'",
+  "data": null,
+  "bindings": {},
+  "code": "F3001"
+}

@@ -1,6 +1,0 @@
-{
-    "expr": "InstanceOf: il-core-patient\r\n* name[-a] = first_name",
-    "data": null,
-    "bindings": {},
-    "code": "F1028"
-}

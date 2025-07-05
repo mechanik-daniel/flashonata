@@ -1,0 +1,7 @@
+{
+    "skip": false,
+    "expr": "InstanceOf: il-core-patient\r\n* name[0].given = first_name",
+    "data": null,
+    "bindings": {},
+    "code": "F2002"
+}

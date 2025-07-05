@@ -1,6 +1,0 @@
-{
-    "expr": "InstanceOf: non-existant-profile\r\n* name = first_name",
-    "data": null,
-    "bindings": {},
-    "code": "F1026"
-}

@@ -1,0 +1,7 @@
+{
+    "skip": false,
+    "expr": "InstanceOf: Patient\n* a = b",
+    "data": null,
+    "bindings": {},
+    "code": "F2002"
+}

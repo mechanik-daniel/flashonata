@@ -1,0 +1,7 @@
+{
+    "skip": false,
+    "expr": "InstanceOf: SimpleQuantity\n* comparator = '>='",
+    "data": null,
+    "bindings": {},
+    "code": "F2005"
+}

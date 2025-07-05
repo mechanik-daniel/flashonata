@@ -1,0 +1,6 @@
+{
+    "skip": false,
+    "expr": "InstanceOf: non-existant-profile",
+    "description": "FLASH declaration of a non-existant profile",
+    "code": "F2001"
+}

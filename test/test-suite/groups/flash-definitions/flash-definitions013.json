@@ -1,0 +1,19 @@
+{
+    "skip": true,
+    "expr": "(InstanceOf: il-core-patient\r\n* identifier[il-id].value = field1)",
+    "data": null,
+    "bindings": {},
+    "result": {
+        "resourceType": "Patient",
+        "meta": {
+            "profile": [
+                "http://fhir.health.gov.il/StructureDefinition/il-core-patient"
+            ]
+        },
+        "identifier": [
+            {
+                "system": "http://fhir.health.gov.il/identifier/il-national-id"
+            }
+        ]
+    }
+}

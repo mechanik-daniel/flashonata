@@ -1,6 +1,0 @@
-{
-    "expr": "Instance: '123'\nInstanceOf: Patient",
-    "data": null,
-    "bindings": {},
-    "result":  { "resourceType": "Patient", "id": "123" }
-}

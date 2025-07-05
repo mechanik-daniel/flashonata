@@ -1,0 +1,6 @@
+{
+    "skip": false,
+    "expr-file": "flash-definitions017.fume",
+    "description": "FLASH block for a non-existant StructureDefinition, with `Instance:` declaration",
+    "code": "F2001"
+}

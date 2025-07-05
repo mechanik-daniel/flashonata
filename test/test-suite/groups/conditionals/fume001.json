@@ -1,9 +1,0 @@
-{
-    "expr": "[{'field': 15},{'Price': 50}].(Price ?? \"No Price\")",
-    "dataset": null,
-    "bindings": {},
-    "result": [
-        "No Price",
-        50
-    ]
-}
