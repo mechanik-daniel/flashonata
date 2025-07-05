@@ -1,0 +1,5 @@
+{
+    "expr": "$distinct(ascii.($ = $base64decode($base64encode($))))",
+    "dataset": "utf",
+    "result": true
+}
