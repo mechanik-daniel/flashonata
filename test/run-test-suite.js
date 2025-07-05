@@ -12,7 +12,7 @@ import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { FhirStructureNavigator } from "@outburn/structure-navigator";
 import { FhirSnapshotGenerator } from "fhir-snapshot-generator";
-
+import skippedGroups from "./skipped-groups.js";
 import { fileURLToPath } from 'url';
 
 chai.use(chaiAsPromised);
@@ -21,7 +21,6 @@ var expect = chai.expect;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const context = ['il.core.fhir.r4#0.17.0'];
 let groups = fs.readdirSync(path.join(__dirname, "test-suite", "groups")).filter((name) => !name.endsWith(".json"));
 
 /**
@@ -40,6 +39,7 @@ function readJSON(dir, file) {
 
 let datasets = {};
 let datasetnames = fs.readdirSync(path.join(__dirname, "test-suite", "datasets"));
+var skippedTests = [];
 
 datasetnames.forEach((name) => {
   datasets[name.replace(".json", "")] = readJSON(path.join("test-suite", "datasets"), name);
@@ -47,7 +47,19 @@ datasetnames.forEach((name) => {
 
 // This is the start of the set of tests associated with the test cases
 // found in the test-suite directory.
-describe("JSONata Test Suite", async () => {
+describe("Fumifier Test Suite", () => {
+  var navigator;
+  before(async () => {
+    const fsg = await FhirSnapshotGenerator.create({
+      context: ['il.core.fhir.r4#0.17.0'],
+      cachePath: './test/.test-cache',
+      fhirVersion: '4.0.1',
+      cacheMode: 'lazy'
+    });
+    // Create a FhirStructureNavigator instance using the FhirSnapshotGenerator
+    navigator = new FhirStructureNavigator(fsg);
+  });
+
   // Iterate over all groups of tests
   groups.forEach(group => {
     let filenames = fs.readdirSync(path.join(__dirname, "test-suite", "groups", group)).filter((name) => name.endsWith(".json"));
@@ -60,30 +72,18 @@ describe("JSONata Test Suite", async () => {
           if(!item.description) {
             item.description = name;
           }
+          item.filename = name;
         });
         cases = cases.concat(spec);
       } else {
         if(!spec.description) {
           spec.description = name;
         }
+        spec.filename = name;
         cases.push(spec);
       }
     });
     describe("Group: " + group, () => {
-      var navigator;
-
-      before(async () => {
-        if (group === "flash") {
-          const fsg = await FhirSnapshotGenerator.create({
-            context,
-            cachePath: './test/.test-cache',
-            fhirVersion: '4.0.1',
-            cacheMode: 'lazy'
-          });
-          navigator = new FhirStructureNavigator(fsg);
-        }
-      });
-
       // Iterate over all cases
       for (let i = 0; i < cases.length; i++) {
         // Extract the current test case of interest
@@ -93,79 +93,113 @@ describe("JSONata Test Suite", async () => {
         if(testcase['expr-file']) {
           testcase.expr = fs.readFileSync(path.join(__dirname, "test-suite", "groups", group, testcase['expr-file'])).toString();
         }
-
+        // create a display friendly version of the expression (add 5 space indentaion for second and subsequent lines, limit line size to 80)
+        const MAX_LINES = 4;
+        const MAX_LINE_LENGTH = 100;
+        const displayTestExpr = testcase.expr ?
+          testcase.expr
+            .split("\n")
+            .slice(0, MAX_LINES) // limit number of lines
+            .map((line, index) => {
+              const prefix = index === 0 ? "" : "     ";
+              const trimmedLine =
+          line.length > MAX_LINE_LENGTH ?
+            line.substring(0, MAX_LINE_LENGTH - 3) + "..." :
+            line;
+              return prefix + trimmedLine;
+            })
+            .join("\n") +
+          (testcase.expr.split("\n").length > MAX_LINES ? "\n     ... (truncated)" : "") + "\n":
+          testcase["expr-file"] ?
+            testcase["expr-file"] :
+            "<no expression>";
         // Create a test based on the data in this testcase
-        it(testcase.description+": "+testcase.expr, async function() {
-          var expr;
-          // Start by trying to compile the expression associated with this test case
-          try {
-            expr = await fumifier(testcase.expr, navigator ? {
-              navigator
-            } : undefined);
-            // If there is a timelimit and depth limit for this case, use the
-            // `timeboxExpression` function to limit evaluation
-            if ("timelimit" in testcase && "depth" in testcase) {
-              this.timeout(testcase.timelimit * 2);
-              timeboxExpression(expr, testcase.timelimit, testcase.depth);
-            }
-          } catch (e) {
-            // If we get here, an error was thrown.  So check to see if this particular
-            // testcase expects an exception (as indicated by the presence of the
-            // `code` field in the testcase)
-            if (testcase.code) {
-              // See if we go the code we expected
-              expect(e.code).to.equal(testcase.code);
-              // If a token was specified, check for that too
-              if (testcase.hasOwnProperty("token")) {
-                expect(e.token).to.equal(testcase.token);
-              }
-            } else {
-              // If we get here, something went wrong because an exception
-              // was thrown when we didn't expect one to be thrown.
-              throw new Error("Got an unexpected exception: " + e.message);
-            }
-          }
-          // If we managed to compile the expression...
-          if (expr) {
-            // Load the input data set.  First, check to see if the test case defines its own input
-            // data (testcase.data).  If not, then look for a dataset number.  If it is -1, then that
-            // means there is no data (so use undefined).  If there is a dataset number, look up the
-            // input data in the datasets array.
-            let dataset = resolveDataset(datasets, testcase);
+        const testTitle = `${testcase.description ?? testcase.filename}: ${displayTestExpr}`;
+        // If the testcase has a `skip` field, then skip this test
 
-            // Test cases have three possible outcomes from evaluation...
-            if ("undefinedResult" in testcase) {
-              // First is that we have an undefined result.  So, check
-              // to see if the result we get from evaluation is undefined
-              let result = expr.evaluate(dataset, testcase.bindings);
-              return expect(result).to.eventually.deep.equal(undefined);
-            } else if ("result" in testcase) {
-              // Second is that a (defined) result was provided.  In this case,
-              // we do a deep equality check against the expected result.
-              let result = expr.evaluate(dataset, testcase.bindings);
-              return expect(result).to.eventually.deep.equal(testcase.result);
-            } else if ("error" in testcase) {
-              // If an error was expected,
-              // we do a deep equality check against the expected error structure.
-              return expect(expr.evaluate(dataset, testcase.bindings))
-                .to.be.rejected
-                .to.eventually.deep.contain(testcase.error);
-            } else if ("code" in testcase) {
-              // Finally, if a `code` field was specified, we expected the
-              // evaluation to fail and include the specified code in the
-              // thrown exception.
-              return expect(expr.evaluate(dataset, testcase.bindings))
-                .to.be.rejected
-                .to.eventually.have.property("code", testcase.code);
-            } else {
-              // If we get here, it means there is something wrong with
-              // the test case data because there was nothing to check.
-              throw new Error("Nothing to test in this test case");
+        const testFn = function () {
+          return (async () => {
+            let expr;
+            const expectsCode = "code" in testcase;
+
+            try {
+              expr = await fumifier(testcase.expr, { navigator: testcase.noNavigator ? undefined : navigator });
+
+              if ("timelimit" in testcase && "depth" in testcase) {
+                this.timeout(testcase.timelimit * 2);
+                timeboxExpression(expr, testcase.timelimit, testcase.depth);
+              }
+            } catch (e) {
+              if (expectsCode) {
+                // ✅ Use chai assertion directly here to validate the thrown error
+                expect(e).to.have.property("code", testcase.code);
+                if ("token" in testcase) {
+                  expect(e).to.have.property("token", testcase.token);
+                }
+                return; // ✅ Explicitly exit test after validating parse error
+              } else {
+                // ❌ Unexpected error
+                throw new Error("Unexpected parse-time exception: " + e.message);
+              }
             }
-          }
-        });
+
+            // ✅ Proceed to evaluation phase only if parsing succeeded
+            if (expr) {
+              const dataset = resolveDataset(datasets, testcase);
+
+              if ("undefinedResult" in testcase) {
+                const result = expr.evaluate(dataset, testcase.bindings);
+                return expect(result).to.eventually.deep.equal(undefined);
+
+              } else if ("result" in testcase) {
+                const result = expr.evaluate(dataset, testcase.bindings);
+                return expect(result).to.eventually.deep.equal(testcase.result);
+
+              } else if ("error" in testcase) {
+                return expect(expr.evaluate(dataset, testcase.bindings))
+                  .to.be.rejected
+                  .and.to.eventually.deep.contain(testcase.error);
+
+              } else if (expectsCode) {
+                return expect(expr.evaluate(dataset, testcase.bindings))
+                  .to.be.rejected
+                  .and.to.eventually.have.property("code", testcase.code);
+
+              } else {
+                throw new Error("Nothing to test in this test case");
+              }
+            }
+
+            // 🔒 Defensive fallback: this shouldn't happen if fumifier throws or returns an expr
+            throw new Error("Expression was not parsed, and no error was thrown");
+          })();
+        };
+
+
+
+
+        var itFn;
+        // If the testcase has a `skip` field, or the group ends with '.skip', then skip this test
+        if (testcase.skip === true || skippedGroups.includes(group)) {
+          // Use the `skip` method of the `it` function to skip this test
+          skippedTests.push(`Group: ${group}, ${testTitle}`);
+          itFn = it.skip;
+        } else {
+          // Otherwise, use the `it` function to create a test
+          itFn = it;
+        }
+        itFn(testTitle, testFn);
       }
     });
+  });
+
+  after(() => {
+    if (skippedTests.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn("The following tests were skipped:",'\n', ...skippedTests.map(test => `\n - ${test}`));
+      // eslint-disable-next-line no-console
+      console.warn(`\n\nTotal of ${skippedTests.length} tests skipped.`);
+    }
   });
 });
 
@@ -226,11 +260,9 @@ function resolveDataset(datasets, testcase) {
   if ("data" in testcase) {
     return testcase.data;
   }
-  if (testcase.dataset===null) {
-    return undefined;
-  }
   if (datasets.hasOwnProperty(testcase.dataset)) {
-    return datasets[testcase.dataset];
+    if (datasets?.[testcase.dataset]) return datasets[testcase.dataset];
+    throw new Error("Unable to find dataset "+testcase.dataset+" among known datasets, are you sure the datasets directory has a file named "+testcase.dataset+".json?");
   }
-  throw new Error("Unable to find dataset "+testcase.dataset+" among known datasets, are you sure the datasets directory has a file named "+testcase.dataset+".json?");
+  return undefined;
 }
