@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable require-jsdoc */
 /* eslint-disable valid-jsdoc */
@@ -48,6 +49,8 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluate(expr, input, environment) {
+    // console.log('⚙️ Starting evaluation with input:', JSON.stringify(input, null, 2));
+
     var result;
 
     if (expr instanceof Promise) {
@@ -94,12 +97,6 @@ var fumifier = (function() {
         break;
       case 'block':
         result = await evaluateBlock(expr, input, environment);
-        break;
-      case 'flashblock':
-        result = await evaluateFlashBlock(expr, input, environment);
-        break;
-      case 'flashrule':
-        result = await evaluateFlashRule(expr, input, environment);
         break;
       case 'bind':
         result = await evaluateBindExpression(expr, input, environment);
@@ -189,9 +186,9 @@ var fumifier = (function() {
       }
 
       // if the first step is an explicit array constructor, then just evaluate that (i.e. don't iterate over a context array)
-      if(ii === 0 && step.consarray) {
+      if (ii === 0 && step.consarray) {
         resultSequence = await evaluate(step, inputSequence, environment);
-      } else if(isTupleStream) {
+      } else if (isTupleStream) {
         tupleBindings = await evaluateTupleStep(step, inputSequence, tupleBindings, environment);
       } else {
         resultSequence = await evaluateStep(step, inputSequence, environment, ii === expr.steps.length - 1);
@@ -251,10 +248,13 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluateStep(expr, input, environment, lastStep) {
-    var result;
-    if(expr.type === 'sort') {
+    // console.log('🔸 evaluateStep', expr.type, '→ input:', JSON.stringify(input, null, 2));
+    let result;
+
+    // Handle sorting first
+    if (expr.type === 'sort') {
       result = await evaluateSortExpression(expr, input, environment);
-      if(expr.stages) {
+      if (expr.stages) {
         result = await evaluateStages(expr.stages, result, environment);
       }
       return result;
@@ -1122,99 +1122,103 @@ var fumifier = (function() {
     // create a new frame to limit the scope of variable assignments
     // TODO, only do this if the post-parse stage has flagged this as required
     var frame = createFrame(environment);
-    // invoke each expression in turn
-    // only return the result of the last one
-    for(var ii = 0; ii < expr.expressions.length; ii++) {
-      result = await evaluate(expr.expressions[ii], input, frame);
-    }
-
-    return result;
-  }
-
-  /**
-     * Evaluate FLASH block against input data
-     * @param {Object} expr - Fumifier expression
-     * @param {Object} input - Input data to evaluate against
-     * @param {Object} environment - Environment
-     * @returns {Promise<any>} Evaluated FHIR instance
-     */
-  async function evaluateFlashBlock(expr, input, environment) {
-    var result = {};
-    var kind = expr.fhirTypeMeta.kind;
-    // create a new frame to limit the scope of variable assignments
-    // TODO, only do this if the post-parse stage has flagged this as required
-    var frame = createFrame(environment);
-    if (kind === 'resource') {
-      result.resourceType = expr.fhirTypeMeta.type;
-    }
-    // invoke each FLASH rule in turn
-    if (expr.rules) {
-      for(var ii = 0; ii < expr.rules.length; ii++) {
-        const rule = expr.rules[ii];
-        // if this rule is a path node, this means it is a contextualized rule,
-        // so the element name must be taken from the flashrule in the right hand side
-        // which is the second step in the path node
-        const elementName = rule.type === 'path' ? rule.steps[1].name : rule.name;
-        var element = await evaluate(rule, input, frame);
-        if (element !== undefined) {
-          result[elementName] = element;
+    var ii = 0;
+    // if regular block (not flash block or rule), invoke each expression in turn
+    // and only return the result of the last one
+    if (!expr.isFlashBlock && !expr.isFlashRule) {
+      for(ii = 0; ii < expr.expressions.length; ii++) {
+        result = await evaluate(expr.expressions[ii], input, frame);
+      }
+    } else {
+      result = {};
+      // Inside flash blocks and rules, all expressions are potentially modifiyng the result.
+      // So we need to evaluate them all and keep the results in an object where each key is an array of results
+      var expressionResults = {};
+      // if there's a regex expression, compile it into a regexp test function with global flag.
+      var regexTester; // will become a function that validates the value against the regex
+      if (expr.regexStr) {
+        // DO NOT uses evaluateRegex here, we want the native javascript regex engine's "test" method
+        regexTester = new RegExp(`^${expr.regexStr}$`);
+      }
+      ii = 0;
+      for(ii = 0; ii < expr.expressions.length; ii++) {
+        const node = expr.expressions[ii];
+        var res = await evaluate(node, input, frame);
+        if (typeof res !== 'undefined') {
+          // if there's a regex expression, test against the input
+          if (node.isFlashValue && regexTester) {
+            if (!regexTester.test(res)) {
+              throw {
+                code: "F3001",
+                stack: (new Error()).stack,
+                position: node.position,
+                start: node.start,
+                value: res,
+                regex: expr.regexStr,
+                fhirElement: expr.elementDefinition.id
+              };
+            }
+          }
+          if (node.elementDefinition) {
+            const jsonKey = node.elementDefinition.__name[0];
+            if (!expressionResults.hasOwnProperty(jsonKey)) {
+              expressionResults[jsonKey] = [];
+            }
+            expressionResults[jsonKey].push({elementId: node.elementDefinition.id, value: res});
+          } else {
+            expressionResults['.'] = res;
+          }
+        }
+      }
+      // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
+      if (expr.fhirTypeMeta && expr.fhirTypeMeta.kind === 'resource') {
+        // the value for resourceType is fhirTypeMeta.type
+        result.resourceType = expr.fhirTypeMeta.type;
+      }
+      // if this is a system primitive, result is just the value
+      if (expr.kind && expr.kind === 'system') {
+        result = expressionResults['.'];
+      }
+      // if the expr has fhirChildren, then go one by one and for each one's __name array, lookup a matching result in expressionResults
+      if (expr.fhirChildren) {
+        // each fhirChildren is an element definition, and it has a __name array of possible json keys that match this child
+        for (const child of expr.fhirChildren) {
+          const min = child.min;
+          // const max = child.max;
+          const isArray = child.base.max !== '1';
+          // go through the __name array and find a matching key in expressionResults
+          let valueFound = false;
+          for (const jsonKey of child.__name) {
+            if (expressionResults.hasOwnProperty(jsonKey)) {
+              // if we have a match, add it to the result
+              valueFound = true;
+              if (!result.hasOwnProperty(jsonKey) && isArray) {
+                result[jsonKey] = [];
+              }
+              // add all values for this key
+              for (const item of expressionResults[jsonKey]) {
+                if (isArray) {
+                  result[jsonKey].push(item.value);
+                } else {
+                  result[jsonKey] = item.value;
+                }
+              }
+            }
+          }
+          // if we didn't find any value for this child, and it's required, then throw an error
+          if (min > 0 && !valueFound) {
+            throw {
+              code: "F3002",
+              stack: (new Error()).stack,
+              position: expr.position,
+              start: expr.start,
+              elementId: child.id,
+              instanceof: expr.instanceof
+            };
+          }
         }
       }
     }
-    return result;
-  }
-
-  /**
-     * Evaluate FLASH rule against input data
-     * @param {Object} expr - Fumifier expression
-     * @param {Object} input - Input data to evaluate against
-     * @param {Object} environment - Environment
-     * @returns {Promise<any>} Evaluated FHIR element
-    */
-  async function evaluateFlashRule(expr, input, environment) {
-    // if a fixed value is set, just return it and skip all rule evaluation logic
-    if (expr.fixed) return expr.fixed;
-    // TODO: handle pattern[x]
-    var result = {};
-    // create a new frame to limit the scope of variable assignments
-    // TODO, only do this if the post-parse stage has flagged this as required
-    var frame = createFrame(environment);
-    // evaluate the rule's explicit (inline) expression, if there is one
-    var value;
-    const kind = expr.elementDefinition.type[0].__kind;
-    if (expr.expression) {
-      value = await evaluate(expr.expression, input, frame);
-      if (value !== undefined) {
-        if (kind === 'system') {
-          // if the element is a system primitive, then the inline value element is the element's value itself
-          result = value;
-        } else if (kind === 'primitive-type') {
-          // if the element is a FHIR Primitive, then the inline value element is the element's value child
-          result.value = value;
-        } else {
-          // TODO: handle objects as inputs for complex elements, e.g. FHIR Complex Elements
-          // also if it is a system primitive (not FHIR primitive), the value must be primitive
-
-          // if the element is a FHIR Complex Element, then the value element is the element itself
-          // also if it is a system primitive (not FHIR primitive), the same applies
-          result = value;
-        }
-      }
-    }
-    // invoke each FLASH sub-rule in turn
-    if (expr.rules) {
-      for(var ii = 0; ii < expr.rules.length; ii++) {
-        const rule = expr.rules[ii];
-        // if this rule is a path node, this means it is a contextualized rule,
-        // so the element name must be taken from the flashrule in the right hand side
-        const elementName = rule.type === 'path' ? rule.steps[1].name : rule.name;
-        var element = await evaluate(rule, input, frame);
-        if (element !== undefined) {
-          result[elementName] = element;
-        }
-      }
-    }
-
     return result;
   }
 
@@ -1974,6 +1978,7 @@ var fumifier = (function() {
     var bindings = {};
     const newFrame = {
       bind: function (name, value) {
+        // if (enclosingEnvironment !== null && !['now','millis'].includes(name)) console.log('📌 frame.bind →', name, '=', value);
         bindings[name] = value;
       },
       lookup: function (name) {

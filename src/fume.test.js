@@ -54,14 +54,45 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-
-InstanceOf: il-core-patient
-* identifier[2 - 1].value = field1
+// a.b.(%.z)
+// InstanceOf: Basic
+// * (a.b).id = %.z
+// a.b.{
+//   "children": [
+//   ($.%.z).{
+//       'name': 'id',
+//       'value': $
+//     }
+//   ]
+// }
+// 'true'
+// Instance: 'abc'
+// InstanceOf: abc
+// InstanceOf: Patient
+// * a = b
+InstanceOf: Patient
+* id = '123'
 
   `;
-  var expr = await fumifier(expression, { navigator });
-  var res = await expr.evaluate({'field1': 'http://example.com/field1', field2: 'parent!'});
-  //   console.log('ast', JSON.stringify(await expr.ast(), null, 2));
+
+  var expr;
+  try {
+    expr = await fumifier(expression, { navigator });
+  } catch (e) {
+    console.error('Error compiling expression:', e);
+    return;
+  }
+  // console.log('Expression compiled:', expr.toString());
+
+  var res = await expr.evaluate({
+    a: {
+      b: {
+        c: 'd'
+      },
+      z: 'sibling'
+    }
+  });
+  console.log('ast', JSON.stringify(await expr.ast(), null, 2));
   console.log('Result', JSON.stringify(res, null, 2));
 
 //   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));

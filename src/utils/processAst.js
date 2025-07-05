@@ -314,6 +314,37 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
       break;
     case 'block':
       result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
+      if (expr.isFlashBlock) {
+        // console.debug('Processing FLASH block', JSON.stringify(expr, null, 2));
+        if (expr.instanceof && !validateFhirTypeId(expr.instanceof)) {
+          var typeIdError = {
+            code: 'F1026',
+            position: expr.position,
+            start: expr.start,
+            line: expr.line,
+            token: 'InstanceOf:',
+            value: expr.instanceof
+          };
+          if (recover) {
+            errors.push(typeIdError);
+            return {type: 'error', error: typeIdError};
+          } else {
+            typeIdError.stack = (new Error()).stack;
+            throw typeIdError;
+          }
+        }
+        switchOnFlashFlag();
+        result.isFlashBlock = true;
+        result.instanceof = expr.instanceof;
+      }
+      if (expr.isFlashRule) {
+        // console.debug('Processing FLASH rule', JSON.stringify(expr, null, 2));
+        result.isFlashRule = true;
+        result.fullPath = expr.fullPath;
+        result.name = expr.name;
+        result.value = expr.value;
+        result.path = expr.path;
+      }
       // array of expressions - process each one
       result.expressions = expr.expressions.map(function (item) {
         var part = processAST(item, ancestorWrapper, switchOnFlashFlag, recover, errors);
@@ -355,59 +386,42 @@ const processAST = function (expr, ancestorWrapper, switchOnFlashFlag, recover, 
     case 'regex':
       result = expr;
       break;
-    case 'flashblock':
-      switchOnFlashFlag();
-      if (!validateFhirTypeId(expr.instanceof)) {
-        var typeIdError = {
-          code: 'F1027',
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
-          token: 'InstanceOf:',
-          value: expr.instanceof
-        };
-        if (recover) {
-          errors.push(typeIdError);
-          return {type: 'error', error: typeIdError};
-        } else {
-          typeIdError.stack = (new Error()).stack;
-          throw typeIdError;
-        }
-      }
-      result = {
-        type: expr.type,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
-        instanceof: expr.instanceof
-      };
-      if (expr.instance) {
-        result.instance = processAST(expr.instance, ancestorWrapper, switchOnFlashFlag, recover, errors);
-      }
-      if (expr.rules && expr.rules.length > 0) {
-        result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
-      }
-      break;
-    case 'flashrule':
-      // console.log('Processing flashrule', JSON.stringify(expr, null, 2));
-      result = {
-        type: expr.type,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
-        name: expr.name,
-        value: expr.value,
-        fullPath: expr.fullPath,
-        path: expr.path
-      };
-      if (expr.expression) {
-        result.expression = processAST(expr.expression, ancestorWrapper, switchOnFlashFlag, recover, errors);
-      }
-      if (expr.rules && expr.rules.length > 0) {
-        result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
-      }
-      result.rootFhirType = expr.rootFhirType;
-      break;
+    // case 'flashblock':
+    //   switchOnFlashFlag();
+    //   result = {
+    //     type: expr.type,
+    //     position: expr.position,
+    //     start: expr.start,
+    //     line: expr.line,
+    //     instanceof: expr.instanceof
+    //   };
+    //   if (expr.instance) {
+    //     result.instance = processAST(expr.instance, ancestorWrapper, switchOnFlashFlag, recover, errors);
+    //   }
+    //   if (expr.rules && expr.rules.length > 0) {
+    //     result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
+    //   }
+    //   break;
+    // case 'flashrule':
+    //   // console.log('Processing flashrule', JSON.stringify(expr, null, 2));
+    //   result = {
+    //     type: expr.type,
+    //     position: expr.position,
+    //     start: expr.start,
+    //     line: expr.line,
+    //     name: expr.name,
+    //     value: expr.value,
+    //     fullPath: expr.fullPath,
+    //     path: expr.path
+    //   };
+    //   if (expr.expression) {
+    //     result.expression = processAST(expr.expression, ancestorWrapper, switchOnFlashFlag, recover, errors);
+    //   }
+    //   if (expr.rules && expr.rules.length > 0) {
+    //     result.rules = expr.rules.map((rule) => processAST(rule, ancestorWrapper, switchOnFlashFlag, recover, errors));
+    //   }
+    //   result.rootFhirType = expr.rootFhirType;
+    //   break;
     case 'operator':
       // the tokens 'and' and 'or' might have been used as a name rather than an operator
       if (expr.value === 'and' || expr.value === 'or' || expr.value === 'in') {

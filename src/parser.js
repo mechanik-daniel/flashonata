@@ -518,7 +518,7 @@ const parser = (() => {
           }
         }
         var rule = expression(0, true);
-        if (rule.type !== 'flashrule' && rule.id !== ':=') {
+        if ((rule.type !== 'block' || !rule.isFlashRule) && rule.id !== ':=') {
           if (rule.id === '=') {
             return handleError({
               code: "F1025",
@@ -540,7 +540,7 @@ const parser = (() => {
           }
         }
         rule.indent = rule.indent || indent;
-        if (rule.type === 'flashrule' && rule.path) {
+        if (rule.isFlashRule && rule.path) {
           // try to normalize the path, catch any errors and bubble them up
           try {
             rule.path = normalizeFlashPath(rule.path);
@@ -576,7 +576,10 @@ const parser = (() => {
     prefix('*', function (isFlash) {
       if (isFlash) {
         var indent = this.indent;
-        this.type = 'flashrule';
+        // set type to block and isFlashRule to true
+        this.isFlashRule = true;
+        this.type = 'block';
+        this.expressions = [];
         if (node.id === '(') {
           this.context = expression(75, true);
           advance(".", true, true);
@@ -587,7 +590,9 @@ const parser = (() => {
         if (node.id === '=') {
           advance('=', null, true);
           if (node.id !== '(end)' && node.id !== '(indent)') {
-            this.expression = expression(0, true);
+            // inline value assignment is treated as the first rule in the block
+            this.expressions.push(expression(0, true));
+            this.expressions[0].isFlashValue = true;
           } else {
             return handleError({
               code: "F1012",
@@ -608,7 +613,7 @@ const parser = (() => {
             token: ':='
           });
         }
-        if (this.path && this.path.type === 'flashrule') { // double * *
+        if (this.path && this.path.isFlashRule) { // double * *
           return handleError({
             code: "F1022",
             stack: (new Error()).stack,
@@ -639,7 +644,8 @@ const parser = (() => {
         this.indent = indent;
         var subrules;
         subrules = collectRules(indent + 2, null);
-        if (subrules.length > 0) this.rules = subrules;
+        // append subrules to the expressions array
+        if (subrules.length > 0) this.expressions.push(...subrules);
         return this;
       } else {
         this.type = "wildcard";
@@ -652,8 +658,8 @@ const parser = (() => {
     // optionally followed by rules. Rules are collected and returned as children of the flashblock token.
     prefix('Instance:', function () {
       var instanceExpr = expression(0, true); // this is the expression after Instance:
-      // if it's a flashblock it means there is no expression between Instance: and InstanceOf:
       if (instanceExpr.id === '(instanceof)') {
+        // if it's a flashblock it means there is no expression between `Instance:` and `InstanceOf:` - throw error
         return handleError({
           code: "F1018",
           stack: (new Error()).stack,
@@ -664,11 +670,18 @@ const parser = (() => {
           value: 'InstanceOf:'
         });
       }
-      this.instance = instanceExpr;
-      this.type = "flashblock";
+      // flag it as an instance expression
+      instanceExpr.isInstanceId = true;
+      // set node type to block and isFlashBlock to true
+      this.type = "block";
+      this.isFlashBlock = true;
+      // initialize the expressions array
+      this.expressions = [];
+      // push the instance expression to the expressions array
+      this.expressions.push(instanceExpr);
       delete this.value;
       if (node.id !== '(instanceof)') {
-        // Instance: without InstanceOf:
+        // Instance: <expr> without InstanceOf: immediately after it
         return handleError({
           code: "F1009",
           stack: (new Error()).stack,
@@ -678,7 +691,7 @@ const parser = (() => {
           token: node.id
         });
       }
-      if (node.line === this.instance.line) {
+      if (node.line === this.expressions[0].line) {
         // InstanceOf: at the same line as Instance:
         return handleError({
           code: "F1013",
@@ -689,7 +702,8 @@ const parser = (() => {
           token: node.id
         });
       }
-      if (node.indent !== this.indent) { // indentation of InstanceOf: must be same as Instance:
+      if (node.indent !== this.indent) {
+        // indentation of InstanceOf: must be same as Instance:
         return handleError({
           code: "F1014",
           stack: (new Error()).stack,
@@ -714,7 +728,7 @@ const parser = (() => {
 
       advance(null, null, true); // proceeed to the next token after InstanceOf:
       var rules = collectRules(this.indent, this.indent);
-      if (rules.length > 0) this.rules = rules;
+      if (rules.length > 0) this.expressions.push(...rules);
       return this;
     });
 
@@ -726,8 +740,8 @@ const parser = (() => {
     // This token is optionally followed by rules.
     // Rules are collected and returned as children of the flashblock token.
     prefix('(instanceof)', function () {
-      this.type = "flashblock";
       if (!this.value || this.value === '') {
+        // if the value is empty, it means that the InstanceOf: token was not followed by a FHIR structure identifier
         return handleError({
           code: "F1019",
           stack: (new Error()).stack,
@@ -737,10 +751,17 @@ const parser = (() => {
           token: "InstanceOf:"
         });
       }
+      // set node type to block and isFlashBlock to true
+      this.type = "block";
+      this.isFlashBlock = true;
+      // initialize the expressions array
+      this.expressions = [];
+      // set the InstanceOf value
       this.instanceof = this.value;
-      var rules = collectRules(this.indent, this.indent);
-      if (rules.length > 0) this.rules = rules;
+      // delete the value so it won't be included in the resulting tree
       delete this.value;
+      var rules = collectRules(this.indent, this.indent);
+      if (rules.length > 0) this.expressions.push(...rules);
       return this;
     });
 
