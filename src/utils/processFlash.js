@@ -9,6 +9,7 @@ import createMetaProfileRule from './createMetaProfileRule.js';
 import createVirtualRule from './createVirtualRule.js';
 import extractSystemFhirType from './extractSystemFhirType.js';
 
+// TODO: move this to a utils file, possibly bind as native funtion
 const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /**
@@ -18,7 +19,7 @@ const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
  * @param {FhirStructureNavigator} navigator: FHIR structure navigator
  * @param {Object} fhirTypeMeta - If inside a FLASH block, this is the resolved FHIR type metadata according to `InstanceOf`
  * @param {string} parentPath - If inside a FLASH rule, this is the path of the parent FLASH rule
- * @returns {{evaluate: evaluate, assign: assign}} Semantically enriched AST
+ * @returns {Promise<{evaluate: evaluate, assign: assign}>} Semantically enriched AST
  */
 const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) {
   var result = expr;

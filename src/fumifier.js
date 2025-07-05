@@ -2013,18 +2013,40 @@ var fumifier = (function() {
      * @param {FhirStructureNavigator} options.navigator: FHIR structure navigator
      * @returns {Promise<fumifier.Expression> | fumifier.Expression} Compiled expression object
      */
-  function fumifier(expr, options) {
+  async function fumifier(expr, options) {
     var ast;
     var errors;
+    var navigator = options && options.navigator;
+    var recover = options && options.recover;
 
     try {
+      // syntactic parsing only (sync) - may through on syntax errors
       ast = parser(expr, options && options.recover);
+      // initial parsing done
       errors = ast.errors;
       delete ast.errors;
-      if (ast && ast.containsFlash === true && options && options.navigator) {
-        // this is where we should run the async processFlash and return a promise
-        // TODO: an equivalent of this should be implemented in the evalFunction
-        ast = processFlash(ast, options.navigator);
+      // post-parse FLASH processing (async)
+      // - only if a navigator was provided
+      // - only if the AST contains flash blocks
+      // - throws if has flash and no navigator
+      if (ast && ast.containsFlash === true) {
+        if (!navigator) {
+          var err = {
+            code: 'F1000',
+            position: 0,
+          };
+
+          if (recover) {
+            err.type = 'error';
+            errors.push(err);
+          } else {
+            err.stack = (new Error()).stack;
+            throw err;
+          }
+        } else {
+          // process the flash blocks in the AST
+          ast = await processFlash(ast, navigator);
+        }
       }
     } catch(err) {
       // insert error message into structure
@@ -2105,15 +2127,9 @@ var fumifier = (function() {
         return errors;
       }
     };
-    if (ast instanceof Promise) {
-      var asyncAst = async function (fumifierObject) {
-        fumifierObject.ast = async () => await ast;
-        return fumifierObject;
-      };
-      return asyncAst(fumifierObject);
-    } else {
-      return fumifierObject;
-    }
+
+    return fumifierObject;
+
   }
 
   fumifier.parser = parser; // TODO remove this in a future release - use ast() instead

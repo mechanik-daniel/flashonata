@@ -1094,7 +1094,7 @@ const parser = (() => {
       expr.containsFlash = true;
     }
 
-    console.log("Final parsing AFTER processing AST", JSON.stringify(expr, null, 2));
+    // console.log("Final parsing AFTER processing AST", JSON.stringify(expr, null, 2));
 
     if(expr.type === 'parent' || typeof expr.seekingParent !== 'undefined') {
       // error - trying to derive ancestor at top level
@@ -1110,7 +1110,7 @@ const parser = (() => {
     if (errors.length > 0) {
       expr.errors = errors;
     }
-    console.log('reached final line of the parser!');
+    // console.log('reached final line of the parser!');
     return expr;
   };
 
