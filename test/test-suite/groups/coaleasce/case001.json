@@ -1,0 +1,10 @@
+{
+    "expr": "[{'field': 15},{'Price': 50}].(Price ?? \"No Price\")",
+    "description": "Coalesce expression in a block, on an array of objects",
+    "dataset": null,
+    "bindings": {},
+    "result": [
+        "No Price",
+        50
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "expr": "[{'field2': 16},{'field1': 15},{'Price': 50, 'field1': 16},{'Price': 51},{'a': 'b'},{},'a'].(Price ?? field1 ?? field2 ?? \"No Data\")",
+    "description": "Chanied coalesce expression in a block, on an array of objects",
+    "dataset": null,
+    "bindings": {},
+    "result": [
+        16,
+        15,
+        50,
+        51,
+        "No Data",
+        "No Data",
+        "No Data"
+    ]
+}

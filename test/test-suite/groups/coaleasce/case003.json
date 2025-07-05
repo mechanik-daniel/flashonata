@@ -1,0 +1,7 @@
+{
+    "expr": "a.b.c ?? (a.b.d='f' ? 'f') ?? a",
+    "description": "Chained coalesce expression with  a block in the middle",
+    "data": {"a": {"b": {"d":"d"}}},
+    "bindings": {},
+    "result": {"b": {"d":"d"}}
+}

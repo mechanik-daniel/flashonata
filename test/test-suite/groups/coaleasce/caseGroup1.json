@@ -1,0 +1,83 @@
+[
+    {
+        "expr": "0 ?? 42",
+        "description": "coalesce expression - 0 is falsy, should return RHS",
+        "result": 42
+    },
+    {
+        "expr": "false ?? true",
+        "description": "false is falsy, should return RHS",
+        "result": true
+    },
+    {
+        "expr": "'' ?? 'fallback'",
+        "description": "Empty string is falsy, should return fallback",
+        "result": "fallback"
+    },
+    {
+        "expr": "undefinedPath ?? 123",
+        "description": "LHS is undefined, should return RHS",
+        "result": 123
+    },
+    {
+        "expr": "$undefinedVar ?? 123",
+        "description": "LHS is undefined (unbound var), should return RHS",
+        "result": 123
+    },
+    {
+        "expr": "(a ?? b) ?? c",
+        "description": "Nested chained coalescence",
+        "data": {
+            "b": 2,
+            "c": 3
+        },
+        "result": 2
+    },
+    {
+        "expr": "$x ?? $y ?? $z ?? $q",
+        "description": "All variables undefined in chain",
+        "undefinedResult": true
+    },
+    {
+        "expr": "1 + a ?? 2",
+        "description": "`+` has higher precedence than `??` — should evaluate (1 + a) first, then coalesce",
+        "data": {},
+        "result": 3
+    },
+    {
+        "expr": "a ?? 2 = 2",
+        "description": "LHS is undefined → use RHS, then compare to 2",
+        "result": true
+    },
+    {
+        "expr": "(a ?? $b := 10; $b)",
+        "description": "Ensure RHS assignment only happens if LHS is undefined",
+        "data": {
+            "a": 1
+        },
+        "bindings": {
+            "b": 1
+        },
+        "result": 1
+    },
+    {
+        "expr": "$ar[(a ?? 0) > 1]",
+        "description": "Coalesce inside array filter",
+        "result": {
+            "a": 3
+        },
+        "bindings": {
+            "ar": [
+                {
+                    "a": 1
+                },
+                {
+                    "b": 2
+                },
+                {
+                    "a": 3
+                }
+            ]
+        }
+    }
+]
