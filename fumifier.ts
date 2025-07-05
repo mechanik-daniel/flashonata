@@ -9,7 +9,6 @@ declare namespace fumifier {
 
   interface FumifierOptions {
     recover?: boolean,
-    RegexEngine?: RegExp,
     navigator?: FhirStructureNavigator
   }
 

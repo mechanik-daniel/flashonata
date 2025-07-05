@@ -1224,7 +1224,7 @@ var fumifier = (function() {
      * @returns {Function} Higher order function representing prepared regex
      */
   function evaluateRegex(expr) {
-    var re = new fumifier.RegexEngine(expr.value);
+    var re = new RegExp(expr.value);
     var closure = function(str, fromIndex) {
       var result;
       re.lastIndex = fromIndex || 0;
@@ -2010,7 +2010,6 @@ var fumifier = (function() {
      * @param {string} expr - FUME mapping expression as text
      * @param {FumifierOptions} options
      * @param {boolean} options.recover: attempt to recover on parse error
-     * @param {Function} options.RegexEngine: RegEx class constructor to use
      * @param {FhirStructureNavigator} options.navigator: FHIR structure navigator
      * @returns {Promise<fumifier.Expression> | fumifier.Expression} Compiled expression object
      */
@@ -2042,12 +2041,6 @@ var fumifier = (function() {
     environment.bind('millis', defineFunction(function() {
       return timestamp.getTime();
     }, '<:n>'));
-
-    if(options && options.RegexEngine) {
-      fumifier.RegexEngine = options.RegexEngine;
-    } else {
-      fumifier.RegexEngine = RegExp;
-    }
 
     var fumifierObject = {
       evaluate: async function (input, bindings, callback) {
