@@ -70,5 +70,5 @@ export default function registerNativeFn(staticFrame, defineFunction, fn, dateti
   staticFrame.bind('endsWith', defineFunction(fn.endsWith, '<s-s:b>'));
   staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<j-:b>'));
   staticFrame.bind('wait', defineFunction(fn.wait), '<n->');
-  staticFrame.bind('thisInstant', defineFunction(fn.thisInstant), '<:n>');
+  staticFrame.bind('rightNow', defineFunction(fn.rightNow), '<:n>');
 }

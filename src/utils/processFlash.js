@@ -107,7 +107,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         // ensure element is not forbidden
         if (ed.max === '0') {
           var forbiddenError = {
-            code: 'F1032',
+            code: 'F2005',
             position: expr.position,
             start: expr.start,
             line: expr.line,
@@ -125,7 +125,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           const baseName = lastPart.endsWith('[x]') ? lastPart.slice(0, -3) : lastPart;
           const allowedNames = ed.type.map((t) => `${baseName}${initCap(t.code)}`).join(', ');
           typeError = {
-            code: 'F1031',
+            code: 'F2004',
             position: expr.position,
             start: expr.start,
             line: expr.line,
@@ -161,7 +161,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
         }
       } else {
         var elementError = {
-          code: 'F1029',
+          code: 'F2002',
           position: expr.position,
           start: expr.start,
           line: expr.line,
@@ -183,7 +183,7 @@ const processFlash = async function (expr, navigator, fhirTypeMeta, parentPath) 
           result.fhirChildren = fhirChildren;
         } else {
           childrenError = {
-            code: 'F1030',
+            code: 'F2003',
             position: expr.position,
             start: expr.start,
             line: expr.line,

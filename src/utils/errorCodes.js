@@ -11,7 +11,9 @@
      *  10xx    - evaluator
      *  20xx    - operators
      *  3xxx    - functions (blocks of 10 for each function)
-     * Fxxxx    - FUME errors
+     * F1xxx    - FLASH syntactic errors
+     * F2xxx    - FLASH semantic parsing errors
+     * F3xxx    - FHIR evaluation errors
      */
 const errorCodes = {
   "S0101": "String literal must be terminated by a matching quote",
@@ -111,6 +113,7 @@ const errorCodes = {
   "D3139": "The $single() function expected exactly 1 matching result.  Instead it matched 0.",
   "D3140": "Malformed URL passed to ${{{functionName}}}(): {{value}}",
   "D3141": "{{{message}}}",
+  "F1000": "FLASH blocks are present in the expression, but no FHIR Structure Navigator was provided. Cannot process FHIR conformance.",
   "F1001": "Resource.id (expression after 'Instance:' decleration) must evaluate to a string. Got: {{value}}",
   "F1002": "The symbol {{token}} cannot be used as a binary operator",
   "F1003": "Invalid FHIR type/profile identifier after `InstanceOf:`",
@@ -136,13 +139,15 @@ const errorCodes = {
   "F1023": "Malformed FLASH rule: The path after the '*' cannot start with '$'. If you wanted to assign a variable, omit the * from the beginning of the line",
   "F1024": "Malformed FLASH rule: Rule is empty",
   "F1025": "Malformed variable assignment. Did you mean ':='?",
-  "F1026": "Could not find a FHIR type/profile definition with identifier {{value}}",
-  "F1027": "Value of `InstanceOf:` must be a valid FHIR type/profile identifier. Found: {{{value}}}",
-  "F1028": "FLASH path is syntactically illegal. Token {{value}} is unexpected here.",
-  "F1029": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
-  "F1030": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
-  "F1031": "{{value}} is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
-  "F1032": "{{value}} is a forbidden element according to profile: {{fhirType}}."
+  "F1026": "Value of `InstanceOf:` must be a valid FHIR type/profile identifier. Found: {{{value}}}",
+  "F1027": "FLASH path is syntactically illegal. Token {{value}} is unexpected here.",
+  "F2001": "Could not find a FHIR type/profile definition with identifier {{value}}",
+  "F2002": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
+  "F2003": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
+  "F2004": "{{value}} is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
+  "F2005": "{{value}} is a forbidden element according to profile: {{fhirType}}.",
+  "F3001": "The value {{value}} is invalid for FHIR element {{fhirElement}}. The value must match the regular expression: {{{regex}}}",
+  "F3002": "The FHIR element {{elementId}} is required in {{instanceof}}, but no value was provided.",
 };
 
 /**

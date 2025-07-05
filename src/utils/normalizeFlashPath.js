@@ -37,7 +37,7 @@ function normalizeFlashPath(ast) {
       return expr;
     } else {
       throw {
-        code: 'F1028',
+        code: 'F1027',
         position: expr.position,
         start: expr.start,
         line: expr.line,
@@ -66,7 +66,7 @@ function normalizeFlashPath(ast) {
       if (!stepObj || stepObj !== step) {
         if (step.type !== 'name' && step.type !== 'number') {
           throw {
-            code: 'F1028',
+            code: 'F1027',
             position: step.position,
             start: step.start,
             line: step.line,
@@ -85,7 +85,7 @@ function normalizeFlashPath(ast) {
         stepObj.slices.push(slice);
       } else {
         throw {
-          code: 'F1028',
+          code: 'F1027',
           position: slice.position,
           start: slice.start,
           line: slice.line,
@@ -101,7 +101,7 @@ function normalizeFlashPath(ast) {
       result.steps.push(node);
     } else {
       throw {
-        code: 'F1028',
+        code: 'F1027',
         position: node.position,
         start: node.start,
         line: node.line,

@@ -547,7 +547,7 @@ const parser = (() => {
           } catch (e) {
             return handleError(
               e.value ? e : {
-                code: "F1028",
+                code: "F1027",
                 stack: e.stack,
                 position: rule.path.position,
                 start: rule.path.start,
