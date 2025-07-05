@@ -1,5 +1,5 @@
 {
-    "expr": "$type($thisInstant() - $millis())",
+    "expr": "$type($rightNow() - $millis())",
     "data": null,
     "bindings": {},
     "result": "number"

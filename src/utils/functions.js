@@ -2113,7 +2113,7 @@ const functions = (() => {
      * but unlike $millis(), will return a new value in each invokation instead of the registered timestamp
      * @returns {number} milliseconds since midnight, January 1, 1970 UTC
      */
-  function thisInstant () {
+  function rightNow () {
     const now = new Date();
     return now.getTime();
   }
@@ -2127,7 +2127,7 @@ const functions = (() => {
     map, zip, filter, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
-    wait, thisInstant
+    wait, rightNow
   };
 })();
 

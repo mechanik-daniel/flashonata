@@ -1,5 +1,5 @@
 {
-    "expr": "($a:=[1..1000000];$thisInstant() = $millis())",
+    "expr": "($a:=[1..1000000];$rightNow() = $millis())",
     "data": null,
     "bindings": {},
     "result": false
