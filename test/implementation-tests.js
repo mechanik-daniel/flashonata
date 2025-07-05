@@ -726,37 +726,37 @@ describe("Tests that are specific to a Javascript runtime", () => {
   });
 
   // skipped due to possible collision with the addition of single line comments //
-  describe.skip("empty regex", function() {
+  describe("empty regex", function() {
     it("should throw error", async function() {
-      await expect(async function() {
+      await expect((async function() {
         var expr = await fumifier("/");
         expr.evaluate();
-      })
-        .to.be.rejectedWith().and
+      })())
+        .to.eventually.be.rejected.and
         .to.deep.contain({ position: 1, code: "S0302" });
     });
   });
 
   // skipped due to possible collision with the addition of single line comments //
-  describe.skip("empty regex: Escaped termination", function() {
+  describe("empty regex: Escaped termination", function() {
     it("should throw error", async function() {
-      await expect(async function() {
+      await expect((async function() {
         var expr = await fumifier("/\\/");
         expr.evaluate();
-      })
-        .to.be.rejectedWith().and
+      })())
+        .to.eventually.be.rejected.and
         .to.deep.contain({ position: 3, code: "S0302" });
     });
   });
 
   // skipped due to possible collision with the addition of single line comments //
-  describe.skip("empty regex: Escaped termination", function() {
+  describe("empty regex: Escaped termination", function() {
     it("should throw error", async function() {
-      await expect(async function() {
+      await expect((async function() {
         var expr = await fumifier("/\\\\\\/");
         expr.evaluate();
-      })
-        .to.throw()
+      })())
+        .to.eventually.be.rejected.and
         .to.deep.contain({ position: 5, code: "S0302" });
     });
   });
