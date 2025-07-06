@@ -1,0 +1,6 @@
+{
+  "expr": "Instance: ''\nInstanceOf: CodeableConcept",
+  "description": "Instance of CodeableConcept with id implicitly set in `Instance:` (invalid)",
+  "data": null,
+  "code": "F3001"
+}

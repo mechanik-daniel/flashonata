@@ -1,0 +1,10 @@
+{
+  "expr": "InstanceOf: Patient\n* id = 'ab-c.123-CAPITAL-then-lower.case'",
+  "description": "Instance of Patient with id rule only, literal string assigned (valid)",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "ab-c.123-CAPITAL-then-lower.case"
+  }
+}

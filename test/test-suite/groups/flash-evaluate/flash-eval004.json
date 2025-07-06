@@ -1,0 +1,10 @@
+{
+  "expr": "InstanceOf: Patient\n* id = resourceId & '-concat'",
+  "description": "Instance of Patient with id rule only - string concatenation on field from input",
+  "data": {"resourceId": "ab-c.123-CAPITAL-then-lower.case"},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "ab-c.123-CAPITAL-then-lower.case-concat"
+  }
+}

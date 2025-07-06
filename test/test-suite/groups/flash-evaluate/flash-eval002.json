@@ -1,6 +1,6 @@
 {
   "expr": "InstanceOf: Basic\n* id = 'ab-c.123'",
-  "description": "Instance of resource with required element missing",
+  "description": "Instance of resource with valid id but required element missing",
   "data": null,
   "bindings": {},
   "code": "F3002"
