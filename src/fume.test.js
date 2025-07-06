@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable strict */
+import fs from 'fs';
+import path from 'path';
 import fumifier from './fumifier.js';
 import { FhirSnapshotGenerator } from 'fhir-snapshot-generator';
 import { FhirStructureNavigator } from '@outburn/structure-navigator';
@@ -70,8 +72,11 @@ void async function () {
 // InstanceOf: abc
 // InstanceOf: Patient
 // * a = b
+// Instance: 'abc'
 InstanceOf: Patient
-* id = '123'
+* id
+  * value = '123'
+// * gender.value = ' abc'
 
   `;
 
@@ -92,7 +97,10 @@ InstanceOf: Patient
       z: 'sibling'
     }
   });
-  console.log('ast', JSON.stringify(await expr.ast(), null, 2));
+  // console.log('ast', JSON.stringify(await expr.ast(), null, 2));
+  // write the ast to a file
+  fs.writeFileSync(path.join('test', 'ast.json'), JSON.stringify(await expr.ast(), null, 2));
+
   console.log('Result', JSON.stringify(res, null, 2));
 
 //   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
