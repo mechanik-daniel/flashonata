@@ -22,15 +22,18 @@ const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
  */
 function handleRecoverableError(base, positions, recover, errors, errObj) {
   if (!recover) {
-    const first = positions[0].type === 'flashpath' ? {
-      position: positions[0].steps[positions[0].steps.length - 1].position,
-      start: positions[0].steps[positions[0].steps.length - 1].start,
-      line: positions[0].steps[positions[0].steps.length - 1].line
-    } : {
-      position: positions[0].position,
-      start: positions[0].start,
-      line: positions[0].line
-    };
+    var first = {};
+    if (Array.isArray(positions) && positions.length > 0) {
+      first = positions[0].type === 'flashpath' ? {
+        position: positions[0].steps[positions[0].steps.length - 1].position,
+        start: positions[0].steps[positions[0].steps.length - 1].start,
+        line: positions[0].steps[positions[0].steps.length - 1].line
+      } : {
+        position: positions[0].position,
+        start: positions[0].start,
+        line: positions[0].line
+      };
+    }
     const e = {
       ...base,
       ...first,
@@ -41,17 +44,23 @@ function handleRecoverableError(base, positions, recover, errors, errObj) {
     throw e;
   }
 
-  positions.forEach(pos => {
-    const posMarkers = {
-      position: pos.position || pos.steps[pos.steps.length - 1].position,
-      start: pos.start || pos.steps[pos.steps.length - 1].start,
-      line: pos.line || pos.steps[pos.steps.length - 1].line
-    };
-    const e = { ...base, ...posMarkers, error: errObj.message || String(errObj) };
+  if (Array.isArray(positions) && positions.length > 0) {
+    positions.forEach(pos => {
+      const posMarkers = {
+        position: pos.position || pos.steps[pos.steps.length - 1].position,
+        start: pos.start || pos.steps[pos.steps.length - 1].start,
+        line: pos.line || pos.steps[pos.steps.length - 1].line
+      };
+      const e = { ...base, ...posMarkers, error: errObj.message || String(errObj) };
+      populateMessage(e);
+      errors.push(e);
+    });
+  } else {
+    // if no positions are provided, just push the base error with the error message
+    const e = { ...base, error: errObj.message || String(errObj) };
     populateMessage(e);
     errors.push(e);
-  });
-
+  }
   return { __isError: true, ...base };
 }
 
@@ -241,23 +250,42 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
   // - This is needed for elements that are not directly referenced in the FLASH block, but expected to be populated automatically.
   const pending = new Set();
 
+  // function to test if an element should be expanded even if not explicitly referenced in the FLASH block
+  const shouldExpand = (key, ed) => {
+    return (
+      ed?.min >= 1 && // mandatory
+      ed.__kind && // by the existence of __kind, we know it has a single type so it can be expanded
+      !ed.__kind === 'system' && // system primitives can never have children
+      !ed.__fixedValue && // if it has a fixed value, we naively use it and don't care about the children definitions
+      !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key) // skip if already resolved
+    );
+  };
+
   // Step 1: Seed with all unexpanded mandatory elements
   // - 1.a: directly referenced in the FLASH block
   for (const [key, ed] of Object.entries(resolvedElementDefinitions)) {
-    if (ed?.min >= 1 && !ed.__fixedValue && !ed.__kind === 'system' && !resolvedElementChildren[key]) {
+    if (shouldExpand(key, ed)) {
       pending.add(key);
     }
   }
   // - 1.b: not directly referenced, but mandatory in the root type definition
-  for (const [key, ed] of Object.entries(resolvedTypeChildren)) {
-    if (ed?.min >= 1 && !ed.__fixedValue && !ed.__kind === 'system' && !resolvedElementChildren[key]) {
-      pending.add(key);
+  for (const [key, childrenEds] of Object.entries(resolvedTypeChildren)) {
+    // loop through all children of the root elements
+    for (const ed of childrenEds) {
+      const childKey = `${key}.${toFlashSegment(ed.id)}`;
+      if (shouldExpand(childKey, ed)) {
+        pending.add(childKey);
+      }
     }
   }
   // - 1.c: mandatory children of any visited element
-  for (const [key, ed] of Object.entries(resolvedElementChildren)) {
-    if (ed?.min >= 1 && !ed.__fixedValue && !ed.__kind === 'system' && !resolvedElementChildren[key]) {
-      pending.add(key);
+  for (const [key, childrenEds] of Object.entries(resolvedElementChildren)) {
+    // loop through all children of the previously expanded elements
+    for (const ed of childrenEds) {
+      const childKey = `${key}.${toFlashSegment(ed.id)}`;
+      if (shouldExpand(childKey, ed)) {
+        pending.add(childKey);
+      }
     }
   }
 
@@ -267,16 +295,19 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
     pending.clear();
 
     await Promise.all(keys.map(async (key) => {
-      const ed = resolvedElementDefinitions[key];
-      if (!ed) return;
 
       const [instanceOf, parentFlashpath] = key.split('::');
       const fhirTypeMeta = resolvedTypeMeta[instanceOf];
       if (!fhirTypeMeta || fhirTypeMeta.__isError) return;
       // if children are already resolved (including empty arrays), skip
       if (Object.prototype.hasOwnProperty.call(resolvedElementChildren, key)) return;
-
+      let ed;
       try {
+        ed = resolvedElementDefinitions[key];
+        if (!ed) {
+          ed = await getElement(fhirTypeMeta, key);
+          resolvedElementDefinitions[key] = ed;
+        }
         const children = await getChildren(fhirTypeMeta, parentFlashpath);
 
         const enriched = children.map(child => {
@@ -293,16 +324,9 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
 
         // Recurse into mandatory children that are not fixed and not yet expanded
         enriched.forEach(child => {
-          const isMandatory = child?.min >= 1;
-          const isExpandable = !child.__fixedValue && !child.__kind === 'system';
-
-          const childLastPartOfId = child.path.split('.').pop();
-          // convert the element id node to a flash node (name:slice -> name[slice])
-          const childFlashPathNode = childLastPartOfId.includes(':') ?
-            childLastPartOfId.replace(/:/g, '[') + ']' :
-            childLastPartOfId;
-          const childKey = `${instanceOf}::${parentFlashpath}.${childFlashPathNode}`;
-          if (isMandatory && isExpandable && !resolvedElementChildren[childKey]) {
+          const childPathSegment = toFlashSegment(child.id);
+          const childKey = `${instanceOf}::${parentFlashpath}.${childPathSegment}`;
+          if (shouldExpand(childKey, child)) {
           // Cache the definition if not already present
             if (!resolvedElementDefinitions[childKey]) {
               resolvedElementDefinitions[childKey] = child;
@@ -316,7 +340,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
           value: parentFlashpath,
           fhirType: fhirTypeMeta.name || instanceOf
         };
-        resolvedElementChildren[key] = handleRecoverableError(baseError, [ed], recover, errors, e);
+        resolvedElementChildren[key] = handleRecoverableError(baseError, [], recover, errors, e);
       }
     }));
   }
@@ -393,4 +417,16 @@ function assignIsArray(ed) {
   ed.__isArray = !(ed.max === '1');
 }
 
+/**
+ * return last segment of element id, converted to a flash segment (name:slice -> name[slice])
+ * @param {string} elementId - an ElementDefinition.id (e.g. "Patient.name:slice")
+ * @return {string} - the last segment of the element id, converted to a flash segment (name[slice])
+ */
+function toFlashSegment(elementId) {
+  const childLastPartOfId = elementId.split('.').pop();
+  const childFlashPathSegment = childLastPartOfId.includes(':') ?
+    childLastPartOfId.replace(/:/g, '[') + ']' :
+    childLastPartOfId;
+  return childFlashPathSegment;
+}
 export default resolveDefinitions;
