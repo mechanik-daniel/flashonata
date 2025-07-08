@@ -424,9 +424,18 @@ function assignIsArray(ed) {
  */
 function toFlashSegment(elementId) {
   const childLastPartOfId = elementId.split('.').pop();
-  const childFlashPathSegment = childLastPartOfId.includes(':') ?
-    childLastPartOfId.replace(/:/g, '[') + ']' :
-    childLastPartOfId;
-  return childFlashPathSegment;
+  // convert:
+  // - name:slice -> name[slice]
+  // - name -> name
+  // - name[x] -> name
+  // - name[x]:slice -> name[slice]
+  if (childLastPartOfId.includes(':')) {
+    let [name, slice] = childLastPartOfId.split(':');
+    name = name.replace(/\[x\]$/, ''); // strip polymorphic marker if present
+    return `${name}[${slice}]`;
+  }
+
+  // No colon: remove trailing [x] if present, else return as-is
+  return childLastPartOfId.replace(/\[x\]$/, '');
 }
 export default resolveDefinitions;
