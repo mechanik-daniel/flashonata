@@ -32,7 +32,7 @@ const errorCodes = {
   "S0208": "Parameter {{value}} of function definition must be a variable name (start with $)",
   "S0209": "A predicate cannot follow a grouping expression in a step",
   "S0210": "Each step can only have one grouping expression",
-  "S0211": "The symbol {{token}} cannot be used as a unary operator",
+  "S0211": "Syntax error: symbol {{token}} used in a place where it is not allowed",
   "S0212": "The left side of := must be a variable name (start with $)",
   "S0213": "The literal value {{value}} cannot be used as a step within a path expression",
   "S0214": "The right side of {{token}} must be a variable name (start with $)",
@@ -142,12 +142,15 @@ const errorCodes = {
   "F1026": "Value of `InstanceOf:` must be a valid FHIR type/profile identifier. Found: {{{value}}}",
   "F1027": "FLASH path is syntactically illegal. Token {{value}} is unexpected here.",
   "F2001": "Could not find a FHIR type/profile definition with identifier {{value}}",
-  "F2002": "Invalid FLASH path: element {{value}} was not found in {{{fhirType}}}",
-  "F2003": "Failed to fetch definition of children for {{value}}. Cannot create a FHIR instance.",
-  "F2004": "{{value}} is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
+  "F2002": "Invalid element path: element \"{{{value}}}\" was not found in {{fhirType}}",
+  "F2003": "Failed to fetch definition of children for {{value}} in {{fhirType}}.",
+  "F2004": "{{value}} in {{fhirType}} is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
   "F2005": "{{value}} is a forbidden element according to profile: {{fhirType}}.",
+  "F2006": "Failed to fetch definition of children for {{fhirType}}.",
+  "F2007": "Element definition for {{value}} in {{fhirType}} has no type defined.",
+  "F2008": "Failed to fetch definition of children for mandatory element {{value}} in {{fhirType}}.",
   "F3001": "The value {{value}} is invalid for FHIR element {{fhirElement}}. The value must match the regular expression: {{{regex}}}",
-  "F3002": "The FHIR element {{elementId}} is required in {{instanceof}}, but no value was provided.",
+  "F3002": "The FHIR element {{elementId}} is required in {{instanceof}}, but no value was provided."
 };
 
 /**

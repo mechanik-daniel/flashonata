@@ -10,9 +10,14 @@ import parseSignature from './utils/signature.js';
 import operators from './utils/operators.js';
 import tokenizer from './utils/tokenizer.js';
 import processAST from './utils/processAst.js';
-import contextualizeRule from './utils/contextualizeRule.js';
 import normalizeFlashPath from './utils/normalizeFlashPath.js';
-import unchainFlashRule from './utils/unchainFlashRule.js';
+
+// This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
+// and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
+// and in 'Beautiful Code', edited by Andy Oram and Greg Wilson, Copyright 2007 O'Reilly Media, Inc. 798-0-596-51004-6
+// The original JSONata parser has been modified to support the FLASH syntax, which is a superset of JSONata based on a subset ofFHIR Shorthand.
+// This modified parser only handles tokenization and initial AST building for FUME expressions.
+// FHIR semantic enrichment and enforcement is handled later in processAST and processFlash.
 
 const parser = (() => {
 
@@ -21,10 +26,6 @@ const parser = (() => {
      * @param {string} source The source as raw string
      * @returns {Array} Array of all simple tokens identified by the scanner
      */
-
-  // This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
-  // and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
-  // and in 'Beautiful Code', edited by Andy Oram and Greg Wilson, Copyright 2007 O'Reilly Media, Inc. 798-0-596-51004-6
 
   var parser = function (source, recover) {
     /**
@@ -55,13 +56,11 @@ const parser = (() => {
 
     /** The base_symbol (original_symbol in Crockford's implementation) object is the prototype for all other symbols.
          * Its methods will usually be overridden.
-         * The Null Denotation (or nud) of a token is the procedure and arguments applying for that token when Left, an unclaimed parsed expression is not extant.
-         * The Left Denotation (or led) of a token is the procedure, arguments, and lbp applying for that token when there is a Left, an unclaimed parsed expression.
-         * A nud does not care about the tokens to the left. A led does.
-         * A nud method is used by values (such as variables and literals) and by prefix operators.
-         * A led method is used by infix operators and suffix operators.
+         * The Null Denotation (or nud) of a token is the procedure and arguments applying for that token when there is nothing on it's left hand side.
+         * The Left Denotation (or led) of a token is the procedure, arguments, and lbp applying for that token when there is an LHS expression.
+         * A nud does not care about the tokens to the left, it is regarded as a prefix for and expression. A led does - it is regarded as an infix or suffix operator.
          * A token may have both a nud method and a led method.
-         * For example, - might be both a prefix operator (negation) and an infix operator (subtraction), so it would have both nud and led methods.
+         * For example, '-' might be both a prefix operator (negation) and an infix operator (subtraction), so it would have both nud and led methods.
          */
     var base_symbol = {
       nud: function () {
@@ -143,7 +142,7 @@ const parser = (() => {
       // the node variable is currently set to the previous token
       lookForFlash = lookForFlash || false;
       if (id && // id argument provided
-                node.id !== id // AND it's not the same as the previous node.id
+        node.id !== id // AND it's not the same as the previous node.id
       ) {
         var code;
         if (node.id === '(end)') {
@@ -193,6 +192,7 @@ const parser = (() => {
         return node;
       }
       if (next_token.type === 'indent' && lookForFlash === false) {
+        // skipping indent tokens unless inside a flash block, since they have no significance in a regular JSONata expression
         next_token = lexer(infix, false);
       }
       /** Start preparing the processed token to return and override the `node` var with */
@@ -223,7 +223,7 @@ const parser = (() => {
         case 'string':
         case 'number':
         case 'value':
-        case 'url':
+        case 'url': // url is a special case of literal value added to support FLASH parsing
           symbol = symbol_table["(literal)"];
           break;
         case 'regex':
@@ -231,7 +231,7 @@ const parser = (() => {
           symbol = symbol_table["(regex)"];
           break;
         case 'indent':
-          // Regular indents are not skipped, they will be used as seperators inside flash blocks.
+          // unskipped indents are seperators inside FLASH blocks, and define their rule hierarchy.
           symbol = symbol_table[`(indent)`];
           break;
         case 'blockindent':
@@ -259,6 +259,7 @@ const parser = (() => {
           break;
           /* c8 ignore next */
         default:
+          // If we get here, it means the token is not recognized
           return handleError({
             code: "S0205",
             stack: (new Error()).stack,
@@ -278,8 +279,9 @@ const parser = (() => {
       if (Object.prototype.hasOwnProperty.call(symbol, 'indent')) {
         // we explicitly add the indent member to the node so it would show in the resulting tree when stringified.
         // Otherwise it may look like the indent number wasn't registered because attributes inherited from
-        // the prototype object are hidden (like the id, lbp, nud and led)
+        // the prototype object are hidden (like the id, lbp, nud and led). This helps debugging and enables AST serialization.
         node.indent = symbol.indent;
+        // TODO: remove this when the parser is stabilized and serialization is no longer a priority
       }
       return node;
     };
@@ -424,13 +426,13 @@ const parser = (() => {
     symbol("]");
     symbol("}");
     symbol(".."); // range operator
-    infix("."); // map operator
+    infix("."); // map operator OR a seperator of FLASH path segements
     infix("+"); // numeric addition
     infix("-"); // numeric subtraction
     infix("*"); // numeric multiplication
     infix("/"); // numeric division
     infix("%"); // numeric modulus
-    infix("="); // equality
+    infix("="); // equality OR assignment in FLASH rules (inline value assignment)
     infix("<"); // less than
     infix(">"); // greater than
     infix("!="); // not equal to
@@ -456,10 +458,9 @@ const parser = (() => {
     });
 
     // since a flash block expression can be initialized both by Instance: and InstanceOf: keywords,
-    // both prefix handlers should collect rules using the same function.
-    // In both cases, this function is only called after the InstanceOf: keyword, so it should not encounter an
-    // 'Instance:' token after it. If it does, that's an error.
-    // The only valid expression types are flashrule and ':=' (bind)
+    // and flashrules can themselves have subrules (indented) -
+    // all of these handlers should collect rules using the same recursive function.
+    // The only valid expression types that can be collected as "rules" are flashrules and ':=' (bind)
     var collectRules = function (level, root) {
       root = root || 0;
       if (node.type === 'instance') {
@@ -473,7 +474,7 @@ const parser = (() => {
           token: node.id
         });
       }
-      var rules = [];
+      // confirm that the indent level is correct
       if (node.id === '(indent)' && node.value > level) {
         return handleError({
           code: "F1017",
@@ -496,6 +497,8 @@ const parser = (() => {
           value: `${String(node.value)} spaces`
         });
       }
+      // initialize an array to hold the collected rules
+      var rules = [];
       while (node.id !== ")" && node.id !== "(end)") {
         var indent = node.indent;
         if (node.id === "(indent)") {
@@ -518,7 +521,8 @@ const parser = (() => {
           }
         }
         var rule = expression(0, true);
-        if ((rule.type !== 'block' || !rule.isFlashRule) && rule.id !== ':=') {
+        // ensure expression is either a flashrule or a bind rule
+        if (rule.type !== 'flashrule' && rule.id !== ':=') {
           if (rule.id === '=') {
             return handleError({
               code: "F1025",
@@ -540,7 +544,7 @@ const parser = (() => {
           }
         }
         rule.indent = rule.indent || indent;
-        if (rule.isFlashRule && rule.path) {
+        if (rule.type === 'flashrule' && rule.path) {
           // try to normalize the path, catch any errors and bubble them up
           try {
             rule.path = normalizeFlashPath(rule.path);
@@ -553,13 +557,9 @@ const parser = (() => {
                 start: rule.path.start,
                 line: rule.path.line,
                 value: rule.path.value
-              });
+              }
+            );
           }
-          rule = unchainFlashRule(rule);
-          // console.log(`Unchained flash rule: ${JSON.stringify(rule, null, 2)}`);
-        }
-        if (rule.context) {
-          rule = contextualizeRule(rule);
         }
         rules.push(rule);
         if (node.id === ';') advance(null, null, true);
@@ -575,11 +575,14 @@ const parser = (() => {
     // field wildcard (single level) OR flash rule
     prefix('*', function (isFlash) {
       if (isFlash) {
+        // a flash rule node will have:
+        // - type: 'flashrule'
+        // - expressions: an optional array of subrules that appear under it (indented)
+        // - path: the FLASH path that defines the FHIR element this rule applies to
+        // - context: an optional expression that defines the context of this rule (a block between the * and the path)
+        // - inlineExpression: an optional expression that defines the inline value of this rule
         var indent = this.indent;
-        // set type to block and isFlashRule to true
-        this.isFlashRule = true;
-        this.type = 'block';
-        this.expressions = [];
+        this.type = 'flashrule';
         if (node.id === '(') {
           this.context = expression(75, true);
           advance(".", true, true);
@@ -587,19 +590,19 @@ const parser = (() => {
         this.path = expression(40, true);
         var position = node.position;
         var line = node.line;
+        var start = node.start;
         if (node.id === '=') {
           advance('=', null, true);
           if (node.id !== '(end)' && node.id !== '(indent)') {
-            // inline value assignment is treated as the first rule in the block
-            this.expressions.push(expression(0, true));
-            this.expressions[0].isFlashValue = true;
+            this.inlineExpression = expression(0, true);
           } else {
+            // missing inline expression after '='
             return handleError({
               code: "F1012",
               stack: (new Error()).stack,
-              position: position,
-              start: node.start,
-              line: line,
+              position,
+              start,
+              line,
               token: "="
             });
           }
@@ -610,47 +613,55 @@ const parser = (() => {
             stack: (new Error()).stack,
             position,
             line,
+            start,
             token: ':='
           });
         }
-        if (this.path && this.path.isFlashRule) { // double * *
-          return handleError({
-            code: "F1022",
-            stack: (new Error()).stack,
-            position,
-            line,
-            token: '*'
-          });
-        }
-        if (this.path && (this.path.type === 'variable' || this.path.id === ':=')) { // $ after *
-          return handleError({
-            code: "F1023",
-            stack: (new Error()).stack,
-            position,
-            line,
-            token: '$'
-          });
-        }
-        if (this.path && this.path.id === '(end)') { // empty rule
-          return handleError({
-            code: "F1024",
-            stack: (new Error()).stack,
-            position: this.position,
-            start: this.start,
-            line: this.line,
-            token: '*'
-          });
+        if (this.path) {
+          const path = this.path;
+          var errObj;
+          if (path.type === 'flashrule') { // double * *
+            errObj = {
+              code: "F1022",
+              position,
+              line,
+              start,
+              token: '*'
+            };
+          }
+          if (path.type === 'variable' || path.id === ':=') { // $ after *
+            errObj = {
+              code: "F1023",
+              position,
+              line,
+              start,
+              token: '$'
+            };
+          }
+          if (path.id === '(end)') { // empty rule
+            errObj = {
+              code: "F1024",
+              position: this.position,
+              start: this.start,
+              line: this.line,
+              token: '*'
+            };
+          }
+          if (errObj) {
+            errObj.stack = (new Error()).stack;
+            return handleError(errObj);
+          }
         }
         this.indent = indent;
         var subrules;
         subrules = collectRules(indent + 2, null);
         // append subrules to the expressions array
-        if (subrules.length > 0) this.expressions.push(...subrules);
-        return this;
+        if (subrules.length > 0) this.expressions = subrules;
       } else {
+        // not a flash rule, but a field wildcard in a regular jsonata expression
         this.type = "wildcard";
-        return this;
       }
+      return this;
     });
 
     // The Instance: keyword is a prefix for the instance id expression that comes after it.
@@ -670,16 +681,10 @@ const parser = (() => {
           value: 'InstanceOf:'
         });
       }
-      // flag it as an instance expression
-      instanceExpr.isInstanceId = true;
-      // set node type to block and isFlashBlock to true
-      this.type = "block";
-      this.isFlashBlock = true;
-      // initialize the expressions array
-      this.expressions = [];
-      // push the instance expression to the expressions array
-      this.expressions.push(instanceExpr);
-      delete this.value;
+      // set node type to flashblock
+      this.type = "flashblock";
+      // save the instance expression
+      this.instanceExpr = instanceExpr;
       if (node.id !== '(instanceof)') {
         // Instance: <expr> without InstanceOf: immediately after it
         return handleError({
@@ -691,7 +696,8 @@ const parser = (() => {
           token: node.id
         });
       }
-      if (node.line === this.expressions[0].line) {
+      // node is now on the (instanceof) token
+      if (node.line === this.instanceExpr.line) {
         // InstanceOf: at the same line as Instance:
         return handleError({
           code: "F1013",
@@ -702,8 +708,9 @@ const parser = (() => {
           token: node.id
         });
       }
+      // node (instanceof) is confirmed to be on a new line, so we can proceed
+      // check if the indent of the InstanceOf: token is the same as the Instance: token
       if (node.indent !== this.indent) {
-        // indentation of InstanceOf: must be same as Instance:
         return handleError({
           code: "F1014",
           stack: (new Error()).stack,
@@ -714,8 +721,9 @@ const parser = (() => {
           value: `${String(node.indent)} spaces`
         });
       }
-      this.instanceof = node.value;
-      if (!this.instanceof || this.instanceof === '') {
+      // indentation OK.
+      // confirm that value of (instanceof) token is not empty
+      if (!node.value || node.value === '') {
         return handleError({
           code: "F1019",
           stack: (new Error()).stack,
@@ -725,10 +733,14 @@ const parser = (() => {
           token: "InstanceOf:"
         });
       }
-
-      advance(null, null, true); // proceeed to the next token after InstanceOf:
+      // all good, set the node's 'instanceof' to the value of the (instanceof) token
+      this.instanceof = node.value;
+      // proceeed to the next token after InstanceOf:
+      advance(null, null, true);
+      // collect all rules under this flashblock
       var rules = collectRules(this.indent, this.indent);
-      if (rules.length > 0) this.expressions.push(...rules);
+      if (rules.length > 0) this.expressions = rules;
+      // return the flashblock node
       return this;
     });
 
@@ -740,6 +752,8 @@ const parser = (() => {
     // This token is optionally followed by rules.
     // Rules are collected and returned as children of the flashblock token.
     prefix('(instanceof)', function () {
+      // set node type to flashblock
+      this.type = "flashblock";
       if (!this.value || this.value === '') {
         // if the value is empty, it means that the InstanceOf: token was not followed by a FHIR structure identifier
         return handleError({
@@ -751,17 +765,11 @@ const parser = (() => {
           token: "InstanceOf:"
         });
       }
-      // set node type to block and isFlashBlock to true
-      this.type = "block";
-      this.isFlashBlock = true;
-      // initialize the expressions array
-      this.expressions = [];
-      // set the InstanceOf value
+      // set the node's 'instanceof' to the value of the (instanceof) token
       this.instanceof = this.value;
-      // delete the value so it won't be included in the resulting tree
-      delete this.value;
+      // collect all rules under this flashblock
       var rules = collectRules(this.indent, this.indent);
-      if (rules.length > 0) this.expressions.push(...rules);
+      if (rules.length > 0) this.expressions = rules;
       return this;
     });
 
@@ -1062,36 +1070,6 @@ const parser = (() => {
       return this;
     });
 
-    var ancestorLabel = 0;
-    var ancestorIndex = 0;
-    var ancestry = [];
-
-    const ancestorWrapper = {
-      bumpLabel: () => {
-        ancestorLabel++;
-        return ancestorLabel;
-      },
-      bumpIndex: () => {
-        ancestorIndex++;
-        return ancestorIndex;
-      },
-      pushAncestor: (ancestor) => {
-        ancestry.push(ancestor);
-      },
-      setSlotLabel: (slotIndex, label) => {
-        ancestry[slotIndex].slot.label = label;
-      }
-    };
-
-    /**
-         * a flag indicating that the AST contains some FLASH, so a FHIR type analysis step must be performed
-         * on it before it can be evaluated against input.
-         */
-    var astContainsFlash = false;
-    const switchOnFlashFlag = function () {
-      astContainsFlash = true;
-    };
-
     // now invoke the tokenizer and the parser and return the syntax tree
     lexer = tokenizer(source);
     advance();
@@ -1108,14 +1086,9 @@ const parser = (() => {
       handleError(err);
     }
 
-    // console.log("Initital parsing BEFORE processing AST", JSON.stringify(expr, null, 2));
-
-    expr = processAST(expr, ancestorWrapper, switchOnFlashFlag, recover, errors);
-    if (astContainsFlash === true) {
-      expr.containsFlash = true;
-    }
-
-    // console.log("Final parsing AFTER processing AST", JSON.stringify(expr, null, 2));
+    // console.debug("BEFORE processing AST", JSON.stringify(expr, null, 2));
+    expr = processAST(expr, recover, errors);
+    // console.debug("AFTER processing AST", JSON.stringify(expr, null, 2));
 
     if(expr.type === 'parent' || typeof expr.seekingParent !== 'undefined') {
       // error - trying to derive ancestor at top level

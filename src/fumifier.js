@@ -18,7 +18,7 @@ import fn from './utils/functions.js';
 import utils from './utils/utils.js';
 import parser from './parser.js';
 import parseSignature from './utils/signature.js';
-import processFlash from './utils/processFlash.js';
+import resolveDefinitions from './utils/resolveDefinitions.js';
 import { populateMessage } from './utils/errorCodes.js';
 import registerNativeFn from './utils/registerNativeFn.js';
 
@@ -49,13 +49,13 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluate(expr, input, environment) {
-    // console.log('⚙️ Starting evaluation with input:', JSON.stringify(input, null, 2));
+    // console.debug('evaluating expression:', JSON.stringify(expr, null, 2));
 
     var result;
 
-    if (expr instanceof Promise) {
-      expr = await expr;
-    }
+    // if (expr instanceof Promise) {
+    //   expr = await expr;
+    // }
 
     var entryCallback = environment.lookup(Symbol.for('fumifier.__evaluate_entry'));
     if(entryCallback) {
@@ -122,6 +122,22 @@ var fumifier = (function() {
       case 'transform':
         result = evaluateTransformExpression(expr, input, environment);
         break;
+    }
+
+    if (expr.regexStr) {
+      // need to validate the result against the regex
+      const regexTester = new RegExp(`^${expr.regexStr}$`);
+      if (!regexTester.test(typeof result === 'string' ? result : fn.string(result))) {
+        throw {
+          code: "F3001",
+          stack: (new Error()).stack,
+          position: expr.position,
+          start: expr.start,
+          value: result,
+          regex: expr.regexStr,
+          fhirElement: expr.elementDefinition.id
+        };
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(expr, 'predicate')) {
@@ -1147,7 +1163,7 @@ var fumifier = (function() {
         if (typeof res !== 'undefined') {
           // if there's a regex expression, test against the input
           if (node.isFlashValue && regexTester) {
-            if (!regexTester.test(res)) {
+            if (!regexTester.test(typeof res === 'string' ? res : fn.string(res))) {
               throw {
                 code: "F3001",
                 stack: (new Error()).stack,
@@ -2025,7 +2041,7 @@ var fumifier = (function() {
     var recover = options && options.recover;
 
     try {
-      // syntactic parsing only (sync) - may through on syntax errors
+      // syntactic parsing only (sync) - may throw on syntax errors
       ast = parser(expr, options && options.recover);
       // initial parsing done
       errors = ast.errors;
@@ -2050,7 +2066,7 @@ var fumifier = (function() {
           }
         } else {
           // process the flash blocks in the AST
-          ast = await processFlash(ast, navigator);
+          ast = await resolveDefinitions(ast, navigator, recover, errors);
         }
       }
     } catch(err) {
