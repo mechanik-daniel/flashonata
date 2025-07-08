@@ -1,0 +1,240 @@
+{
+  "before": {
+    "value": "*",
+    "type": "flashrule",
+    "position": 281,
+    "start": 280,
+    "line": 20,
+    "indent": 0,
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "name",
+          "type": "name",
+          "position": 286,
+          "start": 282,
+          "line": 20
+        },
+        {
+          "value": "family",
+          "type": "name",
+          "position": 293,
+          "start": 287,
+          "line": 20
+        },
+        {
+          "value": "value",
+          "type": "name",
+          "position": 299,
+          "start": 294,
+          "line": 20
+        }
+      ]
+    },
+    "inlineExpression": {
+      "value": "&",
+      "type": "binary",
+      "position": 320,
+      "start": 319,
+      "line": 20,
+      "lhs": {
+        "value": "(",
+        "type": "function",
+        "position": 310,
+        "start": 309,
+        "line": 20,
+        "procedure": {
+          "value": "string",
+          "type": "variable",
+          "position": 309,
+          "start": 302,
+          "line": 20
+        },
+        "arguments": [
+          {
+            "value": "+",
+            "type": "binary",
+            "position": 312,
+            "start": 311,
+            "line": 20,
+            "lhs": {
+              "value": 1,
+              "type": "number",
+              "position": 311,
+              "start": 310,
+              "line": 20
+            },
+            "rhs": {
+              "value": "(",
+              "type": "block",
+              "position": 313,
+              "start": 312,
+              "line": 20,
+              "expressions": [
+                {
+                  "value": "*",
+                  "type": "binary",
+                  "position": 315,
+                  "start": 314,
+                  "line": 20,
+                  "lhs": {
+                    "value": 2,
+                    "type": "number",
+                    "position": 314,
+                    "start": 313,
+                    "line": 20
+                  },
+                  "rhs": {
+                    "value": 3,
+                    "type": "number",
+                    "position": 316,
+                    "start": 315,
+                    "line": 20
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "rhs": {
+        "value": "-suffix",
+        "type": "string",
+        "position": 330,
+        "start": 321,
+        "line": 20
+      }
+    }
+  },
+  "after": {
+    "type": "block",
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "name",
+          "type": "name",
+          "position": 286,
+          "start": 282,
+          "line": 20
+        }
+      ]
+    },
+    "isFlashRule": true,
+    "position": 286,
+    "start": 282,
+    "line": 20,
+    "expressions": [
+      {
+        "type": "block",
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "family",
+              "type": "name",
+              "position": 293,
+              "start": 287,
+              "line": 20
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "position": 293,
+        "start": 287,
+        "line": 20,
+        "expressions": [
+          {
+            "value": "&",
+            "type": "binary",
+            "position": 320,
+            "start": 319,
+            "line": 20,
+            "lhs": {
+              "value": "(",
+              "type": "function",
+              "position": 310,
+              "start": 309,
+              "line": 20,
+              "procedure": {
+                "value": "string",
+                "type": "variable",
+                "position": 309,
+                "start": 302,
+                "line": 20
+              },
+              "arguments": [
+                {
+                  "value": "+",
+                  "type": "binary",
+                  "position": 312,
+                  "start": 311,
+                  "line": 20,
+                  "lhs": {
+                    "value": 1,
+                    "type": "number",
+                    "position": 311,
+                    "start": 310,
+                    "line": 20
+                  },
+                  "rhs": {
+                    "value": "(",
+                    "type": "block",
+                    "position": 313,
+                    "start": 312,
+                    "line": 20,
+                    "expressions": [
+                      {
+                        "value": "*",
+                        "type": "binary",
+                        "position": 315,
+                        "start": 314,
+                        "line": 20,
+                        "lhs": {
+                          "value": 2,
+                          "type": "number",
+                          "position": 314,
+                          "start": 313,
+                          "line": 20
+                        },
+                        "rhs": {
+                          "value": 3,
+                          "type": "number",
+                          "position": 316,
+                          "start": 315,
+                          "line": 20
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "rhs": {
+              "value": "-suffix",
+              "type": "string",
+              "position": 330,
+              "start": 321,
+              "line": 20
+            },
+            "path": {
+              "type": "flashpath",
+              "steps": [
+                {
+                  "value": "value",
+                  "type": "name",
+                  "position": 299,
+                  "start": 294,
+                  "line": 20
+                }
+              ]
+            },
+            "isFlashRule": true,
+            "isInlineExpression": true
+          }
+        ]
+      }
+    ]
+  }
+}

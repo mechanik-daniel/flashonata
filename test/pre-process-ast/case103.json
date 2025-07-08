@@ -1,0 +1,136 @@
+{
+  "before": {
+    "value": "*",
+    "type": "flashrule",
+    "position": 281,
+    "start": 280,
+    "line": 20,
+    "indent": 0,
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "name",
+          "type": "name",
+          "position": 286,
+          "start": 282,
+          "line": 20
+        }
+      ]
+    },
+    "expressions": [
+      {
+        "value": "*",
+        "type": "flashrule",
+        "position": 290,
+        "start": 289,
+        "line": 21,
+        "indent": 2,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "family",
+              "type": "name",
+              "position": 297,
+              "start": 291,
+              "line": 21
+            }
+          ]
+        },
+        "expressions": [
+          {
+            "value": "*",
+            "type": "flashrule",
+            "position": 303,
+            "start": 302,
+            "line": 22,
+            "indent": 4,
+            "path": {
+              "type": "flashpath",
+              "steps": [
+                {
+                  "value": "value",
+                  "type": "name",
+                  "position": 309,
+                  "start": 304,
+                  "line": 22
+                }
+              ]
+            },
+            "inlineExpression": {
+              "value": "Doe",
+              "type": "string",
+              "position": 317,
+              "start": 312,
+              "line": 22
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "type": "block",
+    "position": 281,
+    "start": 280,
+    "line": 20,
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "name",
+          "type": "name",
+          "position": 286,
+          "start": 282,
+          "line": 20
+        }
+      ]
+    },
+    "isFlashRule": true,
+    "expressions": [
+      {
+        "type": "block",
+        "position": 290,
+        "start": 289,
+        "line": 21,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "family",
+              "type": "name",
+              "position": 297,
+              "start": 291,
+              "line": 21
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "expressions": [
+          {
+            "value": "Doe",
+            "type": "string",
+            "position": 317,
+            "start": 312,
+            "line": 22,
+            "path": {
+              "type": "flashpath",
+              "steps": [
+                {
+                  "value": "value",
+                  "type": "name",
+                  "position": 309,
+                  "start": 304,
+                  "line": 22
+                }
+              ]
+            },
+            "isFlashRule": true,
+            "isInlineExpression": true
+          }
+        ]
+      }
+    ]
+  }
+}

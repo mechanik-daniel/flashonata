@@ -1,0 +1,78 @@
+{
+  "before": {
+    "value": "*",
+    "type": "flashrule",
+    "position": 281,
+    "start": 280,
+    "line": 20,
+    "indent": 0,
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "active",
+          "type": "name",
+          "position": 288,
+          "start": 282,
+          "line": 20
+        },
+        {
+          "value": "value",
+          "type": "name",
+          "position": 294,
+          "start": 289,
+          "line": 20
+        }
+      ]
+    },
+    "inlineExpression": {
+      "value": true,
+      "type": "value",
+      "position": 301,
+      "start": 297,
+      "line": 20
+    }
+  },
+  "after": {
+    "type": "block",
+    "path": {
+      "type": "flashpath",
+      "steps": [
+        {
+          "value": "active",
+          "type": "name",
+          "position": 288,
+          "start": 282,
+          "line": 20
+        }
+      ]
+    },
+    "isFlashRule": true,
+    "position": 288,
+    "start": 282,
+    "line": 20,
+    "expressions": [
+      {
+        "value": true,
+        "type": "value",
+        "position": 301,
+        "start": 297,
+        "line": 20,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "value",
+              "type": "name",
+              "position": 294,
+              "start": 289,
+              "line": 20
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "isInlineExpression": true
+      }
+    ]
+  }
+}

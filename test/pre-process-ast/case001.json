@@ -1,0 +1,20 @@
+{
+  "before": {
+    "value": "Patient",
+    "type": "flashblock",
+    "position": 282,
+    "start": 275,
+    "line": 19,
+    "indent": 0,
+    "instanceof": "Patient"
+  },
+  "after": {
+    "type": "block",
+    "position": 282,
+    "start": 275,
+    "line": 19,
+    "instanceof": "Patient",
+    "isFlashBlock": true,
+    "expressions": []
+  }
+}

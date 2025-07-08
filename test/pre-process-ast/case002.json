@@ -1,0 +1,49 @@
+{
+  "before": {
+    "value": "Instance:",
+    "type": "flashblock",
+    "position": 253,
+    "start": 244,
+    "line": 18,
+    "indent": 0,
+    "instanceExpr": {
+      "value": "abc",
+      "type": "string",
+      "position": 259,
+      "start": 254,
+      "line": 18
+    },
+    "instanceof": "Patient"
+  },
+  "after": {
+    "type": "block",
+    "position": 253,
+    "start": 244,
+    "line": 18,
+    "instanceof": "Patient",
+    "isFlashBlock": true,
+    "expressions": [
+      {
+        "value": "abc",
+        "type": "string",
+        "position": 259,
+        "start": 254,
+        "line": 18,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "id",
+              "type": "name",
+              "position": 259,
+              "start": 254,
+              "line": 18
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "isInlineExpression": true
+      }
+    ]
+  }
+}

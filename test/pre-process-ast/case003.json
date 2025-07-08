@@ -1,0 +1,99 @@
+{
+  "before": {
+    "value": "Instance:",
+    "type": "flashblock",
+    "position": 253,
+    "start": 244,
+    "line": 18,
+    "indent": 0,
+    "instanceExpr": {
+      "value": "abc",
+      "type": "string",
+      "position": 259,
+      "start": 254,
+      "line": 18
+    },
+    "instanceof": "Patient",
+    "expressions": [
+      {
+        "value": "*",
+        "type": "flashrule",
+        "position": 281,
+        "start": 280,
+        "line": 20,
+        "indent": 0,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "active",
+              "type": "name",
+              "position": 288,
+              "start": 282,
+              "line": 20
+            }
+          ]
+        },
+        "inlineExpression": {
+          "value": true,
+          "type": "value",
+          "position": 295,
+          "start": 291,
+          "line": 20
+        }
+      }
+    ]
+  },
+  "after": {
+    "type": "block",
+    "position": 253,
+    "start": 244,
+    "line": 18,
+    "instanceof": "Patient",
+    "expressions": [
+      {
+        "value": "abc",
+        "type": "string",
+        "position": 259,
+        "start": 254,
+        "line": 18,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "id",
+              "type": "name",
+              "position": 259,
+              "start": 254,
+              "line": 18
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "isInlineExpression": true
+      },
+      {
+        "value": true,
+        "type": "value",
+        "position": 295,
+        "start": 291,
+        "line": 20,
+        "path": {
+          "type": "flashpath",
+          "steps": [
+            {
+              "value": "active",
+              "type": "name",
+              "position": 288,
+              "start": 282,
+              "line": 20
+            }
+          ]
+        },
+        "isFlashRule": true,
+        "isInlineExpression": true
+      }
+    ],
+    "isFlashBlock": true
+  }
+}
