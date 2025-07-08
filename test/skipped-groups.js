@@ -13,7 +13,7 @@ export default [
   // "errors",
   // "fields",
   // "flash-definitions",
-  // "flash-evaluate",
+  "flash-evaluate",
   // "flash-parse",
   // "flattening",
   // "function-abs",

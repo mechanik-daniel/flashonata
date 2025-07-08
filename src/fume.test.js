@@ -68,16 +68,31 @@ void async function () {
 //   ]
 // }
 // 'true'
-// Instance: 'abc'
-// InstanceOf: abc
+Instance: 'abc'
+InstanceOf: abc
 // InstanceOf: Patient
 // * a = b
 // Instance: 'abc'
-InstanceOf: Patient
-* id
-  * value = '123'
+// InstanceOf: il-core-patient
+// * name
+//   * (last_name).family = $
+// * (dob).birthDate.value = $
+// * extension[ext-immigration].extension[origin].value.text = 'HMO Name'
+// * active = true
+// * (context1).name
+//   * (context2).given = first_name
+//   * family = last_name
+// * generalPractitioner.reference = $literal('asas')
+// * (context3).address.text = $
+// * id
+//   * value = '123'
 // * gender.value = ' abc'
-
+// InstanceOf: il-core-patient
+// * identifier[2 - 1].value = field1
+// InstanceOf: SimpleQuantity
+// * comparator = '>='
+// InstanceOf: Patient
+// * a = b
   `;
 
   var expr;

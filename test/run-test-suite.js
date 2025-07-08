@@ -14,6 +14,7 @@ import { FhirStructureNavigator } from "@outburn/structure-navigator";
 import { FhirSnapshotGenerator } from "fhir-snapshot-generator";
 import skippedGroups from "./skipped-groups.js";
 import { fileURLToPath } from 'url';
+import util from 'util';
 
 chai.use(chaiAsPromised);
 var expect = chai.expect;
@@ -40,6 +41,7 @@ function readJSON(dir, file) {
 let datasets = {};
 let datasetnames = fs.readdirSync(path.join(__dirname, "test-suite", "datasets"));
 var skippedTests = [];
+var parsingErrorsCaught = [];
 
 datasetnames.forEach((name) => {
   datasets[name.replace(".json", "")] = readJSON(path.join("test-suite", "datasets"), name);
@@ -117,7 +119,7 @@ describe("Fumifier Test Suite", () => {
         const testTitle = `${testcase.description ?? testcase.filename}: ${displayTestExpr}`;
         // If the testcase has a `skip` field, then skip this test
 
-        const testFn = function () {
+        const testFn = async function () {
           return (async () => {
             let expr;
             const expectsCode = "code" in testcase;
@@ -130,12 +132,16 @@ describe("Fumifier Test Suite", () => {
                 timeboxExpression(expr, testcase.timelimit, testcase.depth);
               }
             } catch (e) {
+              parsingErrorsCaught.push(e);
               if (expectsCode) {
                 // ✅ Use chai assertion directly here to validate the thrown error
+                expect(e && typeof e === 'object' && 'code' in e).to.be.true;
                 expect(e).to.have.property("code", testcase.code);
                 if ("token" in testcase) {
                   expect(e).to.have.property("token", testcase.token);
                 }
+                // remove the error from the parsingErrorsCaught array
+                parsingErrorsCaught = parsingErrorsCaught.filter(err => err !== e);
                 return; // ✅ Explicitly exit test after validating parse error
               } else {
                 // ❌ Unexpected error
@@ -199,6 +205,17 @@ describe("Fumifier Test Suite", () => {
       console.warn("The following tests were skipped:",'\n', ...skippedTests.map(test => `\n - ${test}`));
       // eslint-disable-next-line no-console
       console.warn(`\n\nTotal of ${skippedTests.length} tests skipped.`);
+    }
+    if (parsingErrorsCaught.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn("The following parsing errors were caught:",'\n', );
+      // loop through the parsing errors and print them using util.inspect
+      parsingErrorsCaught.forEach((err, index) => {
+        // eslint-disable-next-line no-console
+        console.warn(`\nError ${index + 1}:`, util.inspect(err, { depth: null, colors: true }));
+      });
+      // eslint-disable-next-line no-console
+      console.warn(`\n\nTotal of ${parsingErrorsCaught.length} parsing errors caught.`);
     }
   });
 });
