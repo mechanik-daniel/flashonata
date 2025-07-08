@@ -2039,6 +2039,7 @@ var fumifier = (function() {
     var errors;
     var navigator = options && options.navigator;
     var recover = options && options.recover;
+    var compiledFhirRegex = {};
 
     try {
       // syntactic parsing only (sync) - may throw on syntax errors
@@ -2065,8 +2066,8 @@ var fumifier = (function() {
             throw err;
           }
         } else {
-          // process the flash blocks in the AST
-          ast = await resolveDefinitions(ast, navigator, recover, errors);
+          // resolve all FHIR definition required for evaluation
+          ast = await resolveDefinitions(ast, navigator, recover, errors, compiledFhirRegex);
         }
       }
     } catch(err) {
@@ -2084,6 +2085,12 @@ var fumifier = (function() {
     environment.bind('millis', defineFunction(function() {
       return timestamp.getTime();
     }, '<:n>'));
+
+    // bind all compiled FHIR regexes to the environment
+    for (const [key, value] of Object.entries(compiledFhirRegex)) {
+      // `key` is the actual regexStr, without the wrapping global flags
+      environment.bind(`__fhir_regex_${key}`, value);
+    }
 
     var fumifierObject = {
       evaluate: async function (input, bindings, callback) {
@@ -2123,7 +2130,7 @@ var fumifier = (function() {
 
         var it;
         try {
-          it = await evaluate(await ast, input, exec_env);
+          it = await evaluate(ast, input, exec_env);
           if (typeof callback === "function") {
             callback(null, it);
           }

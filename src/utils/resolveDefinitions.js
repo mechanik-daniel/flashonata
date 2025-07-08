@@ -8,13 +8,13 @@ import createFhirFetchers from './createFhirFetchers.js';
 import extractSystemFhirType from './extractSystemFhirType.js';
 import { populateMessage } from './errorCodes.js';
 
-// TODO: move this to a utils file, possibly bind as native function
+// TODO: move this to a utils file, possibly bind as native function $initCapOnce()
 const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /**
  * Centralized recoverable error handling helper.
  * @param {Object} base - base error object without position information
- * @param {Object[]} positions - Array of position objects where the error occurred
+ * @param {Object[]} positions - Array of position containing objects pointing to the source of the error
  * @param {boolean} recover - If true, will continue processing and collect errors instead of throwing them.
  * @param {Object[]} errors - Array to collect errors if recover is true
  * @param {Object} errObj - Error object caught from a failed operation
@@ -72,9 +72,10 @@ function handleRecoverableError(base, positions, recover, errors, errObj) {
  * @param {FhirStructureNavigator} navigator - FHIR structure navigator
  * @param {boolean} recover - If true, will continue processing and collect errors instead of throwing them.
  * @param {Array} errors - Array to collect errors if recover is true
+ * @param {Object} compiledRegexCache - Cache for compiled FHIR regexes
  * @returns {Promise<Object>} Semantically enriched AST
  */
-const resolveDefinitions = async function (expr, navigator, recover, errors) {
+const resolveDefinitions = async function (expr, navigator, recover, errors, compiledRegexCache) {
   if (!expr || !expr.containsFlash) return expr;
   // create utilities for fetching FHIR definitions
   const {
@@ -234,6 +235,13 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
           )?.valueString;
         }
 
+        if (ed.__regexStr) {
+          const label = `__fhir_regex_${ed.__regexStr}`;
+          if (!compiledRegexCache[label]) {
+            // compile the regex string and store it in the cache
+            compiledRegexCache[label] = new RegExp(`^${ed.__regexStr}$`);
+          }
+        }
         resolvedElementDefinitions[key] = ed;
       }
     } catch (e) {
@@ -252,13 +260,15 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
 
   // function to test if an element should be expanded even if not explicitly referenced in the FLASH block
   const shouldExpand = (key, ed) => {
-    return (
+    const shouldIt = (
       ed?.min >= 1 && // mandatory
       ed.__kind && // by the existence of __kind, we know it has a single type so it can be expanded
-      !ed.__kind === 'system' && // system primitives can never have children
+      ed.__kind !== 'system' && // system primitives can never have children
       !ed.__fixedValue && // if it has a fixed value, we naively use it and don't care about the children definitions
       !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key) // skip if already resolved
     );
+    if (shouldIt) console.debug(`Should expand ${key}!`);
+    return shouldIt;
   };
 
   // Step 1: Seed with all unexpanded mandatory elements
@@ -272,7 +282,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
   for (const [key, childrenEds] of Object.entries(resolvedTypeChildren)) {
     // loop through all children of the root elements
     for (const ed of childrenEds) {
-      const childKey = `${key}.${toFlashSegment(ed.id)}`;
+      const childKey = `${key}::${toFlashSegment(ed.id)}`;
       if (shouldExpand(childKey, ed)) {
         pending.add(childKey);
       }
@@ -291,6 +301,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
 
   // Step 2: Expand recursively
   while (pending.size > 0) {
+    console.debug(`Expanding ${pending.size} pending elements...`);
     const keys = Array.from(pending);
     pending.clear();
 
@@ -303,9 +314,10 @@ const resolveDefinitions = async function (expr, navigator, recover, errors) {
       if (Object.prototype.hasOwnProperty.call(resolvedElementChildren, key)) return;
       let ed;
       try {
+        console.debug(`Expanding ${key}...`);
         ed = resolvedElementDefinitions[key];
         if (!ed) {
-          ed = await getElement(fhirTypeMeta, key);
+          ed = await getElement(fhirTypeMeta, parentFlashpath);
           resolvedElementDefinitions[key] = ed;
         }
         const children = await getChildren(fhirTypeMeta, parentFlashpath);

@@ -68,14 +68,13 @@ void async function () {
 //   ]
 // }
 // 'true'
-Instance: 'abc'
-InstanceOf: abc
+// Instance: 'abc'
+// InstanceOf: abc
 // InstanceOf: Patient
 // * a = b
-// Instance: 'abc'
-// InstanceOf: il-core-patient
-// * name
-//   * (last_name).family = $
+Instance: 'abc'
+InstanceOf: bp
+* (input1).status = 'final'
 // * (dob).birthDate.value = $
 // * extension[ext-immigration].extension[origin].value.text = 'HMO Name'
 // * active = true
