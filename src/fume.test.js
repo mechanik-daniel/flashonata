@@ -113,8 +113,12 @@ void async function () {
 
 // [(a.b.c).(%.%.z)]
 
+// InstanceOf: Patient
+// * address.period.start = '32423432'
+
 InstanceOf: Patient
-* address.period.start = '32423432'
+* identifier.assigner
+.reference = field2
   `;
 
   var expr;

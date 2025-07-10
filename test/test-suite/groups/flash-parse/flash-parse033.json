@@ -1,0 +1,6 @@
+{
+    "expr": "InstanceOf: Patient\r\n* identifier.assigner\r\n.reference = field2",
+    "data": null,
+    "bindings": {},
+    "code": "F1028"
+}

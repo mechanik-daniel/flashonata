@@ -141,6 +141,7 @@ const errorCodes = {
   "F1025": "Malformed variable assignment. Did you mean ':='?",
   "F1026": "Value of `InstanceOf:` must be a valid FHIR type/profile identifier. Found: {{{value}}}",
   "F1027": "FLASH path is syntactically illegal. Token {{value}} is unexpected here.",
+  "F1028": "FLASH path segments must be on the same line. You may use indented rules (starting with '*') to continue the path on the next line.",
   "F2001": "Could not find a FHIR type/profile definition with identifier {{value}}",
   "F2002": "Invalid element path: element \"{{{value}}}\" was not found in {{fhirType}}",
   "F2003": "Failed to fetch definition of children for {{value}} in {{fhirType}}.",

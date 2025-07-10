@@ -21,7 +21,6 @@
  * @returns {Object} The trasformed AST branch
  */
 function normalizeFlashPath(ast) {
-  // console.log('normalizeFlashPath', JSON.stringify(ast, null, 2));
   function flattenBinaryDash(expr) {
     if (expr.type === 'binary' && expr.value === '-') {
       const lhs = flattenBinaryDash(expr.lhs);
@@ -112,6 +111,19 @@ function normalizeFlashPath(ast) {
   }
 
   process(ast);
+  // ensure all path steps are on the same line as the first step
+  for (const step of result.steps) {
+    if (step.line !== result.steps[0].line) {
+      throw {
+        code: 'F1028',
+        position: step.position,
+        start: step.start,
+        line: step.line,
+        value: step.value,
+        stack: new Error().stack
+      };
+    }
+  }
   return result;
 }
 
