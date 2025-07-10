@@ -313,12 +313,49 @@ function processAstWrapper(ast, recover, errors) {
       case 'unary':
         result = {type: expr.type, value: expr.value, position: expr.position, start: expr.start, line: expr.line};
         if (expr.value === '[') {
-        // array constructor - process each item
+          if (expr.isFlashBlock) {
+            containsFlash = true;
+            flashPathStack = [];
+            result.isFlashBlock = true;
+            if (expr.instanceof) {
+              result.instanceof = expr.instanceof;
+              flashInstanceOf = expr.instanceof; // globally keep the root InstanceOf value when inside flash blocks
+              if (!validateFhirTypeId(expr.instanceof)) {
+                var typeIdError = {
+                  code: 'F1026',
+                  position: expr.position,
+                  start: expr.start,
+                  line: expr.line,
+                  token: 'InstanceOf:',
+                  value: expr.instanceof
+                };
+                if (recover) {
+                  errors.push(typeIdError);
+                  return {type: 'error', error: typeIdError};
+                } else {
+                  typeIdError.stack = (new Error()).stack;
+                  throw typeIdError;
+                }
+              }
+              // push the InstanceOf value to the global stack
+              addStructureDefinitionRef(expr);
+            }
+          } else if (expr.isFlashRule) {
+            // this is a flash rule that is also a block, this means it may have child rules that need to keep track of the absolute path
+            // so we must update the global flashPathStack
+            result.isFlashRule = true;
+            flashPathStack.push(expr.path.steps[0]); // assuming single-step paths only, enforced during pre-processing
+          }
+          // array constructor - process each item
           result.expressions = expr.expressions.map(function (item) {
             var value = processAST(item);
             pushAncestry(result, value);
             return value;
           });
+          if (expr.isFlashRule) {
+          // after processing all expressions, we pop the flashPathStack
+            flashPathStack.pop();
+          }
         } else if (expr.value === '{') {
         // object constructor - process each pair
           result.lhs = expr.lhs.map(function (pair) {
@@ -390,39 +427,7 @@ function processAstWrapper(ast, recover, errors) {
         break;
       case 'block':
         result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
-        if (expr.isFlashBlock) {
-          containsFlash = true;
-          flashPathStack = [];
-          result.isFlashBlock = true;
-          if (expr.instanceof) {
-            result.instanceof = expr.instanceof;
-            flashInstanceOf = expr.instanceof; // globally keep the root InstanceOf value when inside flash blocks
-            if (!validateFhirTypeId(expr.instanceof)) {
-              var typeIdError = {
-                code: 'F1026',
-                position: expr.position,
-                start: expr.start,
-                line: expr.line,
-                token: 'InstanceOf:',
-                value: expr.instanceof
-              };
-              if (recover) {
-                errors.push(typeIdError);
-                return {type: 'error', error: typeIdError};
-              } else {
-                typeIdError.stack = (new Error()).stack;
-                throw typeIdError;
-              }
-            }
-            // push the InstanceOf value to the global stack
-            addStructureDefinitionRef(expr);
-          }
-        } else if (expr.isFlashRule) {
-        // this is a flash rule that is also a block, this means it may have child rules that need to keep track of the absolute path
-        // so we must update the global flashPathStack
-          result.isFlashRule = true;
-          flashPathStack.push(expr.path.steps[0]); // assuming single-step paths only, enforced during pre-processing
-        }
+
         // array of expressions - process each one
         result.expressions = expr.expressions.map(function (item) {
           var part = processAST(item);
@@ -432,10 +437,6 @@ function processAstWrapper(ast, recover, errors) {
           }
           return part;
         });
-        if (expr.isFlashRule) {
-        // after processing all expressions, we pop the flashPathStack
-          flashPathStack.pop();
-        }
         // TODO scan the array of expressions to see if any of them assign variables
         // if so, need to mark the block as one that needs to create a new frame
         break;
@@ -517,6 +518,7 @@ function processAstWrapper(ast, recover, errors) {
       result.keepArray = true;
     }
     if (expr.isFlashRule) {
+      result.isFlashRule = true;
       // override single step path with the whole absolute path
       result.path = {
         type:'flashpath',
@@ -527,6 +529,16 @@ function processAstWrapper(ast, recover, errors) {
       // track this reference in elementDefinitionRefs and store the key in the node
       const flashPathRefKey = addElementDefinitionRef(result);
       result.flashPathRefKey = flashPathRefKey;
+      // if result is missing position, start or line, copy them from the expression
+      if (typeof result.position === 'undefined') {
+        result.position = expr.position;
+      }
+      if (typeof result.start === 'undefined') {
+        result.start = expr.start;
+      }
+      if (typeof result.line === 'undefined') {
+        result.line = expr.line;
+      }
     }
     return result;
   };

@@ -559,30 +559,76 @@ var fumifier = (function() {
         }
         break;
       case '[':
-        // array constructor - evaluate each item
-        result = [];
-        // eslint-disable-next-line no-case-declarations
-        let generators = await Promise.all(expr.expressions
-          .map(async (item, idx) => {
-            environment.isParallelCall = idx > 0;
-            return [item, await evaluate(item, input, environment)];
-          }));
-        for (let generator of generators) {
-          var [item, value] = generator;
-          if (typeof value !== 'undefined') {
-            if(item.value === '[') {
-              result.push(value);
+        // check if it's a flash block or rule
+        if (expr.isFlashBlock || expr.isFlashRule) {
+        // Inside flash blocks and rules (which are blocks if they have children), all expressions are potentially modifiyng the result.
+        // So we need to evaluate them all and keep the results in an object where each key is an array of results.
+        // Then finalize it by aggregating the results of each json key according to the cardinality rules.
+          result = {}; // evaluation result of the block
+          var expressionResults = {}; // results of each expression in the block, grouped by grouping key
+
+          var ii = 0;
+          for(ii = 0; ii < expr.expressions.length; ii++) {
+          // subexpressions that need to be handled as flash rules:
+          // - flashrule - fetch definition, evaluate and store in intemediate result object by json key
+          // - path with flashrule as 2nd steps - fetch definition from inner flashrule, evaluate and store whole path evaluation result
+            const node = expr.expressions[ii];
+
+            // evaluate the expression result
+            var res = await evaluate(node, input, environment);
+
+            // if the result is undefined, or not an evaluated flashrule, then skip it
+            if (typeof res === 'undefined' || !res['@@__flashRuleResult']) continue;
+
+            // add the result to expressionResults's corresponding grouping key
+            const groupingKey = res['@@__groupingKey'];
+            if (Object.prototype.hasOwnProperty.call(expressionResults, groupingKey)) {
+            // append value to the group
+              expressionResults[groupingKey] = fn.append(expressionResults[groupingKey], res['@@__value']);
             } else {
-              result = fn.append(result, value);
+            // create this group and assign the value to it
+              expressionResults[groupingKey] = res['@@__value'];
             }
           }
-        }
-        if(expr.consarray) {
-          Object.defineProperty(result, 'cons', {
-            enumerable: false,
-            configurable: false,
-            value: true
-          });
+          if (expr.isFlashBlock) {
+          // fetch fhir type meta for the block
+            const fhirTypeMeta = getFhirTypeMeta(environment, expr.instanceof);
+            // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
+            if (fhirTypeMeta && fhirTypeMeta.kind === 'resource') {
+            // the value for resourceType is fhirTypeMeta.type
+              result.resourceType = fhirTypeMeta.type;
+            }
+          }
+          result = {
+            ...result,
+            ...expressionResults
+          };
+        } else {
+        // array constructor - evaluate each item
+          result = [];
+          // eslint-disable-next-line no-case-declarations
+          let generators = await Promise.all(expr.expressions
+            .map(async (item, idx) => {
+              environment.isParallelCall = idx > 0;
+              return [item, await evaluate(item, input, environment)];
+            }));
+          for (let generator of generators) {
+            var [item, value] = generator;
+            if (typeof value !== 'undefined') {
+              if(item.value === '[') {
+                result.push(value);
+              } else {
+                result = fn.append(result, value);
+              }
+            }
+          }
+          if(expr.consarray) {
+            Object.defineProperty(result, 'cons', {
+              enumerable: false,
+              configurable: false,
+              value: true
+            });
+          }
         }
         break;
       case '{':
@@ -1141,99 +1187,9 @@ var fumifier = (function() {
     var ii = 0;
     // if regular block (not flash block or rule), invoke each expression in turn
     // and only return the result of the last one
-    if (!expr.isFlashBlock && !expr.isFlashRule) {
-      for(ii = 0; ii < expr.expressions.length; ii++) {
-        result = await evaluate(expr.expressions[ii], input, frame);
-      }
-    } else {
-      result = {};
-      // Inside flash blocks and rules, all expressions are potentially modifiyng the result.
-      // So we need to evaluate them all and keep the results in an object where each key is an array of results
-      var expressionResults = {};
-      // if there's a regex expression, compile it into a regexp test function with global flag.
-      var regexTester; // will become a function that validates the value against the regex
-      if (expr.regexStr) {
-        // DO NOT uses evaluateRegex here, we want the native javascript regex engine's "test" method
-        regexTester = new RegExp(`^${expr.regexStr}$`);
-      }
-      ii = 0;
-      for(ii = 0; ii < expr.expressions.length; ii++) {
-        const node = expr.expressions[ii];
-        var res = await evaluate(node, input, frame);
-        if (typeof res !== 'undefined') {
-          // if there's a regex expression, test against the input
-          if (node.isFlashValue && regexTester) {
-            if (!regexTester.test(typeof res === 'string' ? res : fn.string(res))) {
-              throw {
-                code: "F3001",
-                stack: (new Error()).stack,
-                position: node.position,
-                start: node.start,
-                value: res,
-                regex: expr.regexStr,
-                fhirElement: expr.elementDefinition.id
-              };
-            }
-          }
-          if (node.elementDefinition) {
-            const jsonKey = node.elementDefinition.__name[0];
-            if (!expressionResults.hasOwnProperty(jsonKey)) {
-              expressionResults[jsonKey] = [];
-            }
-            expressionResults[jsonKey].push({elementId: node.elementDefinition.id, value: res});
-          } else {
-            expressionResults['.'] = res;
-          }
-        }
-      }
-      // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
-      if (expr.fhirTypeMeta && expr.fhirTypeMeta.kind === 'resource') {
-        // the value for resourceType is fhirTypeMeta.type
-        result.resourceType = expr.fhirTypeMeta.type;
-      }
-      // if this is a system primitive, result is just the value
-      if (expr.kind && expr.kind === 'system') {
-        result = expressionResults['.'];
-      }
-      // if the expr has fhirChildren, then go one by one and for each one's __name array, lookup a matching result in expressionResults
-      if (expr.fhirChildren) {
-        // each fhirChildren is an element definition, and it has a __name array of possible json keys that match this child
-        for (const child of expr.fhirChildren) {
-          const min = child.min;
-          // const max = child.max;
-          const isArray = child.base.max !== '1';
-          // go through the __name array and find a matching key in expressionResults
-          let valueFound = false;
-          for (const jsonKey of child.__name) {
-            if (expressionResults.hasOwnProperty(jsonKey)) {
-              // if we have a match, add it to the result
-              valueFound = true;
-              if (!result.hasOwnProperty(jsonKey) && isArray) {
-                result[jsonKey] = [];
-              }
-              // add all values for this key
-              for (const item of expressionResults[jsonKey]) {
-                if (isArray) {
-                  result[jsonKey].push(item.value);
-                } else {
-                  result[jsonKey] = item.value;
-                }
-              }
-            }
-          }
-          // if we didn't find any value for this child, and it's required, then throw an error
-          if (min > 0 && !valueFound) {
-            throw {
-              code: "F3002",
-              stack: (new Error()).stack,
-              position: expr.position,
-              start: expr.start,
-              elementId: child.id,
-              instanceof: expr.instanceof
-            };
-          }
-        }
-      }
+
+    for(ii = 0; ii < expr.expressions.length; ii++) {
+      result = await evaluate(expr.expressions[ii], input, frame);
     }
     return result;
   }

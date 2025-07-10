@@ -34,7 +34,7 @@ const preProcessAst = (ast) => {
 // ======== TRANSFORMATION HELPERS ========
 
 /**
- * Transforms a flashblock into a regular block with:
+ * Transforms a flashblock into a regular array constructor with:
  * - isFlashBlock flag
  * - optional instanceExpr injected as a rule with path: id
  * - all internal expressions recursively preprocessed
@@ -42,13 +42,13 @@ const preProcessAst = (ast) => {
 function processFlashBlock(node) {
   const result = {
     ...node,
-    type: 'block',
+    type: 'unary',
+    value: '[',
     isFlashBlock: true, // for later stages to distinguish these from normal blocks
     expressions: node.expressions ? node.expressions.map(preProcessAst) : []
   };
 
   // Remove properties no longer meaningful post-transformation
-  delete result.value;
   delete result.indent;
 
   if (node.instanceExpr) {
@@ -76,12 +76,8 @@ function processFlashBlock(node) {
 function processFlashRule(node) {
   const result = { ...node };
   result.isFlashRule = true;
-  var context;
+  const context = node.context || undefined;
 
-  // If the rule has context, unblock it to avoid scope issues
-  if (node.context) {
-    context = unblockContext(node.context);
-  }
   // create a base object to hold context if it exists. any returned object will be merged with this base
   // to ensure context is preserved in the final structure at the root level
   const base = context ? { context } : {};
@@ -121,10 +117,10 @@ function processFlashRule(node) {
 
   // CASE 3: mixed rule (inline + sub-rules, or sub-rules only)
   // Convert to a block node where inline expression (if any) is prepended
-  delete result.value;
   return {
     ...result,
-    type: 'block',
+    type: 'unary',
+    value: '[',
     expressions: inlineExpr ? [inlineExpr, ...subExpressions] : subExpressions,
     ...base
   };
@@ -144,23 +140,14 @@ function contextualize(rule) {
       type: 'binary',
       value: '.',
       lhs: context,
-      rhs: rule
+      rhs: toBlock(rule), // make it a block so the path is processsed for parent references
+      position: rule.position,
+      start: rule.start,
+      line: rule.line
     };
   }
   // If no context, return the rule as is
   return rule;
-}
-
-/**
- * If the context of a flashrule is a block with a single expression, unwraps it so variable scope isn't limited
- * @param {ast} context
- */
-function unblockContext(context) {
-  if (context && context.type === 'block' && Array.isArray(context.expressions) && context.expressions.length === 1) {
-    // Unwrap the single expression and return it as the new context
-    return context.expressions[0];
-  }
-  return context; // return unchanged if not a single-expression block
 }
 
 /**
@@ -252,6 +239,28 @@ function convertInstanceExprToRule (expr) {
     isFlashRule: true, // explicitly mark as flashrule to guide later phases
     isInlineExpression: true // mark this value as originating from the instance line
   };
+}
+
+/**
+ * Wrap a FLASH rule as a block with a single expression.
+ * If it is already a block, return it unchanged
+ * @param {*} rule - The rule to wrap
+ * @returns {object} - The wrapped rule as a block
+ */
+function toBlock (rule) {
+  if (rule.type === 'block') {
+    return rule; // already a block, return as is
+  }
+  // If the rule is not a block, wrap it in a block structure
+  const wrappingBlock = {
+    type: 'block',
+    position: rule.position,
+    line: rule.line,
+    start: rule.start,
+    expressions: [rule]
+  };
+
+  return wrappingBlock;
 }
 
 export default preProcessAst;
