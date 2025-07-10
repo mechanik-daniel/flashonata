@@ -34,7 +34,8 @@
     }
   },
   "after": {
-    "type": "block",
+    "type": "unary",
+    "value": "[",
     "path": {
       "type": "flashpath",
       "steps": [

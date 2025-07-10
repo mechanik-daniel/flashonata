@@ -71,7 +71,8 @@
     ]
   },
   "after": {
-    "type": "block",
+    "type": "unary",
+    "value": "[",
     "position": 281,
     "start": 280,
     "line": 20,
@@ -90,7 +91,8 @@
     "isFlashRule": true,
     "expressions": [
       {
-        "type": "block",
+        "type": "unary",
+        "value": "[",
         "position": 290,
         "start": 289,
         "line": 21,

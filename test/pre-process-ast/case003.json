@@ -45,7 +45,8 @@
     ]
   },
   "after": {
-    "type": "block",
+    "type": "unary",
+    "value": "[",
     "position": 253,
     "start": 244,
     "line": 18,

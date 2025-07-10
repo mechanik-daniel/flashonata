@@ -9,7 +9,8 @@
     "instanceof": "Patient"
   },
   "after": {
-    "type": "block",
+    "type": "unary",
+    "value": "[",
     "position": 282,
     "start": 275,
     "line": 19,

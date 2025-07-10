@@ -41,7 +41,8 @@
     }
   },
   "after": {
-    "type": "block",
+    "type": "unary",
+    "value": "[",
     "path": {
       "type": "flashpath",
       "steps": [
@@ -60,7 +61,8 @@
     "line": 20,
     "expressions": [
       {
-        "type": "block",
+        "type": "unary",
+        "value": "[",
         "path": {
           "type": "flashpath",
           "steps": [
