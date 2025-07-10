@@ -37,7 +37,8 @@ var fumifier = (function() {
     getFunctionArity,
     isDeepEqual
   } = utils;
-    // Start of Evaluator code
+
+  // Start of Evaluator code
 
   var staticFrame = createFrame(null);
 
@@ -49,13 +50,7 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluate(expr, input, environment) {
-    // console.debug('evaluating expression:', JSON.stringify(expr, null, 2));
-
     var result;
-
-    // if (expr instanceof Promise) {
-    //   expr = await expr;
-    // }
 
     var entryCallback = environment.lookup(Symbol.for('fumifier.__evaluate_entry'));
     if(entryCallback) {
@@ -124,22 +119,6 @@ var fumifier = (function() {
         break;
     }
 
-    if (expr.regexStr) {
-      // need to validate the result against the regex
-      const regexTester = new RegExp(`^${expr.regexStr}$`);
-      if (!regexTester.test(typeof result === 'string' ? result : fn.string(result))) {
-        throw {
-          code: "F3001",
-          stack: (new Error()).stack,
-          position: expr.position,
-          start: expr.start,
-          value: result,
-          regex: expr.regexStr,
-          fhirElement: expr.elementDefinition.id
-        };
-      }
-    }
-
     if (Object.prototype.hasOwnProperty.call(expr, 'predicate')) {
       for(var ii = 0; ii < expr.predicate.length; ii++) {
         result = await evaluateFilter(expr.predicate[ii].expr, result, environment);
@@ -164,9 +143,226 @@ var fumifier = (function() {
       } else if(result.length === 1) {
         result =  result.keepSingleton ? result : result[0];
       }
-
     }
 
+    if (result && Object.prototype.hasOwnProperty.call(expr, 'isFlashRule') && expr.isFlashRule) {
+      result = evaluateFlashRule(expr, result, environment);
+    }
+
+    return result;
+  }
+
+  function parseSystemPrimitive(expr, input, elementDefinition, environment) {
+    console.debug(`Parsing system primitive for node: ${JSON.stringify(expr,null,2)}`);
+    // system primitives are easy - they are just a value.
+    // the value is either a primitive or an array of primitives
+
+    // if input is wrapped as @@__flashRuleResult, unwrap it
+    if (input && input['@@__flashRuleResult']) {
+      // unwrap the result
+      input = input['@@__value'];
+    }
+
+    if (Array.isArray(input)) {
+      // input is an array, parse each entry and return an array
+      return input.map(item => parseSystemPrimitive(expr, item, elementDefinition, environment));
+    } else {
+      // input is a single value
+      // if it's null or undefined, return undefined
+      if (input === null || input === undefined) {
+        return undefined;
+      }
+
+      const rootFhirTypeId = expr.instanceof;
+      const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
+
+      // get the fhir type code for the element
+      const fhirTypeCode = elementDefinition.__fhirTypeCode;
+
+      if (!fhirTypeCode) {
+        throw {
+          code: "F3007",
+          stack: (new Error()).stack,
+          position: expr.position,
+          start: expr.start,
+          line: expr.line,
+          instanceOf: rootFhirTypeId,
+          fhirElement: elementFlashPath
+        };
+      }
+
+      // handle boolean elements. the value should be boolized and returned
+      if (fhirTypeCode === 'boolean') {
+        return boolize(input);
+      }
+
+      // check that input is a primitive value
+      const valueType = fn.type(input);
+      if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean') {
+        throw {
+          code: "F3006",
+          stack: (new Error()).stack,
+          position: expr.position,
+          start: expr.start,
+          line: expr.line,
+          value: fn.string(input),
+          valueType,
+          instanceOf: rootFhirTypeId,
+          fhirElement: elementFlashPath
+        };
+      }
+
+      // check if regex is defined for the element, and test it
+      if (elementDefinition.__regexStr) {
+        // need to fetch regex tester from the environment
+        var regexTester = getFhirRegexTester(environment, elementDefinition.__regexStr);
+
+        if (regexTester && !regexTester.test(fn.string(input))) {
+          throw {
+            code: "F3001",
+            stack: (new Error()).stack,
+            position: expr.position,
+            start: expr.start,
+            line: expr.line,
+            value: input,
+            regex: elementDefinition.__regexStr,
+            instanceOf: rootFhirTypeId,
+            fhirElement: elementFlashPath
+          };
+        }
+      }
+
+      // passed validation of the input.
+      // we now need to convert to the appropriate JSON type
+
+      // handle numeric fhir types
+      if (['decimal', 'integer', 'positiveInt', 'integer64', 'unsignedInt'].includes(fhirTypeCode)) {
+        // numeric primitive - cast as number.
+        // TODO: how to retain decimal percision in js?? not sure it's possible...
+        if (valueType === 'number') {
+          return input; // already a number
+        } else if (valueType === 'string') {
+          return Number(input); // convert string to number
+        } else if (valueType === 'boolean') {
+          return input ? 1 : 0; // convert boolean to number
+        }
+      }
+
+      // all other fhir primitive types are reperesented as strings in the JSON
+      return fn.string(input); // converts to string if needed
+    }
+  }
+
+  /**
+   * Once an expression flagged as a FLASH rule is evaluated, this function is called to
+   * structure and validate the result against the FHIR element definition.
+   * @param {*} expr The AST node of the FLASH rule - includes references to FHIR definitions
+   * @param {*} input The unsanitized results of evaluating just the expression. Could be anything, including arrays.
+   * @param {*} environment The environment envelope that contains the FHIR definitions and variable scope
+   * @returns {Promise<{Object}>} Evaluated, validated and wrapped flash rule
+   */
+  async function evaluateFlashRule(expr, input, environment) {
+
+    // console.debug(`Evaluating FLASH rule on input: ${JSON.stringify(input, null, 2)}`);
+    // make sure expression references a FHIR element definition and that the reference can be resolved
+    if (
+      !Object.prototype.hasOwnProperty.call(expr, 'flashPathRefKey') // no reference stored on the node
+    ) {
+      throw {
+        code: "F3000",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line
+      };
+    }
+    // lookup the definition of the element
+    const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
+    const rootFhirTypeId = expr.instanceof;
+    const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
+    if (!elementDefinition) {
+      throw {
+        code: "F3003",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        instanceOf: rootFhirTypeId,
+        fhirElement: elementFlashPath
+      };
+    }
+
+    // check the kind of element
+    const kind = elementDefinition.__kind;
+    if (!kind) {
+      throw {
+        code: 'F3004',
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        instanceOf: rootFhirTypeId,
+        fhirElement: elementFlashPath
+      };
+    }
+
+    // create a container object for the evaluated flash rule
+    const result = {
+      '@@__flashRuleResult': true
+    };
+
+    // handle system primitive's inline value
+    // their value is just the primitive- no children are ever possible
+    if (kind === 'system') {
+      result['@@__value'] = parseSystemPrimitive(expr, input, elementDefinition, environment);
+    }
+
+    // handle FHIR primitives' inline value
+    // this is treated as the primitive value of the 'value' child element
+    // (we treat FHIR primitives as objects since they can have children)
+    if (kind === 'primitive-type') {
+      result['@@__value'] = {
+        value: parseSystemPrimitive(expr, input?.value || input, elementDefinition, environment)
+      };
+    }
+
+    // TODO: handle complex types
+    // these may have an object assined to them as the inline input expression
+    // and/or child rules. child rules are handled by the block eval logic
+    // here we only handle inline value assignments by converting any key: value pair of
+    // the input object into a @@__flashRuleResult structure
+    // TEMP: we currently just return the value as is without validating its structure
+    if (kind === 'complex-type' || kind === 'resource') {
+      result['@@__value'] = input;
+    }
+
+    // get the json element name
+    if (
+      !elementDefinition?.__name || // should have been set on the enriched definition
+      !Array.isArray(elementDefinition.__name) || // should be an array
+      elementDefinition.__name.length > 1 // must have one option only
+    ) {
+      throw {
+        code: "F3005",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        instanceOf: rootFhirTypeId,
+        fhirElement: elementFlashPath
+      };
+    }
+    const jsonElementName = elementDefinition.__name[0];
+    // if there's a slice name in the element definition, it is an "official" slice and must be used in the grouping key
+    const sliceName = elementDefinition.__sliceName || undefined;
+    // generate the grouping key for the element
+    const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
+
+    // add the grouping key to the result.
+    // this is attached to the result (and not handled exclusively in the containing block)
+    // because with system primitives, this will help us distinguish later between
+    // an array of rules and a single rule with an inline array value assigned.
+    result['@@__groupingKey'] = groupingKey;
     return result;
   }
 
@@ -1950,7 +2146,6 @@ var fumifier = (function() {
     var bindings = {};
     const newFrame = {
       bind: function (name, value) {
-        // if (enclosingEnvironment !== null && !['now','millis'].includes(name)) console.log('📌 frame.bind →', name, '=', value);
         bindings[name] = value;
       },
       lookup: function (name) {
@@ -1979,6 +2174,67 @@ var fumifier = (function() {
     return newFrame;
   }
 
+  /**
+   * All FHIR definitions resolved during parsing were stored as dictionaries on the root of the AST.
+   * They have been bound to the environment so that they can be looked up during evaluation.
+   * This function returns these dictionaries as a single object.
+   * @param {*} environment The environment to lookup
+   * @returns {Object} A collection of dictionaries containing all FHIR definitions resolved during parsing.
+   */
+  function getFhirDefinitionsDictinary(environment) {
+    return environment.lookup(Symbol.for('fumifier.__resolvedDefinitions'));
+  }
+
+  /**
+   * RegEx expressions used by the FHIR definitions should be compiled during parsing and stored in the environment.
+   * To enable the AST to be portable, we do need to fallback to eval-time compilation if we encounter a regex that
+   * was not compiled during parsing. To prevent repeated compilation of the same regex, we use the environment to
+   * store the compiled expressions for re-use.
+   * This function recieves the expression as string (as it is stored in the FHIR definition) and returns a RegExp
+   * instance ready for testing.
+   * @param {*} environment The environment to lookup and store compiled regexes
+   * @param {string} regexStr - The regex string to compile, e.g. '([A-Za-z0-9\\-\\.]+)\\/[A-Za-z0-9\\-\\.]+'
+   * @returns RegExp instance that can be used to test strings against the regex using the test() method.
+   */
+  function getFhirRegexTester(environment, regexStr) {
+    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
+    if (compiled) {
+      // return the compiled regex
+      return compiled;
+    }
+    // if the regex is not compiled, then compile it and store it in the environment
+    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
+    return compiled;
+  }
+
+  /**
+   * Get an ElementDefinition from the resolved FHIR definitions dictionary.
+   * @param {*} environment The environment to lookup the definitions
+   * @param {*} referenceKey This is stored on a FLASH rule node and used to attach it to the ElementDefinition.
+   * @returns {Object|undefined} The ElementDefinition object if found, otherwise undefined.
+   */
+  function getFhirElementDefinition(environment, referenceKey) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    // make sure that the element definitions are available
+    if (definitions && definitions.elementDefinitions) {
+      // the referenceKey is a string like 'PatientProfile::name[english].given'
+      return definitions.elementDefinitions[referenceKey];
+    }
+    // if the definitions are not available, return undefined
+    return undefined;
+  }
+
+  function getFhirTypeMeta(environment, instanceOf) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    // make sure that the type meta dictionary is available
+    if (definitions && definitions.typeMeta) {
+      // the key is the block's `InstanceOf:` value
+      return definitions.elementDefinitions[instanceOf];
+    }
+    // if the definitions are not available, return undefined
+    return undefined;
+  }
+
   // Function registration
   registerNativeFn(staticFrame, defineFunction, fn, datetime, functionEval, functionClone);
 
@@ -2000,6 +2256,7 @@ var fumifier = (function() {
     try {
       // syntactic parsing only (sync) - may throw on syntax errors
       ast = parser(expr, options && options.recover);
+      console.debug('AFTER ProcessAST', JSON.stringify(ast));
       // initial parsing done
       errors = ast.errors;
       delete ast.errors;
@@ -2042,11 +2299,29 @@ var fumifier = (function() {
       return timestamp.getTime();
     }, '<:n>'));
 
-    // bind all compiled FHIR regexes to the environment
-    for (const [key, value] of Object.entries(compiledFhirRegex)) {
-      // `key` is the actual regexStr, without the wrapping global flags
-      environment.bind(`__fhir_regex_${key}`, value);
-    }
+    // bind a GETTER for compiled FHIR regexes
+    environment.bind(Symbol.for('fumifier.__compiledFhirRegex_GET'), function(regexStr) {
+      if (compiledFhirRegex.hasOwnProperty(regexStr)) {
+        return compiledFhirRegex[regexStr];
+      }
+      return undefined;
+    });
+
+    // bind a SETTER for compiled FHIR regexes
+    environment.bind(Symbol.for('fumifier.__compiledFhirRegex_SET'), function(regexStr) {
+      const compiled = new RegExp(`^${regexStr}$`);
+      compiledFhirRegex[regexStr] = compiled;
+      return compiled;
+    });
+
+    // bind the resolved definition collections
+    environment.bind(Symbol.for('fumifier.__resolvedDefinitions'), {
+      typeMeta: ast.resolvedTypeMeta,
+      baseTypeMeta: ast.resolvedBaseTypeMeta,
+      typeChildren: ast.resolvedTypeChildren,
+      elementDefinitions: ast.resolvedElementDefinitions,
+      elementChildren: ast.resolvedElementChildren
+    });
 
     var fumifierObject = {
       evaluate: async function (input, bindings, callback) {

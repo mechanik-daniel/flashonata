@@ -72,9 +72,9 @@ void async function () {
 // InstanceOf: abc
 // InstanceOf: Patient
 // * a = b
-Instance: 'abc'
-InstanceOf: bp
-* (input1).status = 'final'
+// Instance: 'abc_123'
+// InstanceOf: bp
+// * (input1).status = 'final'
 // * (dob).birthDate.value = $
 // * extension[ext-immigration].extension[origin].value.text = 'HMO Name'
 // * active = true
@@ -85,13 +85,36 @@ InstanceOf: bp
 // * (context3).address.text = $
 // * id
 //   * value = '123'
-// * gender.value = ' abc'
+
+// (a.b.c).(InstanceOf: Patient
+// * (%).gender = %.z)
+
+// (a.b.c).(%.%.z)
+
 // InstanceOf: il-core-patient
 // * identifier[2 - 1].value = field1
 // InstanceOf: SimpleQuantity
 // * comparator = '>='
+// Instance: $a:='abc'
+
+// Instance: (a.b.c).(%.%.z)
 // InstanceOf: Patient
-// * a = b
+// * (a.b
+// .c).id = (%
+
+// .%
+
+// .z)
+// * (a.b.c). 
+// gender.value = %.%
+//   .z
+// $a := 'abc'
+// * id = $a
+
+// [(a.b.c).(%.%.z)]
+
+InstanceOf: Patient
+* address.period.start = '32423432'
   `;
 
   var expr;
