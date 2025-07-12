@@ -34,10 +34,16 @@ const parser = (() => {
     var node;
     var lexer;
 
+    /** This flag globally switches on indent aware mode for FLASH parsing.
+     * When switched on, any parsed expression will be terminated by an indent token.
+     * When off, indent tokens are ignored entirely and regular JSONata mode is used where indents are not significant.
+     */
+    var indentAwareMode = false;
+
     /**
-         * Every token, such as an operator or identifier, will inherit from a symbol.
-         * We will keep all of our symbols (which determine the types of tokens in our language) in a symbol_table object.
-         */
+     * Every token, such as an operator or identifier, will inherit from a symbol.
+     * We will keep all of our symbols (which determine the types of tokens in our language) in a symbol_table object.
+     */
     var symbol_table = {};
     var errors = [];
 
@@ -46,10 +52,10 @@ const parser = (() => {
       if (node.id !== '(end)') {
         remaining.push({type: node.type, value: node.value, position: node.position, line: node.line, start: node.start});
       }
-      var nxt = lexer();
+      var nxt = lexer.next();
       while (nxt !== null) {
         remaining.push(nxt);
-        nxt = lexer();
+        nxt = lexer.next();
       }
       return remaining;
     };
@@ -135,12 +141,11 @@ const parser = (() => {
          * @param {boolean} infix
          * @returns token (node)
          */
-    var advance = function (id, infix, lookForFlash) {
+    var advance = function (id, infix) {
       // In Crockford's implementation, we assume that the source text has been transformed into an array of simple token
       // objects (tokens), each containing a type (string) and a value (string or number).
       // In this implementation, the token array is built as we go, and the next token is returned by the lexer (next() function)
       // the node variable is currently set to the previous token
-      lookForFlash = lookForFlash || false;
       if (id && // id argument provided
         node.id !== id // AND it's not the same as the previous node.id
       ) {
@@ -181,7 +186,7 @@ const parser = (() => {
         indent = node.value; // Set to previous node's line
       }
       /** Fetch next simple token from the scanner */
-      var next_token = lexer(infix, lookForFlash);
+      var next_token = lexer.next(infix);
       if (next_token === null) {
         // When the scanner has no more tokens to consume from the source it returns null
         // So we create an (end) token and return it, but not before we override the node variable
@@ -191,9 +196,9 @@ const parser = (() => {
         node.line = line;
         return node;
       }
-      if (next_token.type === 'indent' && lookForFlash === false) {
+      if (next_token.type === 'indent' && !indentAwareMode) {
         // skipping indent tokens unless inside a flash block, since they have no significance in a regular JSONata expression
-        next_token = lexer(infix, false);
+        next_token = lexer.next(infix);
       }
       /** Start preparing the processed token to return and override the `node` var with */
       var value = next_token.value;
@@ -237,12 +242,12 @@ const parser = (() => {
         case 'blockindent':
           // we can skip indents if they are before declarations (blockindent).
           // We just need to pass the indent value to the next token
-          // symbol = symbol_table["(indent)"];
+
           // Handle flash indentation tokens.
           // var indentSymbol = symbol_table["(indent)"];
           var indentValue = next_token.value; // this is the indent number
           // go to next token
-          next_token = lexer(infix, true);
+          next_token = lexer.next(infix);
           /* c8 ignore else */
           if (next_token.type === 'operator' && next_token.value === 'Instance:') {
             // It's a FLASH Instance: delaration
@@ -298,16 +303,25 @@ const parser = (() => {
          * @param {number} rbp Right binding power
          * @returns expression object
          */
-    var expression = function (rbp, lookForFlash) {
+    var expression = function (rbp) {
       var left;
       var token = node; // save current node as token
-      advance(null, true, lookForFlash); // advance node to the next token
-      left = token.nud(lookForFlash); // save result of calling the previous head handler on current node
-      while (rbp < node.lbp) { // if and while current node's lbp is higher than the provided rbp
-        token = node; // save current node as token
-        advance(null, null, lookForFlash);// advance node to next token
-        left = token.led(left, lookForFlash); // accumulate results of recursive calls to the tail handler
+      advance(null, true); // advance node to the next token
+      left = token.nud(); // save result of calling the previous head handler on current node
+      while (rbp < node.lbp) {
+        if (indentAwareMode) {
+          const peekedNext = lexer.peek();
+          if (peekedNext.id === '(indent)' || peekedNext.id === '(end)' || peekedNext.id === '(instanceof)') {
+            console.debug('[expression] Hit flash boundary — stopping at:', peekedNext?.id);
+            break;
+          }
+        }
+        // loop while rbp is less than the left binding power of the next token
+        token = node;
+        advance();
+        left = token.led(left);
       }
+
       return left;
       // if we simulate parsing the expression `1 + 2 * 3` using expression(0) (rbp-0):
       // - current node is literal 1 (terminal)
@@ -374,9 +388,9 @@ const parser = (() => {
     var infix = function (id, bp, led) {
       var bindingPower = bp || operators[id];
       var s = symbol(id, bindingPower);
-      s.led = led || function (left, lookForFlash) {
+      s.led = led || function (left) {
         this.lhs = left;
-        this.rhs = expression(bindingPower, lookForFlash);
+        this.rhs = expression(bindingPower);
         this.type = "binary";
         return this;
       };
@@ -504,7 +518,7 @@ const parser = (() => {
         if (node.id === "(indent)") {
           if (node.value === level) {
             indent = node.value;
-            advance("(indent)", null, true);
+            advance("(indent)", null);
           } else {
             if ((level - node.value) % 2 !== 0) {
               return handleError({
@@ -562,19 +576,18 @@ const parser = (() => {
           }
         }
         rules.push(rule);
-        if (node.id === ';') advance(null, null, true);
+        if (node.id === ';') advance();
         if (node.id !== "(indent)" || node.value < level) {
           break;
         }
-        advance("(indent)", null, true);
+        advance("(indent)");
       }
       return rules;
     };
 
-
     // field wildcard (single level) OR flash rule
-    prefix('*', function (isFlash) {
-      if (isFlash) {
+    prefix('*', function () {
+      if (indentAwareMode) {
         // a flash rule node will have:
         // - type: 'flashrule'
         // - expressions: an optional array of subrules that appear under it (indented)
@@ -584,17 +597,17 @@ const parser = (() => {
         var indent = this.indent;
         this.type = 'flashrule';
         if (node.id === '(') {
-          this.context = expression(75, true);
-          advance(".", true, true);
+          this.context = expression(75);
+          advance(".", true);
         }
-        this.path = expression(40, true);
+        this.path = expression(40);
         var position = node.position;
         var line = node.line;
         var start = node.start;
         if (node.id === '=') {
-          advance('=', null, true);
+          advance('=');
           if (node.id !== '(end)' && node.id !== '(indent)') {
-            this.inlineExpression = expression(0, true);
+            this.inlineExpression = expression(0);
           } else {
             // missing inline expression after '='
             return handleError({
@@ -668,7 +681,8 @@ const parser = (() => {
     // It also initiates a flash block scanning, where the next token MUST be (instanceof),
     // optionally followed by rules. Rules are collected and returned as children of the flashblock token.
     prefix('Instance:', function () {
-      var instanceExpr = expression(0, true); // this is the expression after Instance:
+      indentAwareMode = true; // enable indent aware mode
+      var instanceExpr = expression(0); // this is the expression after Instance:
       if (instanceExpr.id === '(instanceof)') {
         // if it's a flashblock it means there is no expression between `Instance:` and `InstanceOf:` - throw error
         return handleError({
@@ -736,10 +750,11 @@ const parser = (() => {
       // all good, set the node's 'instanceof' to the value of the (instanceof) token
       this.instanceof = node.value;
       // proceeed to the next token after InstanceOf:
-      advance(null, null, true);
+      advance();
       // collect all rules under this flashblock
       var rules = collectRules(this.indent, this.indent);
       if (rules.length > 0) this.expressions = rules;
+      indentAwareMode = false; // disable indent aware mode
       // return the flashblock node
       return this;
     });
@@ -752,6 +767,7 @@ const parser = (() => {
     // This token is optionally followed by rules.
     // Rules are collected and returned as children of the flashblock token.
     prefix('(instanceof)', function () {
+      indentAwareMode = true; // enable indent aware mode
       // set node type to flashblock
       this.type = "flashblock";
       if (!this.value || this.value === '') {
@@ -770,6 +786,7 @@ const parser = (() => {
       // collect all rules under this flashblock
       var rules = collectRules(this.indent, this.indent);
       if (rules.length > 0) this.expressions = rules;
+      indentAwareMode = false; // disable indent aware mode
       return this;
     });
 
@@ -858,6 +875,8 @@ const parser = (() => {
 
     // parenthesis - block expression
     prefix("(", function () {
+      const wasIndentAwareOnEnter = indentAwareMode;
+      indentAwareMode = false; // disable indent aware mode for block expressions
       var expressions = [];
       while (node.id !== ")") {
         expressions.push(expression(0));
@@ -866,6 +885,7 @@ const parser = (() => {
         }
         advance(";");
       }
+      indentAwareMode = wasIndentAwareOnEnter; // restore indent aware mode
       advance(")", true);
       this.type = 'block';
       this.expressions = expressions;
@@ -899,7 +919,7 @@ const parser = (() => {
     });
 
     // filter - predicate or array index
-    infix("[", operators['['], function (left, isFlash) {
+    infix("[", operators['['], function (left) {
       if (node.id === "]") {
         // empty predicate means maintain singleton arrays in the output
         var step = left;
@@ -907,13 +927,13 @@ const parser = (() => {
           step = step.lhs;
         }
         step.keepArray = true;
-        advance("]", null, isFlash);
+        advance("]");
         return left;
       } else {
         this.lhs = left;
-        this.rhs = expression(operators[']'], isFlash);
+        this.rhs = expression(operators[']']);
         this.type = 'binary';
-        advance("]", true, isFlash);
+        advance("]", true);
         return this;
       }
     });
@@ -985,7 +1005,7 @@ const parser = (() => {
     infix("{", operators['{'], objectParser);
 
     // bind variable
-    infixr(":=", operators[':='], function (left, lookForFlash) {
+    infixr(":=", operators[':='], function (left) {
       if (left.type !== 'variable') {
         return handleError({
           code: "S0212",
@@ -996,7 +1016,7 @@ const parser = (() => {
         });
       }
       this.lhs = left;
-      this.rhs = expression(operators[':='] - 1, lookForFlash); // subtract 1 from bindingPower for right associative operators
+      this.rhs = expression(operators[':='] - 1); // subtract 1 from bindingPower for right associative operators
       this.type = "binary";
       return this;
     });
@@ -1086,7 +1106,7 @@ const parser = (() => {
       handleError(err);
     }
 
-    // console.debug("BEFORE processing AST", JSON.stringify(expr, null, 2));
+    // console.debug("BEFORE processing AST", JSON.stringify(expr));
     expr = processAST(expr, recover, errors);
     // console.debug("AFTER processing AST", JSON.stringify(expr, null, 2));
 

@@ -118,7 +118,9 @@ void async function () {
 
 InstanceOf: Patient
 * identifier.assigner
-.reference = field2
+  * reference = {'field2': 'value2'}.field2
+* active = "false"
+
   `;
 
   var expr;

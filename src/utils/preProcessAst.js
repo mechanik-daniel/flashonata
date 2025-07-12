@@ -10,25 +10,26 @@
  * - flashrule → inline, block, or empty block structure
  */
 const preProcessAst = (ast) => {
-  if (!ast || typeof ast !== 'object') return ast;
-  if (!ast.type || !ast.type.startsWith('flash')) {
-    // If this is not a flash node, return it as is
-    return ast;
-  }
 
   // If this is a multi-step flashrule, unchain it into nested single-step rules
   if (ast.type === 'flashrule' && ast.path?.type === 'flashpath' && ast.path.steps.length > 1) {
     return preProcessAst(unchainMultiStepFlashRule(ast));
   }
 
+  var result;
+
   switch (ast.type) {
     case 'flashblock':
-      return processFlashBlock(ast);
+      result = processFlashBlock(ast);
+      break;
     case 'flashrule':
-      return contextualize(processFlashRule(ast));
+      result = contextualize(processFlashRule(ast));
+      break;
     default:
-      return ast;
+      result = ast;
   }
+
+  return result;
 };
 
 // ======== TRANSFORMATION HELPERS ========

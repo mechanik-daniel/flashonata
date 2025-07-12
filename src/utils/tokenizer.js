@@ -233,7 +233,7 @@ export default function (path) {
     start = position; // remember the start of the token
     // FUME: capture URL's (including URN's)
     if (
-    /*lookForFlash &&*/ ( // only relevant if a flash block was encountered previously
+      (
         path.substring(position, position + 7) === 'http://' ||
                     path.substring(position, position + 8) === 'https://' ||
                     path.substring(position, position + 4) === 'urn:'
@@ -480,5 +480,40 @@ export default function (path) {
     }
   };
 
-  return next;
+  let peeked = null;
+
+  /**
+   * Originaly this module exported next(), but now it returns a wrapped version of next()
+   * that checks for a peeked token first, and returns it if available.
+   * @param {*} prefix see `next()` for details
+   * @returns {object} the next token, or the peeked token if available
+   */
+  function wrappedNext(prefix) {
+    if (peeked !== null) {
+      const t = peeked;
+      peeked = null;
+      return t;
+    }
+    return next(prefix);
+  }
+
+  /**
+   * To allow context aware parsing, we need to be able to look ahead
+   * without consuming the token. This function will return the next token
+   * without consuming it, so that it can be used later.
+   * @param {*} prefix see `next()` for details
+   * @returns {object} the next token, or the peeked token if available
+   */
+  function peek(prefix) {
+    if (peeked === null) {
+      peeked = next(prefix);
+    }
+    return peeked;
+  }
+
+  return {
+    next: wrappedNext,
+    peek
+  };
+
 }
