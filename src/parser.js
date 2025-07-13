@@ -10,7 +10,6 @@ import parseSignature from './utils/signature.js';
 import operators from './utils/operators.js';
 import tokenizer from './utils/tokenizer.js';
 import processAST from './utils/processAst.js';
-// import normalizeFlashPath from './utils/normalizeFlashPath.js';
 
 // This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
 // and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
