@@ -116,11 +116,13 @@ void async function () {
 // InstanceOf: Patient
 // * address.period.start = '32423432'
 
-InstanceOf: Patient
-* identifier.assigner
-  * reference = {'field2': 'value2'}.field2
-* active = "false"
+// InstanceOf: Patient
+// * identifier.assigner
+//   * reference = {'field2': 'value2'}.field2
+// * active = "false"
 
+InstanceOf: il-core-patient
+* identifier[2 - 1].value = field1
   `;
 
   var expr;

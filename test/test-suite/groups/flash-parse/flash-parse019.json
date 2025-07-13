@@ -2,5 +2,5 @@
     "expr": "InstanceOf: Patient\n* path = something\n  * $subpath",
     "data": null,
     "bindings": {},
-    "code": "F1023"
+    "code": "F1029"
 }
