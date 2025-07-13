@@ -10,7 +10,7 @@ import parseSignature from './utils/signature.js';
 import operators from './utils/operators.js';
 import tokenizer from './utils/tokenizer.js';
 import processAST from './utils/processAst.js';
-import normalizeFlashPath from './utils/normalizeFlashPath.js';
+// import normalizeFlashPath from './utils/normalizeFlashPath.js';
 
 // This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
 // and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
@@ -558,23 +558,6 @@ const parser = (() => {
           }
         }
         rule.indent = rule.indent || indent;
-        if (rule.type === 'flashrule' && rule.path) {
-          // try to normalize the path, catch any errors and bubble them up
-          try {
-            rule.path = normalizeFlashPath(rule.path);
-          } catch (e) {
-            return handleError(
-              e.value ? e : {
-                code: "F1027",
-                stack: e.stack,
-                position: rule.path.position,
-                start: rule.path.start,
-                line: rule.path.line,
-                value: rule.path.value
-              }
-            );
-          }
-        }
         rules.push(rule);
         if (node.id === ';') advance();
         if (node.id !== "(indent)" || node.value < level) {
@@ -585,8 +568,187 @@ const parser = (() => {
       return rules;
     };
 
+    var parseFlashPath = function () {
+      const steps = [];
+      const pathStartLine = node.line;
+
+      const validTerminators = ['=', '(indent)', '(end)', ')', ';','(instanceof)'];
+
+      if (validTerminators.includes(node.id)) {
+        return handleError({
+          code: "F1024", // path cannot start with end of expression
+          position: node.position,
+          line: node.line,
+          start: node.start,
+          token: node.value,
+        });
+      }
+      for (; ;) {
+        if (node.line !== pathStartLine)
+          return handleError({
+            code: "F1028", // path breaks line
+            position: node.position,
+            line: node.line,
+            start: node.start,
+            token: node.value,
+          });
+
+        if (node.type !== 'name') {
+          if (node.value === '*') {
+            return handleError({
+              code: "F1022", // double * *
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value
+            });
+          }
+          return handleError({
+            code: "F1029", // path segment must start with name
+            position: node.position,
+            line: node.line,
+            start: node.start,
+            token: node.type === 'variable' ? `$${node.value}` : node.value
+          });
+        }
+
+        const step = {
+          type: 'name',
+          value: node.value,
+          position: node.position,
+          start: node.start,
+          line: node.line
+        };
+
+        advance(); // consume the name
+
+        // Collect slice(s)
+        while (node.id === '[') {
+          advance('['); // consume [
+          if (node.line !== pathStartLine) {
+            return handleError({
+              code: "F1028", // path must be on a single line
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value,
+            });
+          }
+          if (node.type !== 'name' && node.type !== 'number') {
+            return handleError({
+              code: "F1027", // invalid slice token
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value,
+            });
+          }
+
+          const sliceStart = node;
+          console.debug('[parseFlashPath] sliceStart:', sliceStart);
+          const sliceTokens = [];
+
+          // Validate first token isn't '-'
+          if (sliceStart.type === 'number' || sliceStart.value === '-') {
+            return handleError({
+              code: "F1027", // illegal slice start
+              position: sliceStart.position,
+              line: sliceStart.line,
+              start: sliceStart.start,
+              token: sliceStart.value
+            });
+          }
+
+          sliceTokens.push(sliceStart.value);
+          const sliceNode = {
+            type: 'name',
+            value: sliceStart.value,
+            position: sliceStart.position,
+            start: sliceStart.start,
+            line: sliceStart.line
+          };
+
+          advance(); // consume the initial slice token
+
+          while (node.id === '-') {
+            advance('-'); // consume the dash
+            if (node.type !== 'name' && node.type !== 'number') {
+              return handleError({
+                code: "F1027", // dash must be followed by name/number
+                position: node.position,
+                line: node.line,
+                start: node.start,
+                token: node.value
+              });
+            }
+            sliceTokens.push('-', node.value);
+            advance(); // consume token
+          }
+
+          if (node.id !== ']') {
+            return handleError({
+              code: "F1030", // expected closing ]
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value
+            });
+          }
+
+          sliceNode.value = sliceTokens.join('');
+          if (!step.slices) step.slices = [];
+          step.slices.push(sliceNode);
+          advance(']'); // consume ]
+        }
+
+        steps.push(step);
+
+        if (node.id === '.') {
+          if (node.line !== pathStartLine) {
+            return handleError({
+              code: "F1028", // path must be on a single line
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value,
+            });
+          }
+          advance('.'); // continue
+          continue;
+        }
+
+        if (!validTerminators.includes(node.id)) {
+          if (node.value === ':=') {
+            // user tried to assign into a path and not variable
+            return handleError({
+              code: "F1020", // assignment into path
+              position: node.position,
+              line: node.line,
+              start: node.start,
+              token: node.value
+            });
+          }
+          return handleError({
+            code: "F1030", // unexpected token after path
+            position: node.position,
+            line: node.line,
+            start: node.start,
+            token: node.value,
+          });
+        }
+
+        break; // end of path
+      }
+
+      return {
+        type: 'flashpath',
+        steps
+      };
+    };
+
     // field wildcard (single level) OR flash rule
     prefix('*', function () {
+      var { position, line, start } = this;
       if (indentAwareMode) {
         // a flash rule node will have:
         // - type: 'flashrule'
@@ -600,10 +762,7 @@ const parser = (() => {
           this.context = expression(75);
           advance(".", true);
         }
-        this.path = expression(40);
-        var position = node.position;
-        var line = node.line;
-        var start = node.start;
+        this.path = parseFlashPath();
         if (node.id === '=') {
           advance('=');
           if (node.id !== '(end)' && node.id !== '(indent)') {
@@ -632,38 +791,16 @@ const parser = (() => {
         }
         if (this.path) {
           const path = this.path;
-          var errObj;
-          if (path.type === 'flashrule') { // double * *
-            errObj = {
-              code: "F1022",
-              position,
-              line,
-              start,
-              token: '*'
-            };
+          if (path.type === 'flashrule') {
+            return handleError({ code: "F1022", position, line, start, token: '*', stack: (new Error()).stack });
           }
-          if (path.type === 'variable' || path.id === ':=') { // $ after *
-            errObj = {
-              code: "F1023",
-              position,
-              line,
-              start,
-              token: '$'
-            };
+          if (path.type === 'variable' || path.id === ':=') {
+            return handleError({ code: "F1023", position, line, start, token: '$', stack: (new Error()).stack });
           }
-          if (path.id === '(end)') { // empty rule
-            errObj = {
-              code: "F1024",
-              position: this.position,
-              start: this.start,
-              line: this.line,
-              token: '*'
-            };
+          if (path.id === '(end)') {
+            return handleError({ code: "F1024", position, line, start, token: '*', stack: (new Error()).stack });
           }
-          if (errObj) {
-            errObj.stack = (new Error()).stack;
-            return handleError(errObj);
-          }
+
         }
         this.indent = indent;
         var subrules;
