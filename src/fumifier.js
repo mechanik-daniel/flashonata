@@ -2234,7 +2234,7 @@ var fumifier = (function() {
     // make sure that the type meta dictionary is available
     if (definitions && definitions.typeMeta) {
       // the key is the block's `InstanceOf:` value
-      return definitions.elementDefinitions[instanceOf];
+      return definitions.typeMeta[instanceOf];
     }
     // if the definitions are not available, return undefined
     return undefined;
