@@ -2,7 +2,7 @@
 /* eslint-disable strict */
 import fs from 'fs';
 import path from 'path';
-import fumifier from './fumifier.js';
+import fumifier from '../src/fumifier.js';
 import { FhirSnapshotGenerator } from 'fhir-snapshot-generator';
 import { FhirStructureNavigator } from '@outburn/structure-navigator';
 
@@ -121,8 +121,19 @@ void async function () {
 //   * reference = {'field2': 'value2'}.field2
 // * active = "false"
 
-InstanceOf: il-core-patient
-* identifier[2 - 1].value = field1
+// InstanceOf: Extension
+// * url = (['abc','def'])[1]
+// * valueString = ('test_value' & '1')
+
+
+
+Instance: 'abc'
+InstanceOf: Patient
+// $semivar := 'semival';
+// * extension.url = 'asfvvf'
+// * name.given = 'first_name'
+//   $var := 'val'
+// * birthDate.id = '123'
   `;
 
   var expr;

@@ -7,13 +7,14 @@
   "types": "fumifier.d.ts",
   "type": "module",
   "scripts": {
-    "fume-test": "node src/fume.test.js",
+    "debug": "node test/debug.js",
     "pretest": "npm run lint",
-    "mocha": "c8 mocha \"test/**/*.js\" --timeout=10000",
+    "mocha": "c8 mocha \"test/**/*.test.js\" --timeout=10000",
     "test": "npm run mocha",
     "check-coverage": "c8 check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
     "lint": "eslint src",
-    "cover": "c8 mocha"
+    "cover": "c8 mocha",
+    "test:preprocessAst": "c8 mocha \"test/pre-process-ast.test.js\" --timeout=10000"
   },
   "license": "Apache-2.0",
   "keywords": [
@@ -48,7 +49,7 @@
     "@babel/cli": "^7.28.0",
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
-    "@outburn/structure-navigator": "^1.3.0",
+    "@outburn/structure-navigator": "^1.3.2",
     "browserify": "^16.5.2",
     "c8": "^10.1.3",
     "chai": "^4.5.0",

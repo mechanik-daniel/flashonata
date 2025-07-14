@@ -45,7 +45,7 @@ function processFlashBlock(node) {
     ...node,
     type: 'unary',
     value: '[',
-    isFlashBlock: true, // for later stages to distinguish these from normal blocks
+    isFlashBlock: true, // for later stages to distinguish these from normal arrays
     expressions: node.expressions ? node.expressions.map(preProcessAst) : []
   };
 
@@ -54,8 +54,8 @@ function processFlashBlock(node) {
 
   if (node.instanceExpr) {
     // Turn the instance line into a synthetic flashrule at the top of the block
-    const instanceRule = convertInstanceExprToRule(node.instanceExpr);
-    result.expressions.unshift(preProcessAst(instanceRule)); // recurse on injected rule
+    const instanceRule = preProcessAst(convertInstanceExprToRule(node.instanceExpr));
+    result.expressions.unshift(instanceRule); // recurse on injected rule
     delete result.instanceExpr;
   }
 
@@ -63,92 +63,75 @@ function processFlashBlock(node) {
 }
 
 /**
- * Transforms a flashrule into one of three normalized forms:
+ * Transforms a flashrule into one of two normalized forms:
  *
- * CASE 1: inline-only
- *   * path = expr → flatten into a single inline expression with path metadata
- *
- * CASE 2: empty rule
- *   * path =       → transform into empty block for consistency
- *
- * CASE 3: complex rule
- *   * path = expr + sub-rules → become a block with inlineExpr + child expressions
+ * 1. Empty rule
+ *   `  * path`     → transformed into an empty array, just to trigger evaluation of ElementDefinition constraints
+ * 2. Non-empty rule
+ *    has an inline expression and/or sub-rules → becomes an array of expressions
  */
 function processFlashRule(node) {
   const result = { ...node };
+  result.type = 'unary';
+  result.value = '[';
   result.isFlashRule = true;
-  const context = node.context || undefined;
-
-  // create a base object to hold context if it exists. any returned object will be merged with this base
-  // to ensure context is preserved in the final structure at the root level
-  const base = context ? { context } : {};
 
   // If the rule has nested rules inside, preprocess each recursively
-  const hasSubExprs = Array.isArray(result.expressions) && result.expressions.length > 0;
-  const subExpressions = hasSubExprs ? result.expressions.map(preProcessAst) : [];
+  const hasSubExprs = Array.isArray(node.expressions) && node.expressions.length > 0;
+  const subExpressions = hasSubExprs ? node.expressions.map(preProcessAst) : [];
 
-  // Clean up unused properties
-  delete result.expressions;
+  result.expressions = subExpressions;
   delete result.indent;
 
-  // Inline expressions are optional; if present, we lift them into the rule structure
+  // Inline expressions, if present, is extracted and marked
+  // It will be merged into the final structure later
   const inlineExpr = result.inlineExpression;
   if (inlineExpr) {
-    inlineExpr.isInlineExpression = true; // helps distinguish inline vs. block
-    inlineExpr.isFlashRule = true; // maintain flashrule lineage
+    inlineExpr.isInlineExpression = true;
     delete result.inlineExpression;
   }
 
-  if (inlineExpr && !hasSubExprs) {
-    // CASE 1: inline-only rule
-    // Flatten the rule into a single inline expression node, preserving metadata
-    return { ...result, ...inlineExpr, ...base };
-  }
-
   if (!inlineExpr && !hasSubExprs) {
-    // CASE 2: empty rule (no right-hand side and no sub-rules)
-    // Convert to a block node with no children — ensures uniform block-based evaluation
-    return {
-      ...result,
-      type: 'block',
-      expressions: [],
-      ...base
-    };
+    // empty rule (no inline expression and no sub-rules)
+    return result;
   }
 
-  // CASE 3: mixed rule (inline + sub-rules, or sub-rules only)
-  // Convert to a block node where inline expression (if any) is prepended
-  return {
-    ...result,
-    type: 'unary',
-    value: '[',
-    expressions: inlineExpr ? [inlineExpr, ...subExpressions] : subExpressions,
-    ...base
-  };
+  // non-empty rule
+  // inline expression (if any) is prepended to expressions
+  if (inlineExpr) {
+    result.expressions.unshift(inlineExpr);
+  }
+  return result;
 }
 
 /**
- * A processed rule may have a context.
- * In that case, the rule is converted to a path with the context as lhs and the rule itself as rhs.
+ * A processed rule may have a context, left untouched up to this point.
+ * In that case, the rule is converted to a two-step JSONata path node (binary '.')
+ * with the context as lhs and the rule itself as rhs.
  * @param {ast} rule
  */
 function contextualize(rule) {
-  if (rule.context) {
-    // If the rule has a context, convert it to a path with the context as lhs
-    const context = rule.context;
-    delete rule.context; // remove context from the rule to avoid duplication
-    return {
-      type: 'binary',
-      value: '.',
-      lhs: context,
-      rhs: toBlock(rule), // make it a block so the path is processsed for parent references
-      position: rule.position,
-      start: rule.start,
-      line: rule.line
-    };
+  if (!rule.context) {
+    // If no context, return the rule as is
+    return rule;
   }
-  // If no context, return the rule as is
-  return rule;
+  // If the rule has a context, convert it to a path with the context as lhs and rule as rhs.
+  // extract context and ensure it's a self-contained block
+  const lhs = toBlock(rule.context);
+  // extract rule and ensure it's a self-contained block so the path is correctly processsed for parent references
+  const rhs = toBlock(rule);
+  // remove context from the rule to avoid duplication
+  delete rule.context;
+  // return a binary '.' expression with the context as lhs and the rule as rhs
+  return {
+    type: 'binary',
+    value: '.',
+    lhs,
+    rhs,
+    position: rule.position,
+    start: rule.start,
+    line: rule.line
+  };
 }
 
 /**
@@ -164,31 +147,30 @@ function unchainMultiStepFlashRule(rule) {
   const steps = path.steps;
 
   // Start by creating the innermost node:
-  // If there is an inlineExpression, use it directly and attach the last path step
-  let current;
-  if (inlineExpression) {
-    current = {
-      ...inlineExpression,
-      path: {
-        type: "flashpath",
-        steps: [steps[steps.length - 1]]
-      },
-      isFlashRule: true,
-      isInlineExpression: true
-    };
-  } else {
-    current = {
-      type: "flashrule",
-      path: {
-        type: "flashpath",
-        steps: [steps[steps.length - 1]]
-      },
-      isFlashRule: true
-    };
+  // Inline expressions and sub-expressions will be set to the deepest node
+  // context is preserved on the root node
 
-    if (expressions) {
-      current.expressions = expressions;
-    }
+  const lastStep = steps[steps.length - 1];
+
+  let current = {
+    type: "flashrule",
+    isFlashRule: true,
+    path: {
+      type: "flashpath",
+      steps: [lastStep]
+    },
+    position: lastStep.position,
+    start: lastStep.start,
+    line: lastStep.line
+  };
+  if (inlineExpression) {
+    current.inlineExpression = inlineExpression;
+  }
+
+  if (expressions && Array.isArray(expressions)) {
+    current.expressions = expressions;
+  } else {
+    current.expressions = [];
   }
 
   // Recursively wrap each preceding path step
@@ -216,15 +198,19 @@ function unchainMultiStepFlashRule(rule) {
 }
 
 /**
- * Converts an `Instance:` expression (e.g. "abc" or 123) found in a flashblock header
- * into a synthetic flashrule node, with a fixed path of `id`, mimicking:
- *   * id = "abc"
+ * Converts an `Instance:` expression (e.g. `$uuid()` or `'PAT.' & patientId`) found in a flashblock header
+ * into a synthetic flashrule node, with a fixed flash path of `id`, mimicking:
+ *   * id = $uuid()
  *
- * This allows the block to be interpreted by the normal rule evaluation logic.
+ * This allows the block to be interpreted by the normal flashblock evaluation logic.
  */
 function convertInstanceExprToRule (expr) {
+  expr.isInlineExpression = true;
   return {
-    ...expr,
+    type: "flashrule",
+    position: expr.position,
+    start: expr.start,
+    line: expr.line,
     path: {
       type: "flashpath",
       steps: [
@@ -238,30 +224,30 @@ function convertInstanceExprToRule (expr) {
       ]
     },
     isFlashRule: true, // explicitly mark as flashrule to guide later phases
-    isInlineExpression: true // mark this value as originating from the instance line
+    expressions: [expr]
   };
 }
 
 /**
- * Wrap a FLASH rule as a block with a single expression.
- * If it is already a block, return it unchanged
+ * Wrap an expression node with in a native JSONata block.
+ * It is used when contextualizing a rule into a two-step path,
+ * to make sure the rhs inherits the context of the lhs and flagged correctly for parent seeking.
+ * If it is already a block, return it unchanged.
  * @param {*} rule - The rule to wrap
  * @returns {object} - The wrapped rule as a block
  */
-function toBlock (rule) {
-  if (rule.type === 'block') {
-    return rule; // already a block, return as is
+function toBlock (expr) {
+  if (expr.type === 'block') {
+    return expr; // already a block, return as is
   }
-  // If the rule is not a block, wrap it in a block structure
-  const wrappingBlock = {
+  // Wrap it in a block structure
+  return {
     type: 'block',
-    position: rule.position,
-    line: rule.line,
-    start: rule.start,
-    expressions: [rule]
+    position: expr.position,
+    line: expr.line,
+    start: expr.start,
+    expressions: [expr]
   };
-
-  return wrappingBlock;
 }
 
 export default preProcessAst;

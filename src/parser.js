@@ -34,7 +34,7 @@ const parser = (() => {
     var lexer;
 
     /** This flag globally switches on indent aware mode for FLASH parsing.
-     * When switched on, any parsed expression will be terminated by an indent token.
+     * When switched on, any parsed expression will be terminated if encountering an indent token as the next token.
      * When off, indent tokens are ignored entirely and regular JSONata mode is used where indents are not significant.
      */
     var indentAwareMode = false;
@@ -303,6 +303,7 @@ const parser = (() => {
          * @returns expression object
          */
     var expression = function (rbp) {
+      const indentAwareTerminators = ['(indent)', '(end)', '(instanceof)', 'Instance:', ')', ']', '}'];
       var left;
       var token = node; // save current node as token
       advance(null, true); // advance node to the next token
@@ -310,7 +311,8 @@ const parser = (() => {
       while (rbp < node.lbp) {
         if (indentAwareMode) {
           const peekedNext = lexer.peek();
-          if (peekedNext.id === '(indent)' || peekedNext.id === '(end)' || peekedNext.id === '(instanceof)') {
+          console.debug('[expression] peeked next token:', peekedNext?.type, 'value:', peekedNext?.value);
+          if (indentAwareTerminators.includes(peekedNext?.id) || indentAwareTerminators.includes(peekedNext?.value)) {
             console.debug('[expression] Hit flash boundary — stopping at:', peekedNext?.id);
             break;
           }
@@ -439,7 +441,7 @@ const parser = (() => {
     symbol("]");
     symbol("}");
     symbol(".."); // range operator
-    infix("."); // map operator OR a seperator of FLASH path segements
+    infix("."); // map operator
     infix("+"); // numeric addition
     infix("-"); // numeric subtraction
     infix("*"); // numeric multiplication
@@ -1242,7 +1244,7 @@ const parser = (() => {
       handleError(err);
     }
 
-    // console.debug("BEFORE processing AST", JSON.stringify(expr));
+    console.debug("BEFORE processing AST", JSON.stringify(expr));
     expr = processAST(expr, recover, errors);
     // console.debug("AFTER processing AST", JSON.stringify(expr, null, 2));
 

@@ -16,7 +16,9 @@ import preProcessAst from './preprocessAst.js';
 
 function processAstWrapper(ast, recover, errors) {
   var containsFlash = false; // track if the AST contains any flash syntax
-  var flashInstanceOf; // keep the root `InstanceOf:` value once entering flash blocks
+
+  // keep the root `InstanceOf:` value once entering flash blocks.
+  var flashInstanceOf;
   var flashPathStack = []; // track the steps of the paths of flash rules in relation to their parent flash block
 
   // Global stacks to collect references to FHIR types. These will be resolved to actual FHIR metadata later.
@@ -91,6 +93,7 @@ function processAstWrapper(ast, recover, errors) {
     if (expr.isFlashRule) {
       priorPathSteps.push(...flashPathStack);
     }
+
     switch (expr.type) {
       case 'binary':
         switch (expr.value) {
@@ -514,21 +517,25 @@ function processAstWrapper(ast, recover, errors) {
           throw err;
         }
     }
+
     if (expr.keepArray) {
       result.keepArray = true;
     }
     if (expr.isFlashRule) {
       result.isFlashRule = true;
-      // override single step path with the whole absolute path
-      result.path = {
-        type:'flashpath',
-        steps: [...priorPathSteps, expr.path.steps[0]]
-      };
       // keep the root InstanceOf value on each flash rule
       result.instanceof = flashInstanceOf;
-      // track this reference in elementDefinitionRefs and store the key in the node
-      const flashPathRefKey = addElementDefinitionRef(result);
-      result.flashPathRefKey = flashPathRefKey;
+      if (expr.path) {
+        // override single step path with the whole absolute path
+        result.path = {
+          type:'flashpath',
+          steps: [...priorPathSteps, expr.path.steps[0]]
+        };
+        // track this reference in elementDefinitionRefs and store the key in the node
+        const flashPathRefKey = addElementDefinitionRef(result);
+        result.flashPathRefKey = flashPathRefKey;
+      }
+
       // if result is missing position, start or line, copy them from the expression
       if (typeof result.position === 'undefined') {
         result.position = expr.position;
@@ -539,6 +546,10 @@ function processAstWrapper(ast, recover, errors) {
       if (typeof result.line === 'undefined') {
         result.line = expr.line;
       }
+    }
+    if (expr.isInlineExpression) {
+      // if this is an inline expression, we need to restore the flag after processing
+      result.isInlineExpression = true;
     }
     return result;
   };

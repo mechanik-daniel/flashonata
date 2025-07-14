@@ -145,7 +145,7 @@ var fumifier = (function() {
       }
     }
 
-    if (result && Object.prototype.hasOwnProperty.call(expr, 'isFlashRule') && expr.isFlashRule) {
+    if (expr.isFlashRule) {
       result = evaluateFlashRule(expr, result, environment);
     }
 
@@ -154,13 +154,14 @@ var fumifier = (function() {
 
   function parseSystemPrimitive(expr, input, elementDefinition, environment) {
     console.debug(`Parsing system primitive for node: ${JSON.stringify(expr,null,2)}`);
+    console.debug(`Input value: ${JSON.stringify(input,null,2)}`);
     // system primitives are easy - they are just a value.
     // the value is either a primitive or an array of primitives
 
     // if input is wrapped as @@__flashRuleResult, unwrap it
-    if (input && input['@@__flashRuleResult']) {
+    if (input?.['@@__flashRuleResult']) {
       // unwrap the result
-      input = input['@@__value'];
+      input = input[1];
     }
 
     if (Array.isArray(input)) {
@@ -263,7 +264,8 @@ var fumifier = (function() {
    */
   async function evaluateFlashRule(expr, input, environment) {
 
-    // console.debug(`Evaluating FLASH rule on input: ${JSON.stringify(input, null, 2)}`);
+    console.debug(`Evaluating FLASH rule: ${JSON.stringify(expr, null, 2)}`);
+    console.debug(`Input value: ${JSON.stringify(input, null, 2)}`);
     // make sure expression references a FHIR element definition and that the reference can be resolved
     if (
       !Object.prototype.hasOwnProperty.call(expr, 'flashPathRefKey') // no reference stored on the node
@@ -306,42 +308,13 @@ var fumifier = (function() {
       };
     }
 
-    // create a container object for the evaluated flash rule
-    const result = {
-      '@@__flashRuleResult': true
-    };
-
-    // handle system primitive's inline value
-    // their value is just the primitive- no children are ever possible
-    if (kind === 'system') {
-      result['@@__value'] = parseSystemPrimitive(expr, input, elementDefinition, environment);
-    }
-
-    // handle FHIR primitives' inline value
-    // this is treated as the primitive value of the 'value' child element
-    // (we treat FHIR primitives as objects since they can have children)
-    if (kind === 'primitive-type') {
-      result['@@__value'] = {
-        value: parseSystemPrimitive(expr, input?.value || input, elementDefinition, environment)
-      };
-    }
-
-    // TODO: handle complex types
-    // these may have an object assined to them as the inline input expression
-    // and/or child rules. child rules are handled by the block eval logic
-    // here we only handle inline value assignments by converting any key: value pair of
-    // the input object into a @@__flashRuleResult structure
-    // TEMP: we currently just return the value as is without validating its structure
-    if (kind === 'complex-type' || kind === 'resource') {
-      result['@@__value'] = input;
-    }
-
     // get the json element name
     if (
       !elementDefinition?.__name || // should have been set on the enriched definition
       !Array.isArray(elementDefinition.__name) || // should be an array
       elementDefinition.__name.length > 1 // must have one option only
     ) {
+      console.debug(`Element definition for ${elementFlashPath} in ${rootFhirTypeId} is malformed: ${JSON.stringify(elementDefinition, null, 2)}`);
       throw {
         code: "F3005",
         stack: (new Error()).stack,
@@ -352,17 +325,158 @@ var fumifier = (function() {
         fhirElement: elementFlashPath
       };
     }
+
     const jsonElementName = elementDefinition.__name[0];
     // if there's a slice name in the element definition, it is an "official" slice and must be used in the grouping key
     const sliceName = elementDefinition.__sliceName || undefined;
     // generate the grouping key for the element
     const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
 
-    // add the grouping key to the result.
-    // this is attached to the result (and not handled exclusively in the containing block)
-    // because with system primitives, this will help us distinguish later between
-    // an array of rules and a single rule with an inline array value assigned.
-    result['@@__groupingKey'] = groupingKey;
+    // create a container array for the evaluated flash rule [key,value] pairs
+    const result = [groupingKey, undefined];
+    result['@@__flashRuleResult'] = true; // mark as flash rule result
+
+    // handle system primitive's inline value
+    // their value is just the primitive- no children are ever possible
+    if (kind === 'system') {
+      result[1] = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
+    }
+
+    // handle FHIR primitives' inline value
+    // this is treated as the primitive value of the 'value' child element
+    // (we treat FHIR primitives as objects since they can have children)
+    if (kind === 'primitive-type') {
+      result[1] = {
+        value: parseSystemPrimitive(expr, input['.'], elementDefinition, environment)
+      };
+    }
+
+    // TODO: handle complex types
+    // these may have an object assined to them as the inline input expression
+    // and/or child rules. child rules are handled by the block eval logic
+    // here we only handle inline value assignments by converting any key: value pair of
+    // the input object into a @@__flashRuleResult structure
+    // TEMP: we currently just return the value as is without validating its structure
+    if (kind === 'complex-type' || kind === 'resource') {
+      result[1] = input;
+    }
+
+    return result;
+  }
+
+  /**
+     * Evaluate unary expression against input data
+     * This includes specialized '[' unary operator for flash blocks and rules that were converted to native JSONata AST
+     * @param {Object} expr - Fumifier expression
+     * @param {Object} input - Input data to evaluate against
+     * @param {Object} environment - Environment
+     * @returns {Promise<any>} Evaluated input data
+     */
+  async function evaluateUnary(expr, input, environment) {
+    var result;
+
+    switch (expr.value) {
+      case '-':
+        result = await evaluate(expr.expression, input, environment);
+        if(typeof result === 'undefined') {
+          result = undefined;
+        } else if (isNumeric(result)) {
+          result = -result;
+        } else {
+          throw {
+            code: "D1002",
+            stack: (new Error()).stack,
+            position: expr.position,
+            start: expr.start,
+            token: expr.value,
+            value: result
+          };
+        }
+        break;
+      case '[':
+        // check if it's a flash block or rule
+        if (expr.isFlashBlock || expr.isFlashRule) {
+          // Inside flash blocks and rules (which were converted to arrays), all expressions are potentially modifiyng the result.
+          // So we need to evaluate them all and keep the results in an object where each key is an array of results.
+          // Then finalize it by aggregating the results of each json key according to the cardinality rules.
+          result = {}; // evaluation result of the block
+          var expressionResults = {}; // results of each expression in the block, grouped by grouping key
+
+          var ii = 0;
+          for(ii = 0; ii < expr.expressions.length; ii++) {
+          // subexpressions that need to be handled as flash rules:
+          // - flashrule - fetch definition, evaluate and store in intemediate result object by json key
+          // - path with flashrule as 2nd steps - fetch definition from inner flashrule, evaluate and store whole path evaluation result
+            const node = expr.expressions[ii];
+
+            // evaluate the expression result
+            var res = await evaluate(node, input, environment);
+
+            if (node.isInlineExpression) {
+              res = ['.', res]; // grouping key is '.' for inline expressions
+              res['@@__flashRuleResult'] = true;
+            }
+
+            // if the result is undefined, or not an evaluated flashrule, then skip it - it doesn't affect the results directly.
+            // it has already been evaluated so any side effects (like variable assignments) are captured
+            if (typeof res === 'undefined' || !res['@@__flashRuleResult']) continue;
+
+            // add the result to expressionResults's corresponding grouping key
+            const groupingKey = res[0];
+            if (Object.prototype.hasOwnProperty.call(expressionResults, groupingKey)) {
+              // append value to the group
+              expressionResults[groupingKey] = fn.append(expressionResults[groupingKey], res[1]);
+            } else {
+              // create this group and assign the value to it
+              expressionResults[groupingKey] = res[1];
+            }
+          }
+          if (expr.isFlashBlock) {
+            // fetch fhir type meta for the block
+            const fhirTypeMeta = getFhirTypeMeta(environment, expr.instanceof);
+            // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
+            if (fhirTypeMeta && fhirTypeMeta.kind === 'resource') {
+            // the value for resourceType is fhirTypeMeta.type
+              result.resourceType = fhirTypeMeta.type;
+            }
+          }
+          result = {
+            ...result,
+            ...expressionResults
+          };
+        } else {
+        // array constructor - evaluate each item
+          result = [];
+          // eslint-disable-next-line no-case-declarations
+          let generators = await Promise.all(expr.expressions
+            .map(async (item, idx) => {
+              environment.isParallelCall = idx > 0;
+              return [item, await evaluate(item, input, environment)];
+            }));
+          for (let generator of generators) {
+            var [item, value] = generator;
+            if (typeof value !== 'undefined') {
+              if(item.value === '[') {
+                result.push(value);
+              } else {
+                result = fn.append(result, value);
+              }
+            }
+          }
+          if(expr.consarray) {
+            Object.defineProperty(result, 'cons', {
+              enumerable: false,
+              configurable: false,
+              value: true
+            });
+          }
+        }
+        break;
+      case '{':
+        // object constructor - apply grouping
+        result = await evaluateGroupExpression(expr, input, environment);
+        break;
+    }
     return result;
   }
 
@@ -722,115 +836,6 @@ var fumifier = (function() {
       err.start = expr.start;
       err.token = op;
       throw err;
-    }
-    return result;
-  }
-
-  /**
-     * Evaluate unary expression against input data
-     * @param {Object} expr - Fumifier expression
-     * @param {Object} input - Input data to evaluate against
-     * @param {Object} environment - Environment
-     * @returns {Promise<any>} Evaluated input data
-     */
-  async function evaluateUnary(expr, input, environment) {
-    var result;
-
-    switch (expr.value) {
-      case '-':
-        result = await evaluate(expr.expression, input, environment);
-        if(typeof result === 'undefined') {
-          result = undefined;
-        } else if (isNumeric(result)) {
-          result = -result;
-        } else {
-          throw {
-            code: "D1002",
-            stack: (new Error()).stack,
-            position: expr.position,
-            start: expr.start,
-            token: expr.value,
-            value: result
-          };
-        }
-        break;
-      case '[':
-        // check if it's a flash block or rule
-        if (expr.isFlashBlock || expr.isFlashRule) {
-        // Inside flash blocks and rules (which are blocks if they have children), all expressions are potentially modifiyng the result.
-        // So we need to evaluate them all and keep the results in an object where each key is an array of results.
-        // Then finalize it by aggregating the results of each json key according to the cardinality rules.
-          result = {}; // evaluation result of the block
-          var expressionResults = {}; // results of each expression in the block, grouped by grouping key
-
-          var ii = 0;
-          for(ii = 0; ii < expr.expressions.length; ii++) {
-          // subexpressions that need to be handled as flash rules:
-          // - flashrule - fetch definition, evaluate and store in intemediate result object by json key
-          // - path with flashrule as 2nd steps - fetch definition from inner flashrule, evaluate and store whole path evaluation result
-            const node = expr.expressions[ii];
-
-            // evaluate the expression result
-            var res = await evaluate(node, input, environment);
-
-            // if the result is undefined, or not an evaluated flashrule, then skip it
-            if (typeof res === 'undefined' || !res['@@__flashRuleResult']) continue;
-
-            // add the result to expressionResults's corresponding grouping key
-            const groupingKey = res['@@__groupingKey'];
-            if (Object.prototype.hasOwnProperty.call(expressionResults, groupingKey)) {
-            // append value to the group
-              expressionResults[groupingKey] = fn.append(expressionResults[groupingKey], res['@@__value']);
-            } else {
-            // create this group and assign the value to it
-              expressionResults[groupingKey] = res['@@__value'];
-            }
-          }
-          if (expr.isFlashBlock) {
-          // fetch fhir type meta for the block
-            const fhirTypeMeta = getFhirTypeMeta(environment, expr.instanceof);
-            // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
-            if (fhirTypeMeta && fhirTypeMeta.kind === 'resource') {
-            // the value for resourceType is fhirTypeMeta.type
-              result.resourceType = fhirTypeMeta.type;
-            }
-          }
-          result = {
-            ...result,
-            ...expressionResults
-          };
-        } else {
-        // array constructor - evaluate each item
-          result = [];
-          // eslint-disable-next-line no-case-declarations
-          let generators = await Promise.all(expr.expressions
-            .map(async (item, idx) => {
-              environment.isParallelCall = idx > 0;
-              return [item, await evaluate(item, input, environment)];
-            }));
-          for (let generator of generators) {
-            var [item, value] = generator;
-            if (typeof value !== 'undefined') {
-              if(item.value === '[') {
-                result.push(value);
-              } else {
-                result = fn.append(result, value);
-              }
-            }
-          }
-          if(expr.consarray) {
-            Object.defineProperty(result, 'cons', {
-              enumerable: false,
-              configurable: false,
-              value: true
-            });
-          }
-        }
-        break;
-      case '{':
-        // object constructor - apply grouping
-        result = await evaluateGroupExpression(expr, input, environment);
-        break;
     }
     return result;
   }
