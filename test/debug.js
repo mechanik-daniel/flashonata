@@ -135,8 +135,8 @@ void async function () {
 //   $var := 'val'
 // * birthDate.id = '123'
 
-InstanceOf: Basic
-* id = 'abc'
+InstanceOf: Binary
+* contentType = null
 
   `;
 

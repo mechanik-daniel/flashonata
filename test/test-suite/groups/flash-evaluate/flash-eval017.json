@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "expr": "InstanceOf: Binary\n* contentType = missingFieldName",
+  "description": "Instance of resource with valid id but required element missing (Binary.contentType)",
+  "data": {},
+  "bindings": {},
+  "code": "F3002"
+}

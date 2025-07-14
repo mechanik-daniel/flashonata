@@ -262,7 +262,7 @@ var fumifier = (function() {
    * @param {*} environment The environment envelope that contains the FHIR definitions and variable scope
    * @returns {Promise<{Object}>} Evaluated, validated and wrapped flash rule
    */
-  async function evaluateFlashRule(expr, input, environment) {
+  function evaluateFlashRule(expr, input, environment) {
 
     console.debug(`Evaluating FLASH rule: ${JSON.stringify(expr, null, 2)}`);
     console.debug(`Input value: ${JSON.stringify(input, null, 2)}`);
@@ -314,7 +314,6 @@ var fumifier = (function() {
       !Array.isArray(elementDefinition.__name) || // should be an array
       elementDefinition.__name.length > 1 // must have one option only
     ) {
-      console.debug(`Element definition for ${elementFlashPath} in ${rootFhirTypeId} is malformed: ${JSON.stringify(elementDefinition, null, 2)}`);
       throw {
         code: "F3005",
         stack: (new Error()).stack,
@@ -346,9 +345,10 @@ var fumifier = (function() {
     // this is treated as the primitive value of the 'value' child element
     // (we treat FHIR primitives as objects since they can have children)
     if (kind === 'primitive-type') {
-      result[1] = {
-        value: parseSystemPrimitive(expr, input['.'], elementDefinition, environment)
-      };
+      const evaluated = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
+      result[1] = evaluated ? {
+        value: evaluated
+      } : undefined;
     }
 
     // TODO: handle complex types
@@ -465,7 +465,7 @@ var fumifier = (function() {
             // if child has only one type, check if its __name[0] is present in the result
             if (child.__name && child.__name.length === 1) {
               const childName = child.__name[0];
-              if (!Object.prototype.hasOwnProperty.call(result, childName)) {
+              if (!result[childName]) {
                 throw {
                   code: "F3002",
                   stack: (new Error()).stack,
