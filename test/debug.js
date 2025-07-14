@@ -135,9 +135,12 @@ void async function () {
 //   $var := 'val'
 // * birthDate.id = '123'
 
-InstanceOf: Binary
-* contentType = null
+// InstanceOf: Binary
+// * contentType = null
 
+InstanceOf: Extension
+* url = 'abc'
+* value[SimpleQuantity].comparator = '>'
   `;
 
   var expr;

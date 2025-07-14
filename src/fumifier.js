@@ -294,6 +294,20 @@ var fumifier = (function() {
       };
     }
 
+    // throw if element is forbidden
+    if (elementDefinition.max === '0') {
+      throw {
+        code: "F2005",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        fhirType: elementDefinition.__fromDefinition || rootFhirTypeId,
+        value: elementDefinition.__name?.[0] || elementFlashPath,
+        fullPath: elementFlashPath
+      };
+    }
+
     // check the kind of element
     const kind = elementDefinition.__kind;
     if (!kind) {

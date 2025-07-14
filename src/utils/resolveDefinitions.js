@@ -160,12 +160,6 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
         return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element not found'));
       }
 
-      if (ed.max === '0') {
-        // forbidden element
-        baseError.code = 'F2005';
-        return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element is forbidden'));
-      }
-
       if (!ed.type || ed.type.length === 0) {
         // no type defined
         baseError.code = 'F2007';

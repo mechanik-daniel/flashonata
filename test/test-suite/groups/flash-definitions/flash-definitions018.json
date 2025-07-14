@@ -1,0 +1,7 @@
+{
+    "skip": false,
+    "expr": "InstanceOf: Extension\n* url = 'abc'\n* value[SimpleQuantity].comparator = '>'",
+    "data": null,
+    "bindings": {},
+    "code": "F2005"
+}
