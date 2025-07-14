@@ -81,10 +81,10 @@
         "line": 20,
         "expressions": [
           {
-            "value": "Doe",
-            "type": "string",
-            "position": 307,
-            "start": 302,
+            "value": "[",
+            "type": "unary",
+            "position": 299,
+            "start": 294,
             "line": 20,
             "path": {
               "type": "flashpath",
@@ -99,7 +99,16 @@
               ]
             },
             "isFlashRule": true,
-            "isInlineExpression": true
+            "expressions": [
+              {
+                "value": "Doe",
+                "type": "string",
+                "position": 307,
+                "start": 302,
+                "line": 20,
+                "isInlineExpression": true
+              }
+            ]
           }
         ]
       }

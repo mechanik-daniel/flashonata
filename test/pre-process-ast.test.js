@@ -57,21 +57,21 @@ describe('Correct transformation of AST', function() {
       assert.deepEqual(preProcessAst(before), after);
     });
 
-    it.skip('should turn a 3-level indented rule with inner value into a block with correct subrules', function() {
+    it('should turn a 3-level indented rule with inner value into a block with correct subrules', function() {
       const { before, after } = readCaseJSON('103');
       assert.ok(before);
       assert.ok(after);
       assert.deepEqual(preProcessAst(before), after);
     });
 
-    it.skip('should turn a 3-step chained rule with value into a block with single-step subrules', function() {
+    it('should turn a 3-step chained rule with value into a block with single-step subrules', function() {
       const { before, after } = readCaseJSON('104');
       assert.ok(before);
       assert.ok(after);
       assert.deepEqual(preProcessAst(before), after);
     });
 
-    it.skip('should turn a 3-step chained rule with complex inline expression into a block with single-step subrules', function() {
+    it('should turn a 3-step chained rule with complex inline expression into a block with single-step subrules', function() {
       const { before, after } = readCaseJSON('105');
       assert.ok(before);
       assert.ok(after);
