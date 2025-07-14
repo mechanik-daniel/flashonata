@@ -69,10 +69,10 @@
     "isFlashRule": true,
     "expressions": [
       {
-        "value": true,
-        "type": "value",
-        "position": 305,
-        "start": 301,
+        "value": "[",
+        "type": "unary",
+        "position": 292,
+        "start": 291,
         "line": 21,
         "path": {
           "type": "flashpath",
@@ -87,7 +87,16 @@
           ]
         },
         "isFlashRule": true,
-        "isInlineExpression": true
+        "expressions": [
+          {
+            "value": true,
+            "type": "value",
+            "position": 305,
+            "start": 301,
+            "line": 21,
+            "isInlineExpression": true
+          }
+        ]
       }
     ]
   }

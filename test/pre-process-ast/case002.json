@@ -25,8 +25,8 @@
     "isFlashBlock": true,
     "expressions": [
       {
-        "value": "abc",
-        "type": "string",
+        "type": "unary",
+        "value": "[",
         "position": 259,
         "start": 254,
         "line": 18,
@@ -43,7 +43,16 @@
           ]
         },
         "isFlashRule": true,
-        "isInlineExpression": true
+        "expressions": [
+          {
+            "value": "abc",
+            "type": "string",
+            "position": 259,
+            "start": 254,
+            "line": 18,
+            "isInlineExpression": true
+          }
+        ]
       }
     ]
   }

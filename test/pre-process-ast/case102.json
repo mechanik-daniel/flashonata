@@ -54,10 +54,10 @@
     "line": 20,
     "expressions": [
       {
-        "value": true,
-        "type": "value",
-        "position": 301,
-        "start": 297,
+        "value": "[",
+        "type": "unary",
+        "position": 294,
+        "start": 289,
         "line": 20,
         "path": {
           "type": "flashpath",
@@ -72,7 +72,16 @@
           ]
         },
         "isFlashRule": true,
-        "isInlineExpression": true
+        "expressions": [
+          {
+            "value": true,
+            "type": "value",
+            "position": 301,
+            "start": 297,
+            "line": 20,
+            "isInlineExpression": true
+          }
+        ]
       }
     ]
   }

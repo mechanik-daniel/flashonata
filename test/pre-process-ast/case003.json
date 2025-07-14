@@ -53,8 +53,8 @@
     "instanceof": "Patient",
     "expressions": [
       {
-        "value": "abc",
-        "type": "string",
+        "value": "[",
+        "type": "unary",
         "position": 259,
         "start": 254,
         "line": 18,
@@ -71,13 +71,22 @@
           ]
         },
         "isFlashRule": true,
-        "isInlineExpression": true
+        "expressions": [
+          {
+            "value": "abc",
+            "type": "string",
+            "position": 259,
+            "start": 254,
+            "line": 18,
+            "isInlineExpression": true
+          }
+        ]
       },
       {
-        "value": true,
-        "type": "value",
-        "position": 295,
-        "start": 291,
+        "value": "[",
+        "type": "unary",
+        "position": 281,
+        "start": 280,
         "line": 20,
         "path": {
           "type": "flashpath",
@@ -92,7 +101,16 @@
           ]
         },
         "isFlashRule": true,
-        "isInlineExpression": true
+        "expressions": [
+          {
+            "value": true,
+            "type": "value",
+            "position": 295,
+            "start": 291,
+            "line": 20,
+            "isInlineExpression": true
+          }
+        ]
       }
     ],
     "isFlashBlock": true

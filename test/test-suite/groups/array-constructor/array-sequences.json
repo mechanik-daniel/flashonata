@@ -64,5 +64,23 @@
                 "foo": "bar"
             }
         ]
+    },
+    {
+        "expr": "(Instance: ['abc', 'def'] ~> $join('0')\nInstanceOf: Patient).id",
+        "data": null,
+        "bindings": {},
+        "result": "abc0def"
+    },
+    {
+        "expr": "(InstanceOf: Patient\n* id = ['abc', 'def'] ~> $join('0')).id",
+        "data": null,
+        "bindings": {},
+        "result": "abc0def"
+    },
+    {
+        "expr": "(InstanceOf: Extension\n* url = ['abc', 'def'] ~> $join('0')).url",
+        "data": null,
+        "bindings": {},
+        "result": "abc0def"
     }
 ]
