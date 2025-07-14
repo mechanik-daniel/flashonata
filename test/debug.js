@@ -127,13 +127,17 @@ void async function () {
 
 
 
-Instance: 'abc'
-InstanceOf: Patient
+// Instance: 'abc'
+// InstanceOf: Patient
 // $semivar := 'semival';
 // * extension.url = 'asfvvf'
 // * name.given = 'first_name'
 //   $var := 'val'
 // * birthDate.id = '123'
+
+InstanceOf: Patient
+* id = 'ab-c.123-CAPITAL-then-lower.case'
+
   `;
 
   var expr;
