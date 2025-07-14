@@ -135,8 +135,8 @@ void async function () {
 //   $var := 'val'
 // * birthDate.id = '123'
 
-InstanceOf: Patient
-* id = 'ab-c.123-CAPITAL-then-lower.case'
+InstanceOf: Basic
+* id = 'abc'
 
   `;
 

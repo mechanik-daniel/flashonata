@@ -401,7 +401,7 @@ var fumifier = (function() {
           // Then finalize it by aggregating the results of each json key according to the cardinality rules.
           result = {}; // evaluation result of the block
           var expressionResults = {}; // results of each expression in the block, grouped by grouping key
-
+          var children; // will hold the children of this type/rule
           var ii = 0;
           for(ii = 0; ii < expr.expressions.length; ii++) {
           // subexpressions that need to be handled as flash rules:
@@ -439,11 +439,65 @@ var fumifier = (function() {
             // the value for resourceType is fhirTypeMeta.type
               result.resourceType = fhirTypeMeta.type;
             }
+            // fetch children for this type/profile
+            children = getFhirTypeChildren(environment, expr.instanceof);
+          } else {
+            // it is a flashrule
+            // fetch the element definition for the flash rule
+            const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
+            // fetch children for this element (if it is not a system primitive)
+            if (elementDefinition.__kind !== 'system') {
+              children = getFhirElementChildren(environment, expr.flashPathRefKey);
+            } else {
+              // system primitive - no children
+              children = [];
+            }
           }
           result = {
             ...result,
             ...expressionResults
           };
+
+          // validate results against mandatory children
+          for (const child of children) {
+            // skip if child is not mandatory
+            if (child.min === 0) continue;
+            // if child has only one type, check if its __name[0] is present in the result
+            if (child.__name && child.__name.length === 1) {
+              const childName = child.__name[0];
+              if (!Object.prototype.hasOwnProperty.call(result, childName)) {
+                throw {
+                  code: "F3002",
+                  stack: (new Error()).stack,
+                  position: expr.position,
+                  start: expr.start,
+                  line: expr.line,
+                  fhirParent: expr.flashPathRefKey || expr.instanceof,
+                  fhirElement: childName
+                };
+              }
+            } else {
+              // if child has multiple names, check if any of them is present in the result
+              var found = false;
+              for (const name of child.__name) {
+                if (Object.prototype.hasOwnProperty.call(result, name)) {
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                throw {
+                  code: "F3002",
+                  stack: (new Error()).stack,
+                  position: expr.position,
+                  start: expr.start,
+                  line: expr.line,
+                  fhirParent: expr.flashPathRefKey || expr.instanceof,
+                  fhirElement: child.__name.join(', ')
+                };
+              }
+            }
+          }
         } else {
         // array constructor - evaluate each item
           result = [];
@@ -2235,6 +2289,27 @@ var fumifier = (function() {
     if (definitions && definitions.typeMeta) {
       // the key is the block's `InstanceOf:` value
       return definitions.typeMeta[instanceOf];
+    }
+    // if the definitions are not available, return undefined
+    return undefined;
+  }
+
+  function getFhirTypeChildren(environment, instanceOf) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    // make sure that the type children definitions are available
+    if (definitions && definitions.typeChildren) {
+      return definitions.typeChildren[instanceOf];
+    }
+    // if the definitions are not available, return undefined
+    return undefined;
+  }
+
+  function getFhirElementChildren(environment, referenceKey) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    // make sure that the children definitions are available
+    if (definitions && definitions.elementChildren) {
+      // the referenceKey is a string like 'PatientProfile::name[english].given'
+      return definitions.elementChildren[referenceKey];
     }
     // if the definitions are not available, return undefined
     return undefined;
