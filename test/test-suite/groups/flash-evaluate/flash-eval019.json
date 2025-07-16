@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "expr": "InstanceOf: Binary\n* contentType = {}",
+  "description": "Instance of resource with valid id but required element empty object (Binary.contentType)",
+  "data": {},
+  "bindings": {},
+  "code": "F3002"
+}

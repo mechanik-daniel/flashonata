@@ -1,7 +1,7 @@
 {
   "skip": false,
   "expr": "Instance: ''\nInstanceOf: CodeableConcept",
-  "description": "Instance of CodeableConcept with id implicitly set in `Instance:` (invalid)",
+  "description": "Instance of CodeableConcept with falsy id set in `Instance:`",
   "data": null,
-  "code": "F3001"
+  "undefinedResult": true
 }
