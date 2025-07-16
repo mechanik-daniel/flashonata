@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "expr": "(InstanceOf: Patient\n* birthDate = $now()).birthDate.*.$length()",
+  "description": "Assignment of datetime into Patient.birthDate - should truncate to date",
+  "data": {},
+  "bindings": {},
+  "result": 10
+}
