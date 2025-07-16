@@ -200,6 +200,13 @@ var fumifier = (function() {
         };
       }
 
+      // if type is date and input is a string, truncate it to 10 characters (YYYY-MM-DD)
+      if (fhirTypeCode === 'date' && valueType === 'string') {
+        if (input.length > 10) {
+          input = input.slice(0, 10);
+        }
+      }
+
       // check if regex is defined for the element, and test it
       if (elementDefinition.__regexStr) {
         // need to fetch regex tester from the environment
