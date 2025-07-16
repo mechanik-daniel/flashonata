@@ -17,9 +17,9 @@ import datetime from './utils/datetime.js';
 import fn from './utils/functions.js';
 import utils from './utils/utils.js';
 import parser from './parser.js';
-import parseSignature from './utils/signature.js';
 import resolveDefinitions from './utils/resolveDefinitions.js';
 import { populateMessage } from './utils/errorCodes.js';
+import defineFunction from './utils/defineFunction.js';
 import registerNativeFn from './utils/registerNativeFn.js';
 
 var fumifier = (function() {
@@ -64,7 +64,7 @@ var fumifier = (function() {
       case 'binary':
         result = await evaluateBinary(expr, input, environment);
         break;
-      case 'unary':
+      case 'unary': // <--- might be a flash block or rule since they are prefix operators (unary)
         result = await evaluateUnary(expr, input, environment);
         break;
       case 'name':
@@ -145,32 +145,19 @@ var fumifier = (function() {
       }
     }
 
-    if (expr.isFlashRule) {
-      result = evaluateFlashRule(expr, result, environment);
-    }
-
     return result;
   }
 
   function parseSystemPrimitive(expr, input, elementDefinition, environment) {
-    console.debug(`Parsing system primitive for node: ${JSON.stringify(expr,null,2)}`);
-    console.debug(`Input value: ${JSON.stringify(input,null,2)}`);
-    // system primitives are easy - they are just a value.
-    // the value is either a primitive or an array of primitives
-
-    // if input is wrapped as @@__flashRuleResult, unwrap it
-    if (input?.['@@__flashRuleResult']) {
-      // unwrap the result
-      input = input[1];
-    }
 
     if (Array.isArray(input)) {
       // input is an array, parse each entry and return an array
       return input.map(item => parseSystemPrimitive(expr, item, elementDefinition, environment));
     } else {
       // input is a single value
-      // if it's null or undefined, return undefined
-      if (input === null || input === undefined) {
+      // if it's undefined or a falsy value (but not an explicit boolean false), return undefined
+      const boolized = boolize(input);
+      if (input === undefined || (boolized === false && input !== false && input !== 0)) {
         return undefined;
       }
 
@@ -194,7 +181,7 @@ var fumifier = (function() {
 
       // handle boolean elements. the value should be boolized and returned
       if (fhirTypeCode === 'boolean') {
-        return boolize(input);
+        return boolized;
       }
 
       // check that input is a primitive value
@@ -262,49 +249,42 @@ var fumifier = (function() {
    * @param {*} environment The environment envelope that contains the FHIR definitions and variable scope
    * @returns {Promise<{Object}>} Evaluated, validated and wrapped flash rule
    */
-  function evaluateFlashRule(expr, input, environment) {
+  function finalizeFlashRuleResult(expr, input, environment) {
 
-    console.debug(`Evaluating FLASH rule: ${JSON.stringify(expr, null, 2)}`);
-    console.debug(`Input value: ${JSON.stringify(input, null, 2)}`);
-    // make sure expression references a FHIR element definition and that the reference can be resolved
-    if (
-      !Object.prototype.hasOwnProperty.call(expr, 'flashPathRefKey') // no reference stored on the node
-    ) {
-      throw {
-        code: "F3000",
-        stack: (new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line
-      };
+    // Ensure the expression refers to a valid FHIR element
+    const rootFhirTypeId = expr.instanceof;
+    const elementFlashPath = expr.flashPathRefKey?.slice(rootFhirTypeId.length + 2); // For error reporting
+
+    const baseError = {
+      stack: (new Error()).stack,
+      position: expr.position,
+      start: expr.start,
+      line: expr.line
+    };
+
+    if (!expr.flashPathRefKey) {
+      throw { code: "F3000", ...baseError };
     }
     // lookup the definition of the element
     const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
-    const rootFhirTypeId = expr.instanceof;
-    const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
+
     if (!elementDefinition) {
       throw {
         code: "F3003",
-        stack: (new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
         instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath
+        fhirElement: elementFlashPath,
+        ...baseError
       };
     }
 
     // throw if element is forbidden
     if (elementDefinition.max === '0') {
       throw {
-        code: "F2005",
-        stack: (new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
+        code: "F3008",
         fhirType: elementDefinition.__fromDefinition || rootFhirTypeId,
         value: elementDefinition.__name?.[0] || elementFlashPath,
-        fullPath: elementFlashPath
+        fullPath: elementFlashPath,
+        ...baseError
       };
     }
 
@@ -313,35 +293,29 @@ var fumifier = (function() {
     if (!kind) {
       throw {
         code: 'F3004',
-        stack: (new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
         instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath
+        fhirElement: elementFlashPath,
+        ...baseError
       };
     }
 
     // get the json element name
     if (
-      !elementDefinition?.__name || // should have been set on the enriched definition
+      !(elementDefinition?.__name) || // should have been set on the enriched definition
       !Array.isArray(elementDefinition.__name) || // should be an array
-      elementDefinition.__name.length > 1 // must have one option only
+      elementDefinition.__name.length > 1 // no more than one option
     ) {
       throw {
         code: "F3005",
-        stack: (new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line,
         instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath
+        fhirElement: elementFlashPath,
+        ...baseError
       };
     }
 
     const jsonElementName = elementDefinition.__name[0];
     // if there's a slice name in the element definition, it is an "official" slice and must be used in the grouping key
-    const sliceName = elementDefinition.__sliceName || undefined;
+    const sliceName = elementDefinition.sliceName || undefined;
     // generate the grouping key for the element
     const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
 
@@ -379,14 +353,105 @@ var fumifier = (function() {
   }
 
   /**
+   * All FLASH blocks and rules evaluation is funneled through this function.
+   */
+  async function evaluateFlash(expr, input, environment) {
+    var result = {};
+    const expressionResults = {};
+
+    // Evaluate all expressions and group results by key
+    for (const node of expr.expressions) {
+      let res = await evaluate(node, input, environment);
+
+      // if result is falsy but not explicit boolean false, continue
+      if (res === undefined || (boolize(res) === false && res !== false && res !== 0)) {
+        continue;
+      }
+      if (node.isInlineExpression) {
+        res = ['.', res];
+        res['@@__flashRuleResult'] = true;
+      }
+
+      if (!res?.['@@__flashRuleResult']) continue;
+
+      const key = res[0];
+      expressionResults[key] = Object.prototype.hasOwnProperty.call(expressionResults, key) ?
+        fn.append(expressionResults[key], res[1]) :
+        res[1];
+    }
+
+    // Determine children and inject FHIR metadata if needed
+    let children = [];
+    if (expr.isFlashBlock) {
+      const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
+      if (typeMeta?.kind === 'resource') {
+        // resources must have a resourceType set
+        result.resourceType = typeMeta.type;
+        if (typeMeta.derivation === 'constraint') {
+          // profiles on resources should have a profile meta tag
+          const metaObj = { profile: [typeMeta.url] };
+          expressionResults.meta = Object.prototype.hasOwnProperty.call(expressionResults, 'meta') ?
+            fn.append(expressionResults.meta, metaObj) :
+            metaObj;
+        }
+      }
+      children = getFhirTypeChildren(environment, expr.instanceof);
+    } else {
+      const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
+      children = def.__kind === 'system' ? [] : getFhirElementChildren(environment, expr.flashPathRefKey);
+    }
+
+    // Merge all grouped expression results into result
+    result = { ...result, ...expressionResults };
+
+    // Validate mandatory children
+    const parentKey = (expr.flashPathRefKey || expr.instanceof).replace('::', '/');
+    for (const child of children) {
+      if (child.min === 0) continue;
+
+      const names = Array.isArray(child.__name) ? child.__name : [];
+      const satisfied = names.some(name => Object.prototype.hasOwnProperty.call(result, name) && result[name] !== undefined);
+
+      if (!satisfied) {
+        throw {
+          code: "F3002",
+          stack: (new Error()).stack,
+          position: expr.position,
+          start: expr.start,
+          line: expr.line,
+          fhirParent: parentKey,
+          fhirElement: names.join(', ')
+        };
+      }
+    }
+
+    // if result is falsy but not explicitly boolean false, return undefined
+    if (boolize(result) === false && result  && result !== 0) {
+      result = undefined;
+    } else if (expr.isFlashRule) {
+      // if it's a flash rule, process and return the result as a flash rule
+      result = finalizeFlashRuleResult(expr, result, environment);
+    }
+    return result;
+  }
+
+  /**
      * Evaluate unary expression against input data
-     * This includes specialized '[' unary operator for flash blocks and rules that were converted to native JSONata AST
+     * This includes specialized '[' unary operator for flash blocks and rules that were converted
+     * to native JSONata AST nodes.
      * @param {Object} expr - Fumifier expression
      * @param {Object} input - Input data to evaluate against
      * @param {Object} environment - Environment
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluateUnary(expr, input, environment) {
+
+    // if it's a flash block or rule, evaluate it and return the result
+    if (expr.isFlashBlock || expr.isFlashRule) {
+      return await evaluateFlash(expr, input, environment);
+    }
+
+    // otherwise, it's a native JSONata unary operator, process normally
     var result;
 
     switch (expr.value) {
@@ -408,136 +473,30 @@ var fumifier = (function() {
         }
         break;
       case '[':
-        // check if it's a flash block or rule
-        if (expr.isFlashBlock || expr.isFlashRule) {
-          // Inside flash blocks and rules (which were converted to arrays), all expressions are potentially modifiyng the result.
-          // So we need to evaluate them all and keep the results in an object where each key is an array of results.
-          // Then finalize it by aggregating the results of each json key according to the cardinality rules.
-          result = {}; // evaluation result of the block
-          var expressionResults = {}; // results of each expression in the block, grouped by grouping key
-          var children; // will hold the children of this type/rule
-          var ii = 0;
-          for(ii = 0; ii < expr.expressions.length; ii++) {
-          // subexpressions that need to be handled as flash rules:
-          // - flashrule - fetch definition, evaluate and store in intemediate result object by json key
-          // - path with flashrule as 2nd steps - fetch definition from inner flashrule, evaluate and store whole path evaluation result
-            const node = expr.expressions[ii];
-
-            // evaluate the expression result
-            var res = await evaluate(node, input, environment);
-
-            if (node.isInlineExpression) {
-              res = ['.', res]; // grouping key is '.' for inline expressions
-              res['@@__flashRuleResult'] = true;
-            }
-
-            // if the result is undefined, or not an evaluated flashrule, then skip it - it doesn't affect the results directly.
-            // it has already been evaluated so any side effects (like variable assignments) are captured
-            if (typeof res === 'undefined' || !res['@@__flashRuleResult']) continue;
-
-            // add the result to expressionResults's corresponding grouping key
-            const groupingKey = res[0];
-            if (Object.prototype.hasOwnProperty.call(expressionResults, groupingKey)) {
-              // append value to the group
-              expressionResults[groupingKey] = fn.append(expressionResults[groupingKey], res[1]);
-            } else {
-              // create this group and assign the value to it
-              expressionResults[groupingKey] = res[1];
-            }
-          }
-          if (expr.isFlashBlock) {
-            // fetch fhir type meta for the block
-            const fhirTypeMeta = getFhirTypeMeta(environment, expr.instanceof);
-            // if expr.fhirTypeMeta.kind is 'resource', need to add the resourceType
-            if (fhirTypeMeta && fhirTypeMeta.kind === 'resource') {
-            // the value for resourceType is fhirTypeMeta.type
-              result.resourceType = fhirTypeMeta.type;
-            }
-            // fetch children for this type/profile
-            children = getFhirTypeChildren(environment, expr.instanceof);
-          } else {
-            // it is a flashrule
-            // fetch the element definition for the flash rule
-            const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
-            // fetch children for this element (if it is not a system primitive)
-            if (elementDefinition.__kind !== 'system') {
-              children = getFhirElementChildren(environment, expr.flashPathRefKey);
-            } else {
-              // system primitive - no children
-              children = [];
-            }
-          }
-          result = {
-            ...result,
-            ...expressionResults
-          };
-
-          // validate results against mandatory children
-          for (const child of children) {
-            // skip if child is not mandatory
-            if (child.min === 0) continue;
-            // if child has only one type, check if its __name[0] is present in the result
-            if (child.__name && child.__name.length === 1) {
-              const childName = child.__name[0];
-              if (!result[childName]) {
-                throw {
-                  code: "F3002",
-                  stack: (new Error()).stack,
-                  position: expr.position,
-                  start: expr.start,
-                  line: expr.line,
-                  fhirParent: expr.flashPathRefKey || expr.instanceof,
-                  fhirElement: childName
-                };
-              }
-            } else {
-              // if child has multiple names, check if any of them is present in the result
-              var found = false;
-              for (const name of child.__name) {
-                if (Object.prototype.hasOwnProperty.call(result, name)) {
-                  found = true;
-                  break;
-                }
-              }
-              if (!found) {
-                throw {
-                  code: "F3002",
-                  stack: (new Error()).stack,
-                  position: expr.position,
-                  start: expr.start,
-                  line: expr.line,
-                  fhirParent: expr.flashPathRefKey || expr.instanceof,
-                  fhirElement: child.__name.join(', ')
-                };
-              }
-            }
-          }
-        } else {
         // array constructor - evaluate each item
-          result = [];
-          // eslint-disable-next-line no-case-declarations
-          let generators = await Promise.all(expr.expressions
-            .map(async (item, idx) => {
-              environment.isParallelCall = idx > 0;
-              return [item, await evaluate(item, input, environment)];
-            }));
-          for (let generator of generators) {
-            var [item, value] = generator;
-            if (typeof value !== 'undefined') {
-              if(item.value === '[') {
-                result.push(value);
-              } else {
-                result = fn.append(result, value);
-              }
+        result = [];
+        // eslint-disable-next-line no-case-declarations
+        let generators = await Promise.all(expr.expressions
+          .map(async (item, idx) => {
+            environment.isParallelCall = idx > 0;
+            return [item, await evaluate(item, input, environment)];
+          }));
+        for (let generator of generators) {
+          var [item, value] = generator;
+          if (typeof value !== 'undefined') {
+            if(item.value === '[') {
+              result.push(value);
+            } else {
+              result = fn.append(result, value);
             }
           }
-          if(expr.consarray) {
-            Object.defineProperty(result, 'cons', {
-              enumerable: false,
-              configurable: false,
-              value: true
-            });
-          }
+        }
+        if(expr.consarray) {
+          Object.defineProperty(result, 'cons', {
+            enumerable: false,
+            configurable: false,
+            value: true
+          });
         }
         break;
       case '{':
@@ -2131,24 +2090,6 @@ var fumifier = (function() {
   }
 
   /**
-     * Creates a function definition
-     * @param {Function} func - function implementation in Javascript
-     * @param {string} signature - JSONata function signature definition
-     * @returns {{implementation: *, signature: *}} function definition
-     */
-  function defineFunction(func, signature) {
-    var definition = {
-      _fumifier_function: true,
-      implementation: func
-    };
-    if(typeof signature !== 'undefined') {
-      definition.signature = parseSignature(signature);
-    }
-    return definition;
-  }
-
-
-  /**
      * parses and evaluates the supplied expression
      * @param {string} expr - expression to evaluate
      * @returns {Promise<any>} - result of evaluating the expression
@@ -2194,20 +2135,6 @@ var fumifier = (function() {
     }
 
     return result;
-  }
-
-  /**
-     * Clones an object
-     * @param {Object} arg - object to clone (deep copy)
-     * @returns {*} - the cloned object
-     */
-  function functionClone(arg) {
-    // undefined inputs always return undefined
-    if(typeof arg === 'undefined') {
-      return undefined;
-    }
-
-    return JSON.parse(fn.string(arg));
   }
 
   /**
@@ -2330,7 +2257,7 @@ var fumifier = (function() {
   }
 
   // Function registration
-  registerNativeFn(staticFrame, defineFunction, fn, datetime, functionEval, functionClone);
+  registerNativeFn(staticFrame, functionEval);
 
   /**
      * Fumifier
@@ -2350,7 +2277,7 @@ var fumifier = (function() {
     try {
       // syntactic parsing only (sync) - may throw on syntax errors
       ast = parser(expr, options && options.recover);
-      console.debug('AFTER ProcessAST', JSON.stringify(ast));
+
       // initial parsing done
       errors = ast.errors;
       delete ast.errors;

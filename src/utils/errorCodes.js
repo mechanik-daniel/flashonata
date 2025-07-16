@@ -148,7 +148,6 @@ const errorCodes = {
   "F2002": "Invalid element path: element \"{{{value}}}\" was not found in {{fhirType}}",
   "F2003": "Failed to fetch definition of children for {{value}} in {{fhirType}}.",
   "F2004": "{{value}} in {{fhirType}} is a choice type element. Please select a type using one of: {{{allowedNames}}}.",
-  "F2005": "{{value}} is a forbidden element according to profile: {{fhirType}}.",
   "F2006": "Failed to fetch definition of children for {{fhirType}}.",
   "F2007": "Element definition for {{value}} in {{fhirType}} has no type defined.",
   "F2008": "Failed to fetch definition of children for mandatory element {{value}} in {{fhirType}}.",
@@ -159,7 +158,8 @@ const errorCodes = {
   "F3004": "Failed to determine the structural kind of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3005": "Failed to determine the JSON element name of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3006": "Value for {{fhirElement}} in {{instanceOf}} must be a primitive value, recieved type: {{valueType}}.",
-  "F3007": "Failed to determine the data type of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again."
+  "F3007": "Failed to determine the data type of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
+  "F3008": "{{value}} is a forbidden element according to profile: {{fhirType}}."
 };
 
 /**

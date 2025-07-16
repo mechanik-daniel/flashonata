@@ -303,7 +303,7 @@ const parser = (() => {
          * @returns expression object
          */
     var expression = function (rbp) {
-      const indentAwareTerminators = ['(indent)', '(end)', '(instanceof)', 'Instance:', ')', ']', '}'];
+      const indentAwareTerminators = ['(indent)', '(end)', '(instanceof)', 'Instance:'];
       var left;
       var token = node; // save current node as token
       advance(null, true); // advance node to the next token
@@ -311,9 +311,7 @@ const parser = (() => {
       while (rbp < node.lbp) {
         if (indentAwareMode) {
           const peekedNext = lexer.peek();
-          console.debug('[expression] peeked next token:', peekedNext?.type, 'value:', peekedNext?.value);
           if (indentAwareTerminators.includes(peekedNext?.id) || indentAwareTerminators.includes(peekedNext?.value)) {
-            console.debug('[expression] Hit flash boundary — stopping at:', peekedNext?.id);
             break;
           }
         }
@@ -1244,9 +1242,8 @@ const parser = (() => {
       handleError(err);
     }
 
-    console.debug("BEFORE processing AST", JSON.stringify(expr));
+    // process the AST
     expr = processAST(expr, recover, errors);
-    // console.debug("AFTER processing AST", JSON.stringify(expr, null, 2));
 
     if(expr.type === 'parent' || typeof expr.seekingParent !== 'undefined') {
       // error - trying to derive ancestor at top level

@@ -1,7 +1,24 @@
 /* eslint-disable require-jsdoc */
+import fn from './functions.js';
+import datetime from './datetime.js';
+import defineFunction from './defineFunction.js';
+
+/**
+ * Clones an object
+ * @param {Object} arg - object to clone (deep copy)
+ * @returns {*} - the cloned object
+ */
+function functionClone(arg) {
+  // undefined inputs always return undefined
+  if(typeof arg === 'undefined') {
+    return undefined;
+  }
+
+  return JSON.parse(fn.string(arg));
+}
 
 // Function registration
-export default function registerNativeFn(staticFrame, defineFunction, fn, datetime, functionEval, functionClone) {
+function registerNativeFn(staticFrame, functionEval) {
   // Registering native functions with their signatures
   staticFrame.bind('sum', defineFunction(fn.sum, '<a<n>:n>'));
   staticFrame.bind('count', defineFunction(fn.count, '<a:n>'));
@@ -72,3 +89,5 @@ export default function registerNativeFn(staticFrame, defineFunction, fn, dateti
   staticFrame.bind('wait', defineFunction(fn.wait), '<n->');
   staticFrame.bind('rightNow', defineFunction(fn.rightNow), '<:n>');
 }
+
+export default registerNativeFn;

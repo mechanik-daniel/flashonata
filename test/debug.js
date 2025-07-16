@@ -91,7 +91,26 @@ void async function () {
 
 // (a.b.c).(%.%.z)
 
+
+
+
+
+
+
 // InstanceOf: il-core-patient
+// * gender = 'male'
+// * identifier
+//   * value = 'adafsd'
+//   * system = 'http://example.com/identifier-system'
+// * name
+//   * given = 'John'
+//   * family = 'Doe'
+// * birthDate = '1980-01-01'
+
+(InstanceOf: Patient
+* birthDate = $now()).birthDate.*.$length()
+
+
 // * identifier[2 - 1].value = field1
 // InstanceOf: SimpleQuantity
 // * comparator = '>='
@@ -138,9 +157,9 @@ void async function () {
 // InstanceOf: Binary
 // * contentType = null
 
-InstanceOf: Extension
-* url = 'abc'
-* value[SimpleQuantity].comparator = '>'
+// InstanceOf: Extension
+// * url = 'abc'
+// * value[SimpleQuantity].comparator = '>'
   `;
 
   var expr;
