@@ -1,18 +1,18 @@
 [
     {
         "expr": "0 ?? 42",
-        "description": "coalesce expression - 0 is falsy, should return RHS",
-        "result": 42
+        "description": "coalesce expression - 0 is defined, should return LHS",
+        "result": 0
     },
     {
         "expr": "false ?? true",
-        "description": "false is falsy, should return RHS",
-        "result": true
+        "description": "false is defined, should return LHS",
+        "result": false
     },
     {
         "expr": "'' ?? 'fallback'",
-        "description": "Empty string is falsy, should return fallback",
-        "result": "fallback"
+        "description": "Empty string is defined, should not return fallback",
+        "result": ""
     },
     {
         "expr": "undefinedPath ?? 123",
@@ -42,7 +42,7 @@
         "expr": "1 + a ?? 2",
         "description": "`+` has higher precedence than `??` — should evaluate (1 + a) first, then coalesce",
         "data": {},
-        "result": 3
+        "result": 2
     },
     {
         "expr": "a ?? 2 = 2",

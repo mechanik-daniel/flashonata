@@ -90,6 +90,9 @@ var fumifier = (function() {
       case 'coalesce':
         result = await evaluateCoalesce(expr, input, environment);
         break;
+      case 'elvis':
+        result = await evaluateElvis(expr, input, environment);
+        break;
       case 'block':
         result = await evaluateBlock(expr, input, environment);
         break;
@@ -1390,13 +1393,31 @@ var fumifier = (function() {
   }
 
   /**
-     * Evaluate coalesce against input data
-     * @param {Object} expr - Fumifier expression
-     * @param {Object} input - Input data to evaluate against
-     * @param {Object} environment - Environment
-     * @returns {Promise<any>} Evaluated input data
-     */
+   * Evaluate coalescing operator
+   * @param {Object} expr - Fumifier expression
+   * @param {Object} input - Input data to evaluate against
+   * @param {Object} environment - Environment
+   * @returns {Promise<any>} Evaluated input data
+   */
   async function evaluateCoalesce(expr, input, environment) {
+    var result;
+    var condition = await evaluate(expr.condition, input, environment);
+    if (typeof condition === 'undefined') {
+      result = await evaluate(expr.else, input, environment);
+    } else {
+      result = condition;
+    }
+    return result;
+  }
+
+  /**
+   * Evaluate default/elvis operator
+   * @param {Object} expr - Fumifier expression
+   * @param {Object} input - Input data to evaluate against
+   * @param {Object} environment - Environment
+   * @returns {Promise<any>} Evaluated input data
+   */
+  async function evaluateElvis(expr, input, environment) {
     var result;
     var condition = await evaluate(expr.condition, input, environment);
     if (fn.boolean(condition)) {

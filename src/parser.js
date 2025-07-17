@@ -1373,8 +1373,23 @@ const parser = (() => {
     });
 
     // FUME: coalesce operator ??
+    // This was added to JSONata on July 2025 - but implemented differently
+    // as a hacked 'condition' node with the condition being a fake $exists() function call on left,
+    // and the else being the left expression.
+    // In Fumifier we treat it as a separate operator
     infix("??", operators['??'], function (left) {
       this.type = 'coalesce';
+      this.condition = left;
+      this.else = expression(0);
+      return this;
+    });
+
+    // FUME: default/elvis operator ?!
+    // This was added to JSONata on July 2025 - but implemented differently
+    // as a hacked 'condition' node with else = condition = left
+    // In Fumifier we treat it as a separate operator
+    infix("?:", operators['?:'], function (left) {
+      this.type = 'elvis';
       this.condition = left;
       this.else = expression(0);
       return this;

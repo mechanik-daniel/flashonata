@@ -39,5 +39,6 @@ export default {
   '&': 50,
   '!': 0,   // not an operator, but needed as a stop character for name tokens
   '~': 0,   // not an operator, but needed as a stop character for name tokens
-  '??': 65  // coalescing operator, added as part of FUME
+  '??': 40, // coalescing operator, added as part of FUME
+  '?:': 40  // elvis/default operator, added as part of FUME
 };

@@ -414,6 +414,7 @@ function processAstWrapper(ast, recover, errors) {
         }
         break;
       case 'coalesce':
+      case 'elvis':
         result = {type: expr.type, position: expr.position, start: expr.start, line: expr.line};
         result.condition = processAST(expr.condition);
         pushAncestry(result, result.condition);

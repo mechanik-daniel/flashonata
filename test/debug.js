@@ -67,11 +67,7 @@ void async function () {
 //     }
 //   ]
 // }
-// 'true'
-// Instance: 'abc'
-// InstanceOf: abc
-// InstanceOf: Patient
-// * a = b
+
 // Instance: 'abc_123'
 // InstanceOf: bp
 // * (input1).status = 'final'
@@ -107,8 +103,8 @@ void async function () {
 //   * family = 'Doe'
 // * birthDate = '1980-01-01'
 
-(InstanceOf: Patient
-* birthDate = $now()).birthDate.*.$length()
+// (InstanceOf: Patient
+// * birthDate = $now()).birthDate.*.$length()
 
 
 // * identifier[2 - 1].value = field1
@@ -160,6 +156,7 @@ void async function () {
 // InstanceOf: Extension
 // * url = 'abc'
 // * value[SimpleQuantity].comparator = '>'
+1 + aaa ?? 2
   `;
 
   var expr;

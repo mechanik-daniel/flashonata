@@ -326,8 +326,13 @@ export default function (path) {
       position += 2;
       return create('operator', '~>');
     }
+    if (currentChar === '?' && path.charAt(position + 1) === ':') {
+      // ?: default / elvis operator
+      position += 2;
+      return create('operator', '?:');
+    }
     if (currentChar === '?' && path.charAt(position + 1) === '?') {
-      // FUME: ?? coalesce operator
+      // ?? coalescing operator
       position += 2;
       return create('operator', '??');
     }
