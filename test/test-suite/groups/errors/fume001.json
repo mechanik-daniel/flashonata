@@ -1,0 +1,87 @@
+[
+    {
+        "expr": "[1, 2, 3]]",
+        "bindings": {},
+        "code": "F1100"
+    },
+    {
+        "expr": "{}}",
+        "bindings": {},
+        "code": "F1100"
+    },
+    {
+        "expr": "}",
+        "bindings": {},
+        "code": "F1100"
+    },
+    {
+        "expr": ")",
+        "bindings": {},
+        "code": "F1100"
+    },
+    {
+        "expr": "]",
+        "bindings": {},
+        "code": "F1100"
+    },
+    {
+        "expr": "{'a':}",
+        "bindings": {},
+        "code": "F1101"
+    },
+    {
+        "expr": "{'a':, 'a':}",
+        "bindings": {},
+        "code": "F1101"
+    },
+    {
+        "expr": "{, 'a':1}",
+        "bindings": {},
+        "code": "F1102"
+    },
+    {
+        "expr": "{'a':1,}",
+        "bindings": {},
+        "code": "F1105"
+    },
+    {
+        "expr": "Account.Product;",
+        "bindings": {},
+        "code": "F1103"
+    },
+    {
+        "expr": "{'a', 'a':1}",
+        "bindings": {},
+        "code": "F1104"
+    },
+    {
+        "expr": "[a b]",
+        "bindings": {},
+        "code": "F1106"
+    },
+    {
+        "expr": "%%",
+        "bindings": {},
+        "code": "F1107"
+    },
+    {
+        "expr": "a.(%%)",
+        "bindings": {},
+        "code": "F1107"
+    },
+    {
+        "expr": "[1,,2]",
+        "bindings": {},
+        "code": "F1110"
+    },
+    {
+        "expr": "{ 'a': 1,, 'b': 2 }",
+        "bindings": {},
+        "code": "F1110"
+    },
+    {
+        "expr": "[1:2]",
+        "bindings": {},
+        "code": "F1109"
+    }
+]

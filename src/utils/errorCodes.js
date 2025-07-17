@@ -11,9 +11,9 @@
      *  10xx    - evaluator
      *  20xx    - operators
      *  3xxx    - functions (blocks of 10 for each function)
-     * F1xxx    - FLASH syntactic errors
+     * F1xxx    - FLASH/FUME syntactic errors
      * F2xxx    - FLASH semantic parsing errors
-     * F3xxx    - FHIR evaluation errors
+     * F3xxx    - FLASH evaluation errors
      */
 const errorCodes = {
   "S0101": "String literal must be terminated by a matching quote",
@@ -144,6 +144,17 @@ const errorCodes = {
   "F1028": "FLASH path segments must be on the same line. You may use indented rules (starting with '*') to continue the path on the next line.",
   "F1029": "Each FLASH path segment must be a simple alpha-numeric name. Got: {{token}}",
   "F1030": "FLASH path is invalid. Token {{token}} is unexpected here.",
+  "F1100": "This closing {{token}} is not matched by an opening {{matchingOpening}}",
+  "F1101": "Missing expression after {{token}}. Objects must contain only key-value pairs",
+  "F1102": "Looks like you have an extra {{token}} at the beginning of the object.",
+  "F1103": "The symbol \";\" is only valid inside parenthesis blocks (between \"(\" and \")\") and is used to separate expressions.",
+  "F1104": "This key is not followed by a \":\" and is missing a value. Objects must contain only key-value pairs",
+  "F1105": "Looks like you have an extra {{token}} at the end of the object.",
+  "F1106": "Looks like a comma \",\" is missing here, to separate the values in the array.",
+  "F1107": "Duplicate parent operator (\"%\").",
+  "F1108": "Looks like you have an extra {{token}} at the end of the array.",
+  "F1109": "The \":\" symbol is only valid in objects ({ key : value }), but this is an array. Did you mean \",\"?",
+  "F1110": "Duplicate comma ({{token}})",
   "F2001": "Could not find a FHIR type/profile definition with identifier {{value}}",
   "F2002": "Invalid element path: element \"{{{value}}}\" was not found in {{fhirType}}",
   "F2003": "Failed to fetch definition of children for {{value}} in {{fhirType}}.",

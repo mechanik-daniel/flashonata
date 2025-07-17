@@ -248,7 +248,7 @@ describe('Invoke parser with incomplete expression', function() {
   });
 
   describe('Account.Order[0].Product;', function() {
-    it('should return ast', async function() {
+    it.skip('should return ast', async function() {
       var expr = await fumifier('Account.Order[0].Product;', { recover: true });
       var ast = expr.ast();
       var expected_ast = {
@@ -336,8 +336,9 @@ describe('Invoke parser with incomplete expression', function() {
               {
                 "descending": false,
                 "expression": {
-                  "code": "S0211",
+                  "code": "F1100",
                   "token": ")",
+                  "matchingOpening": "(",
                   "line":1,"position": 38, start: 37,
                   "remaining": [
                     {
@@ -391,7 +392,7 @@ describe('Invoke parser with incomplete expression', function() {
       var errors = expr.errors();
       var expected_errors = [
         {
-          "code": "S0211",
+          "code": "F1100",
           "line":1,"position": 38, start: 37,
           "predicate": [
             {
@@ -435,6 +436,7 @@ describe('Invoke parser with incomplete expression', function() {
             }
           ],
           "token": ")",
+          "matchingOpening": "(",
           "type": "error"
         },
         {

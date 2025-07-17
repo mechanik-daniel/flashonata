@@ -11,6 +11,12 @@ import operators from './utils/operators.js';
 import tokenizer from './utils/tokenizer.js';
 import processAST from './utils/processAst.js';
 
+const tokenPairs = {
+  '}': '{',
+  ']': '[',
+  ')': '('
+};
+
 // This parser implements the 'Top down operator precedence' algorithm developed by Vaughan R Pratt; http://dl.acm.org/citation.cfm?id=512931.
 // and builds on the Javascript framework described by Douglas Crockford at http://javascript.crockford.com/tdop/tdop.html
 // and in 'Beautiful Code', edited by Andy Oram and Greg Wilson, Copyright 2007 O'Reilly Media, Inc. 798-0-596-51004-6
@@ -311,7 +317,7 @@ const parser = (() => {
       while (rbp < node.lbp) {
         if (indentAwareMode) {
           const peekedNext = lexer.peek();
-          if (indentAwareTerminators.includes(peekedNext?.id) || indentAwareTerminators.includes(peekedNext?.value)) {
+          if (peekedNext && indentAwareTerminators.includes(peekedNext.id) || indentAwareTerminators.includes(peekedNext.value)) {
             break;
           }
         }
@@ -435,16 +441,12 @@ const parser = (() => {
     symbol(":");
     symbol(";");
     symbol(",");
-    symbol(")");
-    symbol("]");
-    symbol("}");
     symbol(".."); // range operator
     infix("."); // map operator
     infix("+"); // numeric addition
     infix("-"); // numeric subtraction
     infix("*"); // numeric multiplication
     infix("/"); // numeric division
-    infix("%"); // numeric modulus
     infix("="); // equality OR assignment in FLASH rules (inline value assignment)
     infix("<"); // less than
     infix(">"); // greater than
@@ -460,6 +462,9 @@ const parser = (() => {
     terminal("in"); //
     prefix("-"); // unary numeric negation
     infix("~>"); // function application
+    prefix('}', unmatchedClosingBraceNud()); // unmatched closing brace error
+    prefix(']', unmatchedClosingBraceNud()); // unmatched closing square brace error
+    prefix(')', unmatchedClosingBraceNud()); // unmatched closing parenthesis error
 
     infixr("(error)", 10, function (left) {
       this.lhs = left;
@@ -926,6 +931,36 @@ const parser = (() => {
       return this;
     });
 
+    /**
+     * This function returns a nud function that handles unmatched closing braces of different kinds.
+     * It is meant to replace the unfriendly JSONata S0211 fallback error ("Symbol cannot be used as a unary operator)
+     * @param {*} token
+     * @returns Error object (on recover mode) or throws
+     */
+    function unmatchedClosingBraceNud() {
+      return function () {
+        // tailored error for unmatched closing brace
+        var err = {
+          code: 'F1100',
+          token: this.value,
+          matchingOpening: tokenPairs[this.value],
+          position: this.position,
+          start: this.start,
+          line: this.line
+        };
+
+        if (recover) {
+          err.remaining = remainingTokens();
+          err.type = 'error';
+          errors.push(err);
+          return err;
+        } else {
+          err.stack = (new Error()).stack;
+          throw err;
+        }
+      };
+    }
+
     // descendant wildcard (multi-level)
     prefix('**', function () {
       this.type = "descendant";
@@ -935,6 +970,27 @@ const parser = (() => {
     // parent operator
     prefix('%', function () {
       this.type = "parent";
+      // peek to see if next token is another parent operator and throw F1107
+      return this;
+    });
+
+    // numeric modulus
+    infix('%', operators['%'], function (left) {
+      // if left is also a parent operator, then this is a duplicate parent operator error F1107
+      if (left.type === 'parent') {
+        return handleError({
+          code: "F1107",
+          stack: (new Error()).stack,
+          position: left.position,
+          start: left.start,
+          line: left.line,
+          token: left.value,
+          value: this.value
+        });
+      }
+      this.lhs = left;
+      this.rhs = expression(operators['%']);
+      this.type = "binary";
       return this;
     });
 
@@ -1042,9 +1098,63 @@ const parser = (() => {
             item = range;
           }
           a.push(item);
+          if (node.id === "]") break;
           if (node.id !== ",") {
-            break;
+            // if the token is one of the (other) closing braces, give the appropriate error
+            if (tokenPairs[node.value]) {
+              return handleError({
+                code: "F1100",
+                position: node.position,
+                start: node.start,
+                line: node.line,
+                token: node.value,
+                matchingOpening: tokenPairs[node.value]
+              });
+            }
+            // if the token is a colon, we have a special message for that - F1109 :)
+            if (node.id === ":") {
+              return handleError({
+                code: "F1109",
+                stack: (new Error()).stack,
+                position: node.position,
+                start: node.start,
+                line: node.line,
+                token: node.value
+              });
+            }
+            // missing comma - throw F1106 instead of breaking and letting a generic error throw on the next token
+            return handleError({
+              code: "F1106",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: ','
+            });
           }
+          // if the next token is a closing brace, throw F1108 (extra comma at the end)
+          if (lexer.peek() && lexer.peek().value === "]") {
+            return handleError({
+              code: "F1108",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: node.value
+            });
+          }
+          // if the next token is a comma, throw F1110 (duplicate comma)
+          if (lexer.peek() && lexer.peek().value === ",") {
+            return handleError({
+              code: "F1110",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: node.value
+            });
+          }
+          // advance from the comma and continue parsing the next item
           advance(",");
         }
       }
@@ -1108,15 +1218,73 @@ const parser = (() => {
 
     var objectParser = function (left) {
       var a = [];
+      // if the first token is a comma, we are missing a key-value pair
+      if (node.id === ",") {
+        return handleError({
+          code: "F1102",
+          stack: (new Error()).stack,
+          position: node.position,
+          start: node.start,
+          line: node.line,
+          token: node.id
+        });
+      }
       if (node.id !== "}") {
         for (; ;) {
           var n = expression(0);
+          // after the key we expect a colon. If we see anything else, it means we are missing the colon and value
+          if (node.id !== ":") {
+            return handleError({
+              code: "F1104",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: node.id
+            });
+          }
           advance(":");
+          // to avoid throwing the unfriendly error "cannot be used as a unary operator"
+          // on next token closing the object or the key-value pair, we check the token before calling expression(0)
+          if (node.id === '}' || node.id === ',') {
+            return handleError({
+              code: "F1101",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: ':'
+            });
+          }
+
           var v = expression(0);
           a.push([n, v]); // holds an array of name/value expression pairs
           if (node.id !== ",") {
             break;
           }
+          // if the peeked next token is closing the object, throw dedicated error F1105 instead of the generic one
+          if (lexer.peek() && lexer.peek().value === "}") {
+            return handleError({
+              code: "F1105",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: node.value
+            });
+          }
+          // if the next token is a comma, throw F1110 (duplicate comma)
+          if (lexer.peek() && lexer.peek().value === ",") {
+            return handleError({
+              code: "F1110",
+              stack: (new Error()).stack,
+              position: node.position,
+              start: node.start,
+              line: node.line,
+              token: node.value
+            });
+          }
+          // otherwise, advance from the comma and continue parsing the next key-value pair
           advance(",");
         }
       }
@@ -1232,6 +1400,28 @@ const parser = (() => {
     // parse the tokens
     var expr = expression(0);
     if (node.id !== '(end)') {
+      // if the token is one of the closing braces, give the appropriate error
+      if (tokenPairs[node.value]) {
+        return handleError({
+          code: "F1100",
+          position: node.position,
+          start: node.start,
+          line: node.line,
+          token: node.value,
+          matchingOpening: tokenPairs[node.value]
+        });
+      }
+      // if the token is a semicolon, it means it wasn't inside a block expression
+      if (node.value === ';') {
+        return handleError({
+          code: "F1103",
+          position: node.position,
+          start: node.start,
+          line: node.line,
+          token: node.value
+        });
+      }
+      // if the token is anything else, throw the general syntax error
       var err = {
         code: "S0201",
         position: node.position,
