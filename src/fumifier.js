@@ -252,8 +252,8 @@ var fumifier = (function() {
   }
 
   /**
-   * Once an expression flagged as a FLASH rule is evaluated, this function is called to
-   * structure and validate the result against the FHIR element definition.
+   * Once an expression flagged as a FLASH rule is evaluated, this function is called on the result
+   * to validate it according to its element definition and return it as a 2-tuple [<fhirElementName>, <value>]
    * @param {*} expr The AST node of the FLASH rule - includes references to FHIR definitions
    * @param {*} input The unsanitized results of evaluating just the expression. Could be anything, including arrays.
    * @param {*} environment The environment envelope that contains the FHIR definitions and variable scope
@@ -298,17 +298,6 @@ var fumifier = (function() {
       };
     }
 
-    // check the kind of element
-    const kind = elementDefinition.__kind;
-    if (!kind) {
-      throw {
-        code: 'F3004',
-        instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath,
-        ...baseError
-      };
-    }
-
     // get the json element name
     if (
       !(elementDefinition?.__name) || // should have been set on the enriched definition
@@ -332,6 +321,23 @@ var fumifier = (function() {
     // create a container array for the evaluated flash rule [key,value] pairs
     const result = [groupingKey, undefined];
     result['@@__flashRuleResult'] = true; // mark as flash rule result
+
+    // if element has a fixed value, use it
+    if (elementDefinition.__fixedValue) {
+      result[1] = elementDefinition.__fixedValue;
+      return result;
+    }
+
+    // check the kind of element
+    const kind = elementDefinition.__kind;
+    if (!kind) {
+      throw {
+        code: 'F3004',
+        instanceOf: rootFhirTypeId,
+        fhirElement: elementFlashPath,
+        ...baseError
+      };
+    }
 
     // handle system primitive's inline value
     // their value is just the primitive- no children are ever possible
@@ -363,10 +369,17 @@ var fumifier = (function() {
   }
 
   /**
-   * All FLASH blocks and rules evaluation is funneled through this function.
+   * All FLASH blocks and rules evaluation is funneled through this function for evaluation.
+   * The inline expression and any rules/sub-rules are evaluated and applied to the result.
+   * Since rules are evaluated into 2-tuples [<fhirElementName>, <value>], we can differentiate
+   * between a rule that returned an array (value is array) and a contextualized rule with an array
+   * context (array of tuples).
+   * The inline expression is a regular expression so it returns a regular value and not a 2-tuple.
+   * Expressions in between (like variable assignments) are evaluated but their results are not used.
+   * If the element is a system primitive that result is just the inline expression.
+   * All other element kinds return objects, where FHIR primitives have their inline value assigned to `value`.
    */
   async function evaluateFlash(expr, input, environment) {
-    var result = {};
     const expressionResults = {};
 
     // Evaluate all expressions and group results by key
@@ -374,15 +387,18 @@ var fumifier = (function() {
       let res = await evaluate(node, input, environment);
 
       // if result is falsy but not explicit boolean false, continue
-      if (res === undefined || (boolize(res) === false && res !== false && res !== 0)) {
+      if (res === undefined || (res !== false && res !== 0 && boolize(res) === false)) {
         continue;
       }
+
       if (node.isInlineExpression) {
         res = ['.', res];
         res['@@__flashRuleResult'] = true;
       }
 
-      if (!res?.['@@__flashRuleResult']) continue;
+      // If result is not a flashrule (2-tuple) or an array of such, continue.
+      // This will be the case for inline expressions and other non-flash rule expressions like variable assignments
+      if (res && !res['@@__flashRuleResult'] && !(Array.isArray(res) && res[0]['@@__flashRuleResult'])) continue;
 
       const key = res[0];
       expressionResults[key] = Object.prototype.hasOwnProperty.call(expressionResults, key) ?
@@ -390,11 +406,17 @@ var fumifier = (function() {
         res[1];
     }
 
+    // initialize the result object
+    var result = {};
+
     // Determine children and inject FHIR metadata if needed
     let children = [];
+    let kind;
     if (expr.isFlashBlock) {
+      // flash block - use the instanceof to determine the type
       const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
-      if (typeMeta?.kind === 'resource') {
+      kind = typeMeta?.kind;
+      if (kind === 'resource') {
         // resources must have a resourceType set
         result.resourceType = typeMeta.type;
         if (typeMeta.derivation === 'constraint') {
@@ -407,15 +429,16 @@ var fumifier = (function() {
       }
       children = getFhirTypeChildren(environment, expr.instanceof);
     } else {
+      // flash rule - use the flashPathRefKey to get the element definition
       const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
-      children = def.__kind === 'system' ? [] : getFhirElementChildren(environment, expr.flashPathRefKey);
+      kind = def.__kind;
+      children = kind === 'system' ? [] : getFhirElementChildren(environment, expr.flashPathRefKey);
     }
 
     // Merge all grouped expression results into result
     result = { ...result, ...expressionResults };
 
-    // Validate mandatory children
-    const parentKey = (expr.flashPathRefKey || expr.instanceof).replace('::', '/');
+    // Ensure mandatory children exist
     for (const child of children) {
       if (child.min === 0) continue;
 
@@ -429,7 +452,7 @@ var fumifier = (function() {
           position: expr.position,
           start: expr.start,
           line: expr.line,
-          fhirParent: parentKey,
+          fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
           fhirElement: names.join(', ')
         };
       }

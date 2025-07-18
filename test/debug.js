@@ -151,12 +151,20 @@ void async function () {
 // * birthDate.id = '123'
 
 // InstanceOf: Binary
-// * contentType = null
+// * id = '12345'
+// * contentType = 'application/fhir+json'
+
+// InstanceOf: data-absent-reason
+// * url = '1234'
+// * value = 'test_value'
+
+InstanceOf: Count
+* system = '1234'
 
 // InstanceOf: Extension
 // * url = 'abc'
 // * value[SimpleQuantity].comparator = '>'
-1 + aaa ?? 2
+// 1 + aaa ?? 2
   `;
 
   var expr;

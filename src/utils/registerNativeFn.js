@@ -83,6 +83,7 @@ function registerNativeFn(staticFrame, functionEval) {
   staticFrame.bind('toMillis', defineFunction(datetime.toMillis, '<s-s?:n>'));
   staticFrame.bind('fromMillis', defineFunction(datetime.fromMillis, '<n-s?s?:s>'));
   staticFrame.bind('clone', defineFunction(functionClone, '<(oa)-:o>'));
+  // FUME functions added as native functions:
   staticFrame.bind('startsWith', defineFunction(fn.startsWith, '<s-s:b>'));
   staticFrame.bind('endsWith', defineFunction(fn.endsWith, '<s-s:b>'));
   staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<j-:b>'));
