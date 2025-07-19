@@ -319,12 +319,11 @@ var fumifier = (function() {
     const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
 
     // create a container array for the evaluated flash rule [key,value] pairs
-    const result = [groupingKey, undefined];
-    result['@@__flashRuleResult'] = true; // mark as flash rule result
+    const result = {'@@__flashRuleResult': true, key: groupingKey, value: undefined };
 
     // if element has a fixed value, use it
     if (elementDefinition.__fixedValue) {
-      result[1] = elementDefinition.__fixedValue;
+      result.value = elementDefinition.__fixedValue;
       return result;
     }
 
@@ -342,7 +341,7 @@ var fumifier = (function() {
     // handle system primitive's inline value
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
-      result[1] = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
+      result.value = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
     }
 
     // handle FHIR primitives' inline value
@@ -350,7 +349,7 @@ var fumifier = (function() {
     // (we treat FHIR primitives as objects since they can have children)
     if (kind === 'primitive-type') {
       const evaluated = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
-      result[1] = evaluated ? {
+      result.value = evaluated ? {
         value: evaluated
       } : undefined;
     }
@@ -362,7 +361,7 @@ var fumifier = (function() {
     // the input object into a @@__flashRuleResult structure
     // TEMP: we currently just return the value as is without validating its structure
     if (kind === 'complex-type' || kind === 'resource') {
-      result[1] = input;
+      result.value = input;
     }
 
     return result;
@@ -392,18 +391,17 @@ var fumifier = (function() {
       }
 
       if (node.isInlineExpression) {
-        res = ['.', res];
-        res['@@__flashRuleResult'] = true;
+        res = { '@@__flashRuleResult': true, key: '.', value: res };
       }
 
       // If result is not a flashrule (2-tuple) or an array of such, continue.
       // This will be the case for inline expressions and other non-flash rule expressions like variable assignments
-      if (res && !res['@@__flashRuleResult'] && !(Array.isArray(res) && res[0]['@@__flashRuleResult'])) continue;
+      if (res && !res['@@__flashRuleResult']) continue;
 
-      const key = res[0];
+      const key = res.key;
       expressionResults[key] = Object.prototype.hasOwnProperty.call(expressionResults, key) ?
-        fn.append(expressionResults[key], res[1]) :
-        res[1];
+        fn.append(expressionResults[key], res.value) :
+        res.value;
     }
 
     // initialize the result object
