@@ -2077,18 +2077,19 @@ const functions = (() => {
   }
 
   /**
-     * Check if a value can be converted to a FHIR decimal
+     * Check if a value can be converted to a number according to the FHIR decimal datatype
      * @param {Number | String} val - the value to check
      * @returns {Boolean} - boolean
      */
-  function isFhirDecimal (val) {
+  function _isNumeric (val) {
     // undefined inputs always return undefined
     if (typeof val === 'undefined') return undefined;
+    // if the value is a number, check if it's not infinity or NaN using the internal isNumeric util function
     if (typeof val === 'number') return isNumeric(val);
-
+    // if the value is a string, check if it matches the FHIR decimal RegEx
     if (typeof val === 'string') return isStrFhirDecimal(val);
 
-    /* c8 ignore next */
+    // all other types return false (not an error)
     return false;
   }
 
@@ -2121,7 +2122,7 @@ const functions = (() => {
   return {
     sum, count, max, min, average,
     string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
-    match, contains, replace, split, join, startsWith, endsWith, isNumeric: isFhirDecimal,
+    match, contains, replace, split, join, startsWith, endsWith, isNumeric: _isNumeric,
     formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
     boolean, not,
     map, zip, filter, single, foldLeft, sift,
