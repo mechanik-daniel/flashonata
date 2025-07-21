@@ -163,16 +163,21 @@ void async function () {
 // * id = '1234'
 
 
-Instance: ['abc-123','789'][0]
-InstanceOf: il-core-patient
-* name = {'family': 'Doe', 'extra': 'e'}
-  * (['a', 'b', 'c']).given = $
-* identifier
-  * system = 'http://example.com/identifier-system'
-  * value = '123456789'
+// Instance: ['abc-123','789']//[0]
+// InstanceOf: il-core-patient
+InstanceOf: Patient
+// * name = {'family': 'Doe', 'extra': 'e'}
+//   * (['a', 'b', 'c']).given = $
+//     * id = '12345' 
+// * name.given = ['x', 'y', 'z']
+//   * id = '12345'
+// * identifier
+//   * system = 'http://example.com/identifier-system'
+//   * value = '123456789'
 * birthDate = '1980-01-01'
-* active = true
-* gender = 'male'
+  * id = 'birth-date-id'
+// * active = true
+// * gender = 'male'
 
 // InstanceOf: Extension
 // * url = 'abc'

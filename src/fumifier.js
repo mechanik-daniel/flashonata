@@ -355,6 +355,10 @@ var fumifier = (function() {
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
       result.value = parseSystemPrimitive(expr, input, elementDefinition, environment);
+      // if the result.value is an array, take only last one
+      if (Array.isArray(result.value)) {
+        result.value = result.value[result.value.length - 1];
+      }
     }
 
     // handle FHIR primitives' inline value
@@ -363,11 +367,10 @@ var fumifier = (function() {
     if (kind === 'primitive-type') {
       // input is always an array (could be singleton or empty)
       // need to return an array of evaluated values
-      const evaluated = input.value.map(item => {
-        return parseSystemPrimitive(expr, item, elementDefinition, environment);
-      });
+      const evaluated = parseSystemPrimitive(expr, input.value, elementDefinition, environment);
       result.value = evaluated ? {
-        value: evaluated
+        ...input, // copy all properties from the input value
+        value: evaluated // assign the evaluated value to the 'value' key
       } : undefined;
     }
 
@@ -610,13 +613,19 @@ var fumifier = (function() {
         if (finalValue.value) {
           if (finalValue.kind !== 'primitive-type') {
             // if it's not a fhir primitive, we can assign the value directly to the key
+            // if the element has max 1, take last value only
+            if (child.max === '1' && !child.__isArray) {
+              finalValue.value = finalValue.value[finalValue.value.length - 1];
+            } else if (child.max === '1' && child.__isArray) {
+              finalValue.value = [finalValue.value[finalValue.value.length - 1]];
+            }
             result[finalValue.name] = finalValue.value;
           } else {
             // if it's a fhir primitive, we need to convert the array to two arrays -
             // one with the primitive values themselves, and one with the properties.
             // to keep these arrays in sync, we will use the same index for both and fill-in missing values with null
-            const primitiveValues = [];
-            const properties = [];
+            let primitiveValues = [];
+            let properties = [];
             for (let i = 0; i < finalValue.value.length; i++) {
               const value = finalValue.value[i];
               if (value.value !== undefined) {
@@ -635,13 +644,39 @@ var fumifier = (function() {
                 properties.push(null);
               }
             }
+            // if the element has max 1, take last value only
+            if (child.max === '1' && !child.__isArray) {
+              primitiveValues = primitiveValues[primitiveValues.length - 1];
+              properties = properties[properties.length - 1];
+            } else if (child.max === '1' && child.__isArray) {
+              primitiveValues = [primitiveValues[primitiveValues.length - 1]];
+              properties = [properties[properties.length - 1]];
+            }
+
             // assign the primitive values and sibling properties to the result object
             // if any of them is just an array of nulls, we will not assign it
-            if (primitiveValues.length > 0 && !primitiveValues.every(v => v === null)) {
+            if (
+              primitiveValues && (
+                !Array.isArray(primitiveValues) ||
+                (
+                  primitiveValues.length > 0 &&
+                  !primitiveValues.every(v => v === null)
+                )
+              )
+            ) {
               result[finalValue.name] = primitiveValues;
             }
             // if properties is not empty, assign it as well
-            if (properties.length > 0 && !properties.every(p => p === null)) {
+            if (
+              properties &&
+              (
+                !Array.isArray(properties) ||
+                (
+                  properties.length > 0 &&
+                  !properties.every(p => p === null)
+                )
+              )
+            ) {
               result['_' + finalValue.name] = properties;
             }
           }
