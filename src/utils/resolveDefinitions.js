@@ -7,9 +7,7 @@
 import createFhirFetchers from './createFhirFetchers.js';
 import extractSystemFhirType from './extractSystemFhirType.js';
 import { populateMessage } from './errorCodes.js';
-
-// TODO: move this to a utils file, possibly bind as native function $initCapOnce()
-const initCap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+import fn from './functions.js';
 
 /**
  * Centralized recoverable error handling helper.
@@ -169,7 +167,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
       if (ed.type?.length > 1) {
         // polymorphic element
         const baseName = ed.path.split('.').pop().replace(/\[x]$/, '');
-        const allowed = ed.type.map(t => baseName + initCap(t.code)).join(', ');
+        const allowed = ed.type.map(t => baseName + fn.initCapOnce(t.code)).join(', ');
         baseError.code = 'F2004';
         baseError.allowedNames = allowed;
         return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Must select one of multiple types'));
@@ -373,8 +371,8 @@ function assignFixedOrPatternValue(ed) {
     'id' :
     (kind === 'system' ? extractSystemFhirType(ed.type[0]) : ed.type[0].code);
 
-  const fixedKey = `fixed${initCap(fhirTypeCode)}`;
-  const patternKey = `pattern${initCap(fhirTypeCode)}`;
+  const fixedKey = `fixed${fn.initCapOnce(fhirTypeCode)}`;
+  const patternKey = `pattern${fn.initCapOnce(fhirTypeCode)}`;
 
   if (kind === 'primitive-type') {
     // Primitive types may have sibling properties like _fixedCode, _patternCode

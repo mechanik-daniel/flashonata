@@ -89,6 +89,8 @@ function registerNativeFn(staticFrame, functionEval) {
   staticFrame.bind('isNumeric', defineFunction(fn.isNumeric, '<j-:b>'));
   staticFrame.bind('wait', defineFunction(fn.wait), '<n->');
   staticFrame.bind('rightNow', defineFunction(fn.rightNow), '<:n>');
+  staticFrame.bind('initCapOnce', defineFunction(fn.initCapOnce, '<s-:s>'));
+  staticFrame.bind('initCap', defineFunction(fn.initCap, '<s-:s>'));
 }
 
 export default registerNativeFn;

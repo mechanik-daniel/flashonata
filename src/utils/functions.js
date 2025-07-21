@@ -2119,6 +2119,49 @@ const functions = (() => {
     return now.getTime();
   }
 
+  /**
+   * Capitalizes the first character of a string. Does not trim the string, assumed first character is a letter.
+   * @param {string} str - the string to capitalize
+   * @returns {string|undefined} - the capitalized string or undefined if input is undefined
+   * @throws {Error} if the input is not a string
+   */
+  function initCapOnce (str) {
+    // undefined inputs always return undefined
+    if (typeof str === 'undefined') return undefined;
+    if (typeof str !== 'string') {
+      throw {
+        stack: (new Error()).stack,
+        code: "T0410",
+        token: 'initCapOnce',
+        index: 1
+      };
+    }
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  /**
+   * Trims and normalizes whitespace accross entire string, then capitalizes the first character of each word.
+   * @param {string} str - the string to capitalize
+   * @returns {string|undefined} - the capitalized string or undefined if input is undefined
+   * @throws {Error} if the input is not a string
+   */
+  function initCap (str) {
+    // undefined inputs always return undefined
+    if (typeof str === 'undefined') return undefined;
+    if (typeof str !== 'string') {
+      throw {
+        stack: (new Error()).stack,
+        code: "T0410",
+        token: 'initCap',
+        index: 1
+      };
+    }
+    // normalize whitespace using JSONata's native trim function
+    str = trim(str);
+    // capitalize first character of each word
+    return str.split(' ').map(initCapOnce).join(' ');
+  }
+
   return {
     sum, count, max, min, average,
     string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
@@ -2128,7 +2171,7 @@ const functions = (() => {
     map, zip, filter, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
-    wait, rightNow
+    wait, rightNow, initCapOnce, initCap
   };
 })();
 

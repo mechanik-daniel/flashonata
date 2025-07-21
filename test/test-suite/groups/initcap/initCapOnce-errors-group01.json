@@ -1,0 +1,38 @@
+[
+  {
+    "expr": "$initCapOnce(123)",
+    "description": "initCapOnce function call on number argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCapOnce(['john','doe'])",
+    "description": "initCapOnce function call on array argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCapOnce({name: 'john doe'})",
+    "description": "initCapOnce function call on object argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCapOnce()",
+    "description": "initCapOnce function call with no arguments and no input",
+    "undefinedResult": true
+  },
+  {
+    "expr": "$initCapOnce(a)",
+    "description": "initCapOnce function call with non-existant name",
+    "undefinedResult": true
+  },
+  {
+    "expr": "$initCapOnce()",
+    "description": "initCapOnce function call on numeric input as context",
+    "data": 123,
+    "code":"T0411"
+  },
+  {
+    "expr": "$initCapOnce(a, b)",
+    "description": "initCapOnce function call with too many arguments",
+    "code": "T0410"
+  }
+]

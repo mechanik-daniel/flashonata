@@ -1,0 +1,32 @@
+[
+  {
+    "expr": "$initCap(a)",
+    "description": "Simple initCap function call on input name",
+    "data": {
+      "a": "john"
+    },
+    "result": "John"
+  },
+  {
+    "expr": "$initCap(a)",
+    "description": "Simple initCap function call on input name - two words",
+    "data": {
+      "a": "john doe"
+    },
+    "result": "John Doe"
+  },
+  {
+    "expr": "a.$initCap()",
+    "description": "Simple initCap function call on path as context",
+    "data": {
+      "a": "john doe"
+    },
+    "result": "John Doe"
+  },
+  {
+    "expr": "$initCap()",
+    "description": "Simple initCap function call on input as context",
+    "data": "john doe",
+    "result": "John Doe"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "expr": "$initCapOnce(a)",
+    "description": "Simple initCapOnce function call on input name",
+    "data": {
+      "a": "john"
+    },
+    "result": "John"
+  },
+  {
+    "expr": "$initCapOnce(a)",
+    "description": "Simple initCap function call on input name - two words",
+    "data": {
+      "a": "john doe"
+    },
+    "result": "John doe"
+  }
+]

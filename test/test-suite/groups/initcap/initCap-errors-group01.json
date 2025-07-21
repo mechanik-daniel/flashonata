@@ -1,0 +1,38 @@
+[
+  {
+    "expr": "$initCap(123)",
+    "description": "initCap function call on number argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCap(['john','doe'])",
+    "description": "initCap function call on array argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCap({name: 'john doe'})",
+    "description": "initCap function call on object argument",
+    "code": "T0410"
+  },
+  {
+    "expr": "$initCap()",
+    "description": "initCap function call with no arguments and no input",
+    "undefinedResult": true
+  },
+  {
+    "expr": "$initCap(a)",
+    "description": "initCap function call with non-existant name",
+    "undefinedResult": true
+  },
+  {
+    "expr": "$initCap()",
+    "description": "initCap function call on numeric input as context",
+    "data": 123,
+    "code":"T0411"
+  },
+  {
+    "expr": "$initCap(a, b)",
+    "description": "initCap function call with too many arguments",
+    "code": "T0410"
+  }
+]

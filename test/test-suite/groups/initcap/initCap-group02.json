@@ -1,0 +1,89 @@
+[
+  {
+    "expr": "$initCap('some  string')",
+    "description": "initCap on two words and a double space",
+    "result": "Some String"
+  },
+  {
+    "expr": "$initCap('  the\t quick \t\nbrown  \tfox \n')",
+    "description": "initCap with tabs, newlines, and irregular spacing",
+    "result": "The Quick Brown Fox"
+  },
+  {
+    "expr": "$initCap('🧠  power   mode   on ')",
+    "description": "initCap on emoji start with extra spaces",
+    "result": "🧠 Power Mode On"
+  },
+  {
+    "expr": "$initCap(' 123 jump  over  456 fences ')",
+    "description": "initCap with numbers and multiple spaces",
+    "result": "123 Jump Over 456 Fences"
+  },
+  {
+    "expr": "$initCap('  😂😂   laugh   attack     incoming')",
+    "description": "initCap with emoji prefix and multiple spaces",
+    "result": "😂😂 Laugh Attack Incoming"
+  },
+  {
+    "expr": "$initCap('    hELLO there,    gEnErAl    Kenobi   ')",
+    "description": "initCap preserves inner casing",
+    "result": "HELLO There, GEnErAl Kenobi"
+  },
+  {
+    "expr": "$initCap(' 🛸  we\t\t come\n\n\t in  peace')",
+    "description": "initCap on tabbed and newline-spaced alien message",
+    "result": "🛸 We Come In Peace"
+  },
+  {
+    "expr": "$initCap()",
+    "data": "¯\\_(ツ)_/¯     just    testing  ",
+    "description": "initCap with ASCII emoji and trailing spaces",
+    "result": "¯\\_(ツ)_/¯ Just Testing"
+  },
+  {
+    "expr": "$initCap('   h@ck3r    sp34k   4    fun')",
+    "description": "initCap on hacker speak and numbers",
+    "result": "H@ck3r Sp34k 4 Fun"
+  },
+  {
+    "expr": "$initCap()",
+    "data": "DON'T   touch    the    capsLOCK",
+    "description": "initCap with uppercase and apostrophe",
+    "result": "DON'T Touch The CapsLOCK"
+  },
+  {
+    "expr": "$initCap('')",
+    "description": "initCap on empty string",
+    "result": ""
+  },
+  {
+    "expr": "$initCap('     ')",
+    "description": "initCap on string with only spaces",
+    "result": ""
+  },
+  {
+    "expr": "$initCap('\\n\\t\\t')",
+    "description": "initCap on tabs and newlines only",
+    "result": ""
+  },
+  {
+    "expr": "$initCap('🔥')",
+    "description": "initCap on single emoji",
+    "result": "🔥"
+  },
+  {
+    "expr": "$initCap('😎 cool')",
+    "description": "initCap on emoji followed by one word",
+    "result": "😎 Cool"
+  },
+  {
+    "expr": "$initCap(' a ')",
+    "description": "initCap on single-letter word",
+    "result": "A"
+  },
+  {
+    "expr": "$initCap('   multi      word     madness   ')",
+    "description": "initCap with excessive inner spacing",
+    "result": "Multi Word Madness"
+  }
+]
