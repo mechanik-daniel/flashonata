@@ -38,6 +38,8 @@ var fumifier = (function() {
     isDeepEqual
   } = utils;
 
+  const initCap = fn.initCapOnce;
+
   // Start of Evaluator code
 
   var staticFrame = createFrame(null);
@@ -158,6 +160,7 @@ var fumifier = (function() {
       return input.map(item => parseSystemPrimitive(expr, item, elementDefinition, environment));
     } else {
       // input is a single value
+
       // if it's undefined or a falsy value (but not an explicit boolean false), return undefined
       const boolized = boolize(input);
       if (input === undefined || (boolized === false && input !== false && input !== 0)) {
@@ -298,7 +301,7 @@ var fumifier = (function() {
       };
     }
 
-    // get the json element name
+
     if (
       !(elementDefinition?.__name) || // should have been set on the enriched definition
       !Array.isArray(elementDefinition.__name) || // should be an array
@@ -312,22 +315,7 @@ var fumifier = (function() {
       };
     }
 
-    const jsonElementName = elementDefinition.__name[0];
-    // if there's a slice name in the element definition, it is an "official" slice and must be used in the grouping key
-    const sliceName = elementDefinition.sliceName || undefined;
-    // generate the grouping key for the element
-    const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
-
-    // create a container array for the evaluated flash rule [key,value] pairs
-    const result = {'@@__flashRuleResult': true, key: groupingKey, value: undefined };
-
-    // if element has a fixed value, use it
-    if (elementDefinition.__fixedValue) {
-      result.value = elementDefinition.__fixedValue;
-      return result;
-    }
-
-    // check the kind of element
+    // get the kind of the element
     const kind = elementDefinition.__kind;
     if (!kind) {
       throw {
@@ -338,17 +326,46 @@ var fumifier = (function() {
       };
     }
 
+    // get the json element name
+    const jsonElementName = elementDefinition.__name[0];
+    const isBasePoly = elementDefinition.base?.path?.endsWith('[x]'); // is it a base poly element?
+    // if there's a slice name in the element definition,
+    // it is an "official" slice and must be used in the grouping key.
+    // UNLESS this is polymorphic element...
+    // in which case slices can only correspond to a type, and the type is already represented in the jsonElementName.
+    const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
+    // generate the grouping key for the element
+    const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
+
+    // create a container object for the evaluated flash rule
+    const result = {
+      '@@__flashRuleResult': true,
+      key: groupingKey,
+      value: undefined,
+      kind
+    };
+
+    // if element has a fixed value, use it
+    if (elementDefinition.__fixedValue) {
+      result.value = elementDefinition.__fixedValue;
+      return result;
+    }
+
     // handle system primitive's inline value
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
-      result.value = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
+      result.value = parseSystemPrimitive(expr, input, elementDefinition, environment);
     }
 
     // handle FHIR primitives' inline value
     // this is treated as the primitive value of the 'value' child element
     // (we treat FHIR primitives as objects since they can have children)
     if (kind === 'primitive-type') {
-      const evaluated = parseSystemPrimitive(expr, input['.'], elementDefinition, environment);
+      // input is always an array (could be singleton or empty)
+      // need to return an array of evaluated values
+      const evaluated = input.value.map(item => {
+        return parseSystemPrimitive(expr, item, elementDefinition, environment);
+      });
       result.value = evaluated ? {
         value: evaluated
       } : undefined;
@@ -368,73 +385,282 @@ var fumifier = (function() {
   }
 
   /**
-   * All FLASH blocks and rules evaluation is funneled through this function for evaluation.
-   * The inline expression and any rules/sub-rules are evaluated and applied to the result.
-   * Since rules are evaluated into 2-tuples [<fhirElementName>, <value>], we can differentiate
-   * between a rule that returned an array (value is array) and a contextualized rule with an array
-   * context (array of tuples).
-   * The inline expression is a regular expression so it returns a regular value and not a 2-tuple.
-   * Expressions in between (like variable assignments) are evaluated but their results are not used.
-   * If the element is a system primitive that result is just the inline expression.
+   * All FLASH blocks and rules evaluation is funneled through this function.
+   * It evaluates the specialized unary operator AST node and returns the result.
+   * The inline expression and any rules/sub-rules are evaluated and applied to the output.
+   * Expressions in between sub-rules (variable assignments) are evaluated but their results are discarded.
+   * If the element is a system primitive than result is just the inline expression.
    * All other element kinds return objects, where FHIR primitives have their inline value assigned to `value`.
    */
   async function evaluateFlash(expr, input, environment) {
-    const expressionResults = {};
+    const subExpressionResults = {};
+    let inlineResult;
 
     // Evaluate all expressions and group results by key
     for (const node of expr.expressions) {
       let res = await evaluate(node, input, environment);
 
-      // if result is falsy but not explicit boolean false, continue
-      if (res === undefined || (res !== false && res !== 0 && boolize(res) === false)) {
+      if (typeof res === 'undefined') continue; // undefined results are ignored
+
+      // expressions can only be:
+      // 1. a flash rule - a 2-tuple [key, value] object
+      // 2. an inline expression - any value
+      // 3. a variable assignment - evaluated but does not affect the result directly
+      // 4. a path expression (contextualized rule) - a 2-tuple or an array of 2-tuples
+
+      if (node.isInlineExpression) {
+        // inline expression - there can be only one :)
+        // result is kept if it's truthy or explicitly false / 0
+        if (boolize(res) !== false || res === false || res === 0) {
+          inlineResult = res;
+        }
+        // nothing more to do with this node, continue
+        continue;
+      } else if (node.type === 'bind') {
+        // variable assignment inside a flash block or rule
+        // we don't care about the result (the variale is assigned to the environment)
         continue;
       }
 
-      if (node.isInlineExpression) {
-        res = { '@@__flashRuleResult': true, key: '.', value: res };
-      }
-
-      // If result is not a flashrule (2-tuple) or an array of such, continue.
-      // This will be the case for inline expressions and other non-flash rule expressions like variable assignments
-      if (res && !res['@@__flashRuleResult']) continue;
-
-      const key = res.key;
-      expressionResults[key] = Object.prototype.hasOwnProperty.call(expressionResults, key) ?
-        fn.append(expressionResults[key], res.value) :
-        res.value;
+      // flash rule or contextualized rule - a 2-tuple or an array of 2-tuples
+      // we append to the gouping key in the subExpressionResults object
+      const groupingKey = Array.isArray(res) ? res[0].key : res.key;
+      const values = fn.append(subExpressionResults[groupingKey], res);
+      subExpressionResults[groupingKey] = Array.isArray(values) ? values : [values];
     }
 
-    // initialize the result object
-    var result = {};
-
-    // Determine children and inject FHIR metadata if needed
-    let children = [];
+    // Determine kind and children
     let kind;
+    let children = [];
+    let resourceType;
+    let profileUrl;
+
     if (expr.isFlashBlock) {
-      // flash block - use the instanceof to determine the type
+      // flash block - use the instanceof to get the structure definition's meta data
       const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
       kind = typeMeta?.kind;
+
+      // kind can be a resource, complex-type, or primitive-type.
+      // It cannot be a system primitive since those cannot be instantiated with InstanceOf
       if (kind === 'resource') {
         // resources must have a resourceType set
-        result.resourceType = typeMeta.type;
+        resourceType = typeMeta.type;
         if (typeMeta.derivation === 'constraint') {
-          // profiles on resources should have a profile meta tag
-          const metaObj = { profile: [typeMeta.url] };
-          expressionResults.meta = Object.prototype.hasOwnProperty.call(expressionResults, 'meta') ?
-            fn.append(expressionResults.meta, metaObj) :
-            metaObj;
+          // profiles on resources should have a mets.profile set to the profile URL
+          profileUrl = typeMeta.url;
         }
       }
       children = getFhirTypeChildren(environment, expr.instanceof);
     } else {
       // flash rule - use the flashPathRefKey to get the element definition
       const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
+      // kind will almost laways be a system primitive, primitive-type, or complex-type.
+      // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
+      // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
-      children = kind === 'system' ? [] : getFhirElementChildren(environment, expr.flashPathRefKey);
+      if (kind !== 'system') {
+        children = getFhirElementChildren(environment, expr.flashPathRefKey);
+      }
     }
 
-    // Merge all grouped expression results into result
-    result = { ...result, ...expressionResults };
+    // now we know the kind of the element and have its children element definitions.
+    let result;
+    if (kind === 'system') {
+      // system primitive - the result is just the inline expression.
+      // there could not be any child expressions
+      result = inlineResult;
+    } else {
+      // result is going to be an object (including fhir primitives - they are still objects at this stage).
+      result = {};
+
+      // if it's a fhir primitive, wrap the inline result in an object with a 'value' key
+      if (kind === 'primitive-type' && inlineResult !== undefined) {
+        inlineResult = {
+          value: inlineResult
+        };
+      }
+
+      // if it's a resource, set the resourceType as the first key
+      if (resourceType) {
+        result.resourceType = resourceType;
+      }
+      // now we will loop through the children in-order and assign the result attributes
+      for (const child of children) {
+        // each child can be one of:
+        // 1. a regular element with a single type and __name
+        // 2. a polymorphic (choice) element with multiple types and __name as an array
+        // 3. a slice (with sliceName) - always a single type and __name, grouping key is <__name[0]>:<sliceName>
+
+        // we skip elements that have max = 0
+        if (child.max === '0') {
+          continue;
+        }
+
+        // we will first normalize the __name into an array of grouping keys
+        const names = [];
+        if (child.__name.length === 1) {
+          // single name - check if poly
+          const isPoly = child.base?.path?.endsWith('[x]'); // is it a base poly element?
+          if (!isPoly) {
+            // single type element from the base.
+            // if there's a sliceName, we will use it to create the grouping key
+            if (child.sliceName) {
+              names.push(`${child.__name[0]}:${child.sliceName}`);
+            } else {
+              // no sliceName, just use the __name as the grouping key
+              names.push(child.__name[0]);
+            }
+          } else {
+            // it's a polymorphic element, narrowed to a single type.
+            // we will use the single __name and ignore sliceName if it exists
+            names.push(child.__name[0]);
+          }
+        } else {
+          // it's a polymorphic element with multiple types (and hence, names).
+          // we will use the entire __name array as possible grouping keys, ignoring sliceName
+          names.push(...child.__name);
+        }
+
+        // now that we have an array of names for this child, we will assign the attribute to the result object.
+        // the values can come either from the inline expression having an attribute with the same name,
+        // or from the subExpressionResults object that contains the evaluated flash rules.
+        // inline attributes will only be taken if their key matches the base json element name (no slices)
+
+        // start by keeping all the matching values for this element in an array
+        const values = [];
+        for (const name of names) {
+          const valuesForName = []; // keep all values for this json element name
+          // to determine the kind of this specific element name, and accounting for polymorphic elements,
+          // we will have to find the corresponding type entry in the element definition
+          const kindForName = child.type.length === 1 ? child.type[0].__kind : child.type.find(type => name.endsWith(initCap(type.code))).__kind;
+          // check if the inline expression has a value for this name
+          if (
+            inlineResult &&
+            !child.sliceName && // we skip this child if it's a slice since slices are not directly represented in the json
+            (
+              Object.prototype.hasOwnProperty.call(inlineResult, name) || // check if inlineResult has this name
+              (
+                kindForName === 'primitive-type' && // or if it's a primitive type check for sibling element
+                Object.prototype.hasOwnProperty.call(inlineResult, '_' + name)
+              )
+            )
+          ) {
+            let value;
+            // if it's not a fhir primitive, we just take the value
+            if (kindForName !== 'primitive-type') {
+              value = inlineResult[name];
+            } else {
+              // if it's a fhir primitive, we convert it to an object
+              value = {
+                value: inlineResult[name]
+              };
+              const siblingName = '_' + name;
+              if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
+                // if there's a sibling element with the same name prefixed with '_',
+                // we will copy its properties to the value object
+                Object.assign(value, inlineResult[siblingName]);
+              }
+            }
+            valuesForName.push(value);
+          }
+
+          // now check if the subExpressionResults has a value for this name
+          if (Object.prototype.hasOwnProperty.call(subExpressionResults, name)) {
+            valuesForName.push(...(subExpressionResults[name].map(item => item.value)));
+          }
+
+          // if we have no values for this name, skip it
+          if (valuesForName.length === 0) {
+            continue;
+          }
+
+          if (child.max !== '1') {
+            // if it's an array, we take all of the values and push them to the values array
+            values.push({ name, kind: kindForName, value: valuesForName });
+          } else if (kindForName === 'system') {
+            // system primitive - just take the last value
+            if (valuesForName.length > 0) {
+              values.push({ name, kind: kindForName, value: [valuesForName[valuesForName.length - 1]] });
+            }
+          } else {
+            // complex type or primitive type - merge all objects into one
+            const mergedValue = fn.merge(valuesForName);
+            if (Object.keys(mergedValue).length > 0) {
+              values.push({ name, kind: kindForName, value: [mergedValue] });
+            }
+          }
+        }
+
+        // values now contain all collected values for this child element, each wrapped in an object containing the json element name.
+        // since arrays and polymorphics are mutually exclusive, we can safely take the last value if it's polymorphic,
+        // and all values if it's an array.
+        if (values.length === 0) {
+          // no values for this child element, skip it
+          continue;
+        }
+        let finalValue;
+        if (child.__name.length > 1) {
+          // polymorphic element - take the last value (only one type is allowed)
+          finalValue = values[values.length - 1];
+        } else {
+          // this element has only one possible name, so we can safely take the first value - it should be the only one
+          finalValue = values[0];
+        }
+        // assign the value to the result object
+        if (finalValue.value) {
+          if (finalValue.kind !== 'primitive-type') {
+            // if it's not a fhir primitive, we can assign the value directly to the key
+            result[finalValue.name] = finalValue.value;
+          } else {
+            // if it's a fhir primitive, we need to convert the array to two arrays -
+            // one with the primitive values themselves, and one with the properties.
+            // to keep these arrays in sync, we will use the same index for both and fill-in missing values with null
+            const primitiveValues = [];
+            const properties = [];
+            for (let i = 0; i < finalValue.value.length; i++) {
+              const value = finalValue.value[i];
+              if (value.value !== undefined) {
+                primitiveValues.push(value.value);
+              } else {
+                primitiveValues.push(null);
+              }
+              // copy all properties to the properties array
+              const props = Object.keys(value).filter(key => key !== 'value');
+              if (props.length > 0) {
+                properties.push(props.reduce((acc, key) => {
+                  acc[key] = value[key];
+                  return acc;
+                }, {}));
+              } else {
+                properties.push(null);
+              }
+            }
+            // assign the primitive values and sibling properties to the result object
+            // if any of them is just an array of nulls, we will not assign it
+            if (primitiveValues.length > 0 && !primitiveValues.every(v => v === null)) {
+              result[finalValue.name] = primitiveValues;
+            }
+            // if properties is not empty, assign it as well
+            if (properties.length > 0 && !properties.every(p => p === null)) {
+              result['_' + finalValue.name] = properties;
+            }
+          }
+        }
+      }
+    }
+
+    // inject meta.profile if this is a profiled resource and it isn't already set
+    if (profileUrl) {
+      // if meta is missing entirely, create it
+      if (!result.meta) {
+        // if it was missing, we need to put it right after the id, before all other properties
+        result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
+      } else if (!result.meta.profile || !Array.isArray(result.meta.profile)){
+        result.meta.profile = [profileUrl];
+      } else if (!result.meta.profile.includes(profileUrl)) {
+        result.meta.profile.push(profileUrl);
+      }
+    }
 
     // Ensure mandatory children exist
     for (const child of children) {
@@ -457,7 +683,7 @@ var fumifier = (function() {
     }
 
     // if result is falsy but not explicitly boolean false, return undefined
-    if (boolize(result) === false && result  && result !== 0) {
+    if (boolize(result) === false && result !== false && result !== 0) {
       result = undefined;
     } else if (expr.isFlashRule) {
       // if it's a flash rule, process and return the result as a flash rule
