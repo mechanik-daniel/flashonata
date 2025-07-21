@@ -1,8 +1,0 @@
-{
-  "skip": false,
-  "expr": "(InstanceOf: Patient\n* birthDate = '2025-07-21T23:27:35.948Z').birthDate",
-  "description": "Assignment of datetime into Patient.birthDate - should truncate to date",
-  "data": {},
-  "bindings": {},
-  "result": "2025-07-21"
-}

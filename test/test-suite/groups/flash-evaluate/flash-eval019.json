@@ -1,8 +1,8 @@
 {
   "skip": false,
-  "expr": "InstanceOf: Binary\n* contentType = {}",
-  "description": "Instance of resource with valid id but required element empty object (Binary.contentType)",
+  "expr": "(InstanceOf: Patient\n* birthDate = '2025-07-21T23:27:35.948Z').birthDate",
+  "description": "Assignment of datetime into Patient.birthDate - should truncate to date",
   "data": {},
   "bindings": {},
-  "code": "F3002"
+  "result": "2025-07-21"
 }

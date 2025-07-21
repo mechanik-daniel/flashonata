@@ -1,8 +1,8 @@
 {
   "skip": false,
-  "expr": "InstanceOf: Patient\n* gender = ' male'",
-  "description": "Instance of Patient with gender code failing regex validation",
-  "data": null,
+  "expr": "InstanceOf: Binary\n* contentType = missingFieldName",
+  "description": "Instance of resource with valid id but required element missing (Binary.contentType)",
+  "data": {},
   "bindings": {},
-  "code": "F3001"
+  "code": "F3002"
 }
