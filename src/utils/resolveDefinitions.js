@@ -259,7 +259,6 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
       !ed.__fixedValue && // if it has a fixed value, we naively use it and don't care about the children definitions
       !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key) // skip if already resolved
     );
-    if (shouldIt) console.debug(`Should expand ${key}!`);
     return shouldIt;
   };
 
@@ -293,7 +292,6 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
 
   // Step 2: Expand recursively
   while (pending.size > 0) {
-    console.debug(`Expanding ${pending.size} pending elements...`);
     const keys = Array.from(pending);
     pending.clear();
 
@@ -306,7 +304,6 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
       if (Object.prototype.hasOwnProperty.call(resolvedElementChildren, key)) return;
       let ed;
       try {
-        console.debug(`Expanding ${key}...`);
         ed = resolvedElementDefinitions[key];
         if (!ed) {
           ed = await getElement(fhirTypeMeta, parentFlashpath);

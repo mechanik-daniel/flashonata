@@ -649,7 +649,6 @@ const parser = (() => {
           }
 
           const sliceStart = node;
-          console.debug('[parseFlashPath] sliceStart:', sliceStart);
           const sliceTokens = [];
 
           // Validate first token isn't '-'
