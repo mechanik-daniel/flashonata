@@ -256,7 +256,7 @@ var fumifier = (function() {
 
   /**
    * Once an expression flagged as a FLASH rule is evaluated, this function is called on the result
-   * to validate it according to its element definition and return it as a 2-tuple [<fhirElementName>, <value>]
+   * to validate it according to its element definition and return it as a flashrule result object.
    * @param {*} expr The AST node of the FLASH rule - includes references to FHIR definitions
    * @param {*} input The unsanitized results of evaluating just the expression. Could be anything, including arrays.
    * @param {*} environment The environment envelope that contains the FHIR definitions and variable scope
@@ -406,10 +406,10 @@ var fumifier = (function() {
       if (typeof res === 'undefined') continue; // undefined results are ignored
 
       // expressions can only be:
-      // 1. a flash rule - a 2-tuple [key, value] object
+      // 1. a flash rule - returns a flashrule result object
       // 2. an inline expression - any value
       // 3. a variable assignment - evaluated but does not affect the result directly
-      // 4. a path expression (contextualized rule) - a 2-tuple or an array of 2-tuples
+      // 4. a path expression (contextualized rule) - a flashrule result object or an array of such
 
       if (node.isInlineExpression) {
         // inline expression - there can be only one :)
@@ -425,7 +425,7 @@ var fumifier = (function() {
         continue;
       }
 
-      // flash rule or contextualized rule - a 2-tuple or an array of 2-tuples
+      // flash rule or contextualized rule - a flashrule result object or an array of such
       // we append to the gouping key in the subExpressionResults object
       const groupingKey = Array.isArray(res) ? res[0].key : res.key;
       const values = fn.append(subExpressionResults[groupingKey], res);
@@ -717,10 +717,7 @@ var fumifier = (function() {
       }
     }
 
-    // if result is falsy but not explicitly boolean false, return undefined
-    if (boolize(result) === false && result !== false && result !== 0) {
-      result = undefined;
-    } else if (expr.isFlashRule) {
+    if (expr.isFlashRule) {
       // if it's a flash rule, process and return the result as a flash rule
       result = finalizeFlashRuleResult(expr, result, environment);
     }
