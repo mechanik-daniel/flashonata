@@ -165,24 +165,45 @@ void async function () {
 
 // Instance: ['abc-123','789']//[0]
 // InstanceOf: il-core-patient
-InstanceOf: Patient
+// InstanceOf: Patient
 // * name = {'family': 'Doe', 'extra': 'e'}
 //   * (['a', 'b', 'c']).given = $
 //     * id = '12345' 
 // * name.given = ['x', 'y', 'z']
 //   * id = '12345'
+// * identifier[il-id]
+  // * system = undefined
+  // * value = '123456789'
 // * identifier
-//   * system = 'http://example.com/identifier-system'
-//   * value = '123456789'
-* birthDate = '1980-01-01'
-  * id = 'birth-date-id'
+  // * system = 'http://example.com/identifier-system'
+  // * value = '987654321'
+// * birthDate = '1980-01-01'
+//   * id = 'birth-date-id'
 // * active = true
 // * gender = 'male'
 
-// InstanceOf: Extension
-// * url = 'abc'
-// * value[SimpleQuantity].comparator = '>'
-// 1 + aaa ?? 2
+// Instance: ''
+// InstanceOf: CodeableConcept
+// a.b.c.($='1' ?: %.%.z)
+
+Instance: 'abc'
+InstanceOf: Patient
+* (context ?? undefined).active = status='active'
+* name
+  * given = first_name
+  * family = last_name
+  * period
+    * start = '2000-01-01'
+* birthDate = birth_date
+* generalPractitioner
+  * (abc).identifier
+    * assigner
+      * identifier
+        * assigner
+          * identifier
+            * assigner
+              * (some_path.context_value).reference = 'Organization/123'
+  * display = primary_doctor.full_name
   `;
 
   var expr;

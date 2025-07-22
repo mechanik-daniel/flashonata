@@ -619,7 +619,9 @@ var fumifier = (function() {
             } else if (child.max === '1' && child.__isArray) {
               finalValue.value = [finalValue.value[finalValue.value.length - 1]];
             }
-            result[finalValue.name] = finalValue.value;
+            if (typeof finalValue.value !== 'undefined' && (typeof finalValue.value === 'boolean' || boolize(finalValue.value))) {
+              result[finalValue.name] = finalValue.value;
+            }
           } else {
             // if it's a fhir primitive, we need to convert the array to two arrays -
             // one with the primitive values themselves, and one with the properties.
@@ -628,6 +630,7 @@ var fumifier = (function() {
             let properties = [];
             for (let i = 0; i < finalValue.value.length; i++) {
               const value = finalValue.value[i];
+              if (value === undefined) continue; // skip undefined values
               if (value.value !== undefined) {
                 primitiveValues.push(value.value);
               } else {
@@ -720,6 +723,10 @@ var fumifier = (function() {
     if (expr.isFlashRule) {
       // if it's a flash rule, process and return the result as a flash rule
       result = finalizeFlashRuleResult(expr, result, environment);
+    }
+    // if it's a flashblock, if it has no children or only resourceType, we return undefined
+    if (Object.keys(result).length === 0 || (Object.keys(result).length === 1 && result.resourceType)) {
+      result = undefined;
     }
     return result;
   }
