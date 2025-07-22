@@ -415,7 +415,7 @@ function assignFhirTypeCode(ed) {
  */
 function assignIsArray(ed) {
   // If the element has a base.max different than '1', it is an array
-  ed.__isArray = !(ed.max === '1');
+  ed.__isArray = !(ed.base.max === '1');
 }
 
 /**
