@@ -1,0 +1,16 @@
+{
+  "expr": "InstanceOf: Patient\n* extension[ext-il-hmo].value.text = $",
+  "description": "Injection of extension URL inside a Patient resource",
+  "data": "HMO Name",
+  "result": {
+    "resourceType": "Patient",
+    "extension": [
+      {
+        "url": "http://fhir.health.gov.il/StructureDefinition/ext-il-hmo",
+        "valueCodeableConcept": {
+          "text": "HMO Name"
+        }
+      }
+    ]
+  }
+}

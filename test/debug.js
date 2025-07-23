@@ -182,11 +182,14 @@ void async function () {
 // * gender = 'male'
 
 // Instance: ''
-InstanceOf: ext-il-hmo
+// InstanceOf: ext-il-hmo
 // * url
-* value.text = 'HMO Name'
+// * value.text = a.b.%.z
 
 // a.b.c.($='1' ?: %.%.z)
+
+InstanceOf: Patient
+* extension[ext-il-hmo]//.value.text = a.b.%.z
   `;
 
   var expr;

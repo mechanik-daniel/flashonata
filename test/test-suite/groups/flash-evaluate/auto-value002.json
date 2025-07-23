@@ -1,0 +1,11 @@
+{
+  "expr": "InstanceOf: ext-il-hmo\n* value.text = $",
+  "description": "Injection of extension URL in a standalone instance of ext-il-hmo",
+  "data": "HMO Name",
+  "result": {
+    "url": "http://fhir.health.gov.il/StructureDefinition/ext-il-hmo",
+    "valueCodeableConcept": {
+      "text": "HMO Name"
+    }
+  }
+}
