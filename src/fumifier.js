@@ -428,7 +428,13 @@ var fumifier = (function() {
       // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
-      if (kind !== 'system' && !def.__fixedValue) {
+      if (def.__fixedValue) {
+        return {
+          '@@__flashRuleResult': true,
+          key: def.__name[0],
+          value: def.__fixedValue
+        };
+      } else if (kind !== 'system' && !def.__fixedValue) {
         children = getFhirElementChildren(environment, expr.flashPathRefKey);
       }
     }
