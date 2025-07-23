@@ -290,18 +290,6 @@ var fumifier = (function() {
       };
     }
 
-    // throw if element is forbidden
-    if (elementDefinition.max === '0') {
-      throw {
-        code: "F3008",
-        fhirType: elementDefinition.__fromDefinition || rootFhirTypeId,
-        value: elementDefinition.__name?.[0] || elementFlashPath,
-        fullPath: elementFlashPath,
-        ...baseError
-      };
-    }
-
-
     if (
       !(elementDefinition?.__name) || // should have been set on the enriched definition
       !Array.isArray(elementDefinition.__name) || // should be an array
@@ -429,7 +417,18 @@ var fumifier = (function() {
       // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
-      if (def.__fixedValue) {
+      if (def.max === '0') {
+        // forbidden element
+        throw {
+          code: "F3008",
+          stack: (new Error()).stack,
+          position: expr.position,
+          start: expr.start,
+          line: expr.line,
+          value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
+          fhirType: def.__fromDefinition
+        };
+      } else if (def.__fixedValue) {
         // short circuit if the element has a fixed value
         return {
           '@@__flashRuleResult': true,
@@ -612,6 +611,7 @@ var fumifier = (function() {
             type: 'unary',
             value: '[',
             isFlashRule: true,
+            isVirtualRule: true,
             expressions: [],
             instanceof: expr.instanceof, // use the same instanceof as the parent flash block or rule
             flashPathRefKey: child.__flashPathRefKey,
@@ -714,6 +714,19 @@ var fumifier = (function() {
             }
           }
         }
+      }
+    }
+
+    // append slices into their parent element
+    // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
+    // we will append it to the parent element with the same name (without the sliceName)
+    for (const key of Object.keys(result)) {
+      const colonIndex = key.indexOf(':');
+      if (colonIndex !== -1) {
+        const parentKey = key.slice(0, colonIndex);
+        result[parentKey] = fn.append(result[parentKey], result[key]);
+        // delete the slice key from the result
+        delete result[key];
       }
     }
 
