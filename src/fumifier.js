@@ -399,6 +399,40 @@ var fumifier = (function() {
     const subExpressionResults = {};
     let inlineResult;
 
+    // Determine kind and possible children, resourceType, and profileUrl
+    let kind;
+    let children = [];
+    let resourceType;
+    let profileUrl;
+
+    if (expr.isFlashBlock) {
+      // flash block - use the instanceof to get the structure definition's meta data
+      const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
+      kind = typeMeta?.kind;
+
+      // kind can be a resource, complex-type, or primitive-type.
+      // It cannot be a system primitive since those cannot be instantiated with InstanceOf
+      if (kind === 'resource') {
+        // resources must have a resourceType set
+        resourceType = typeMeta.type;
+        if (typeMeta.derivation === 'constraint') {
+          // profiles on resources should have a mets.profile set to the profile URL
+          profileUrl = typeMeta.url;
+        }
+      }
+      children = getFhirTypeChildren(environment, expr.instanceof);
+    } else {
+      // flash rule - use the flashPathRefKey to get the element definition
+      const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
+      // kind will almost laways be a system primitive, primitive-type, or complex-type.
+      // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
+      // TODO: handle inline resources (will probably not have an element definition but a structure definition)
+      kind = def.__kind;
+      if (kind !== 'system' && !def.__fixedValue) {
+        children = getFhirElementChildren(environment, expr.flashPathRefKey);
+      }
+    }
+
     // Evaluate all expressions and group results by key
     for (const node of expr.expressions) {
       let res = await evaluate(node, input, environment);
@@ -432,41 +466,6 @@ var fumifier = (function() {
       subExpressionResults[groupingKey] = Array.isArray(values) ? values : [values];
     }
 
-    // Determine kind and children
-    let kind;
-    let children = [];
-    let resourceType;
-    let profileUrl;
-
-    if (expr.isFlashBlock) {
-      // flash block - use the instanceof to get the structure definition's meta data
-      const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
-      kind = typeMeta?.kind;
-
-      // kind can be a resource, complex-type, or primitive-type.
-      // It cannot be a system primitive since those cannot be instantiated with InstanceOf
-      if (kind === 'resource') {
-        // resources must have a resourceType set
-        resourceType = typeMeta.type;
-        if (typeMeta.derivation === 'constraint') {
-          // profiles on resources should have a mets.profile set to the profile URL
-          profileUrl = typeMeta.url;
-        }
-      }
-      children = getFhirTypeChildren(environment, expr.instanceof);
-    } else {
-      // flash rule - use the flashPathRefKey to get the element definition
-      const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
-      // kind will almost laways be a system primitive, primitive-type, or complex-type.
-      // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
-      // TODO: handle inline resources (will probably not have an element definition but a structure definition)
-      kind = def.__kind;
-      if (kind !== 'system') {
-        children = getFhirElementChildren(environment, expr.flashPathRefKey);
-      }
-    }
-
-    // now we know the kind of the element and have its children element definitions.
     let result;
     if (kind === 'system') {
       // system primitive - the result is just the inline expression.
@@ -702,10 +701,21 @@ var fumifier = (function() {
 
     // Ensure mandatory children exist
     for (const child of children) {
+      // skip non-mandatory children
       if (child.min === 0) continue;
 
-      const names = Array.isArray(child.__name) ? child.__name : [];
-      const satisfied = names.some(name => Object.prototype.hasOwnProperty.call(result, name) && result[name] !== undefined);
+      const names = child.__name;
+      const satisfied = names.some(name =>
+        Object.prototype.hasOwnProperty.call(result, name) && // element key exists
+        result[name] !== undefined && // element value is not undefined
+        (
+          child.min === 1 || // if min is 1, we just require the value to be present
+          ( // if min is above 1, we require the value to be an array with at least min items
+            Array.isArray(result[name]) &&
+            result[name].length >= child.min
+          )
+        )
+      );
 
       if (!satisfied) {
         throw {

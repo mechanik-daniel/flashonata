@@ -123,6 +123,15 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
           assignFhirTypeCode(child);
           assignFixedOrPatternValue(child);
         }
+        // Add __flashPathRefKey for children of types
+        const flashSegment = toFlashSegment(child.id);
+        child.__flashPathRefKey = `${instanceofId}::${flashSegment}`;
+
+        // Store in resolvedElementDefinitions - only if not already there
+        if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
+          resolvedElementDefinitions[child.__flashPathRefKey] = child;
+        }
+
         return child;
       });
       resolvedTypeChildren[instanceofId] = enriched;
@@ -190,6 +199,28 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
             elementChildren = await getChildren(meta, flash.fullPath);
             if (!elementChildren.length)
               throw new Error('No children found');
+
+            // Enrich children with __flashPathRefKey for element children
+            elementChildren = elementChildren.map(child => {
+              assignIsArray(child);
+              if (child.type && child.type.length === 1) {
+                child.__kind = child.type[0].__kind;
+                assignFhirTypeCode(child);
+                assignFixedOrPatternValue(child);
+              }
+
+              // Add __flashPathRefKey for children of elements
+              const flashSegment = toFlashSegment(child.id);
+              child.__flashPathRefKey = `${key}.${flashSegment}`;
+
+              // Store in resolvedElementDefinitions - only if not already there
+              if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
+                resolvedElementDefinitions[child.__flashPathRefKey] = child;
+              }
+
+              return child;
+            });
+
             resolvedElementChildren[key] = elementChildren;
           } catch (e) {
             baseError.code = 'F2003';
@@ -318,6 +349,16 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
             assignFhirTypeCode(child);
             assignFixedOrPatternValue(child);
           }
+
+          // Add __flashPathRefKey for recursively expanded children
+          const flashSegment = toFlashSegment(child.id);
+          child.__flashPathRefKey = `${key}.${flashSegment}`;
+
+          // Store in resolvedElementDefinitions if not already there
+          if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
+            resolvedElementDefinitions[child.__flashPathRefKey] = child;
+          }
+
           return child;
         });
 
