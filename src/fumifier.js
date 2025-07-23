@@ -501,8 +501,8 @@ var fumifier = (function() {
         // 2. a polymorphic (choice) element with multiple types and __name as an array
         // 3. a slice (with sliceName) - always a single type and __name, grouping key is <__name[0]>:<sliceName>
 
-        // we skip elements that have max = 0
-        if (child.max === '0') {
+        // we skip elements that have max = 0 or no __name
+        if (child.max === '0' || !child.__name) {
           continue;
         }
 
@@ -605,7 +605,7 @@ var fumifier = (function() {
         // at this point, if we have no collected values for this element but it is mandatory,
         // we will try to evaluate it as a virtual rule.
         if (values.length === 0) {
-          if (child.min === 0) continue; // skip if not mandatory
+          if (child.min === 0 || child.type.length > 1) continue; // skip if not mandatory, or if polymorphic
           // try to evaluate the child as a virtual rule
           const autoValue = await evaluate({
             type: 'unary',
@@ -720,26 +720,30 @@ var fumifier = (function() {
     // append slices into their parent element
     // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
     // we will append it to the parent element with the same name (without the sliceName)
-    for (const key of Object.keys(result)) {
-      const colonIndex = key.indexOf(':');
-      if (colonIndex !== -1) {
-        const parentKey = key.slice(0, colonIndex);
-        result[parentKey] = fn.append(result[parentKey], result[key]);
-        // delete the slice key from the result
-        delete result[key];
+    if (typeof result === 'undefined') {
+      result = {};
+    } else {
+      for (const key of Object.keys(result)) {
+        const colonIndex = key.indexOf(':');
+        if (colonIndex !== -1) {
+          const parentKey = key.slice(0, colonIndex);
+          result[parentKey] = fn.append(result[parentKey], result[key]);
+          // delete the slice key from the result
+          delete result[key];
+        }
       }
-    }
 
-    // inject meta.profile if this is a profiled resource and it isn't already set
-    if (profileUrl) {
+      // inject meta.profile if this is a profiled resource and it isn't already set
+      if (profileUrl) {
       // if meta is missing entirely, create it
-      if (!result.meta) {
+        if (!result.meta) {
         // if it was missing, we need to put it right after the id, before all other properties
-        result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
-      } else if (!result.meta.profile || !Array.isArray(result.meta.profile)){
-        result.meta.profile = [profileUrl];
-      } else if (!result.meta.profile.includes(profileUrl)) {
-        result.meta.profile.push(profileUrl);
+          result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
+        } else if (!result.meta.profile || !Array.isArray(result.meta.profile)){
+          result.meta.profile = [profileUrl];
+        } else if (!result.meta.profile.includes(profileUrl)) {
+          result.meta.profile.push(profileUrl);
+        }
       }
     }
 
