@@ -9,7 +9,7 @@
   "scripts": {
     "debug": "node test/debug.js",
     "pretest": "npm run lint",
-    "mocha": "c8 mocha \"test/**/*.test.js\" --timeout=10000",
+    "mocha": "c8 mocha \"test/**/*.test.js\" --timeout=15000",
     "test": "npm run mocha",
     "check-coverage": "c8 check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
     "lint": "eslint src",

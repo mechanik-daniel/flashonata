@@ -400,6 +400,7 @@ var fumifier = (function() {
     let inlineResult;
 
     // Determine kind and possible children, resourceType, and profileUrl
+    // if this element has a fixed value, it will be returned immediately (no expression will be evaluated)
     let kind;
     let children = [];
     let resourceType;
@@ -429,6 +430,7 @@ var fumifier = (function() {
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
       if (def.__fixedValue) {
+        // short circuit if the element has a fixed value
         return {
           '@@__flashRuleResult': true,
           key: def.__name[0],
@@ -466,8 +468,9 @@ var fumifier = (function() {
       }
 
       // flash rule or contextualized rule - a flashrule result object or an array of such
-      // we append to the gouping key in the subExpressionResults object
       const groupingKey = Array.isArray(res) ? res[0].key : res.key;
+
+      // we append to the gouping key in the subExpressionResults object
       const values = fn.append(subExpressionResults[groupingKey], res);
       subExpressionResults[groupingKey] = Array.isArray(values) ? values : [values];
     }
@@ -504,7 +507,7 @@ var fumifier = (function() {
           continue;
         }
 
-        // we will first normalize the __name into an array of grouping keys
+        // we will first normalize the possible names of this element into an array of grouping keys
         const names = [];
         if (child.__name.length === 1) {
           // single name - check if poly
@@ -530,8 +533,9 @@ var fumifier = (function() {
         }
 
         // now that we have an array of names for this child, we will assign the attribute to the result object.
-        // the values can come either from the inline expression having an attribute with the same name,
-        // or from the subExpressionResults object that contains the evaluated flash rules.
+        // the values can come from the inline expression having an attribute with the same name,
+        // from the subExpressionResults object that contains the evaluated flash rules, or from attempting
+        // to evaluate the child as a virtual rule and getting automatic values as the result.
         // inline attributes will only be taken if their key matches the base json element name (no slices)
 
         // start by keeping all the matching values for this element in an array
@@ -599,13 +603,34 @@ var fumifier = (function() {
           }
         }
 
+        // at this point, if we have no collected values for this element but it is mandatory,
+        // we will try to evaluate it as a virtual rule.
+        if (values.length === 0) {
+          if (child.min === 0) continue; // skip if not mandatory
+          // try to evaluate the child as a virtual rule
+          const autoValue = await evaluate({
+            type: 'unary',
+            value: '[',
+            isFlashRule: true,
+            expressions: [],
+            instanceof: expr.instanceof, // use the same instanceof as the parent flash block or rule
+            flashPathRefKey: child.__flashPathRefKey,
+            position: expr.position,
+            start: expr.start,
+            line: expr.line
+          }, undefined, environment);
+          // if the autoValue is undefined, we skip this child element
+          if (typeof autoValue === 'undefined') {
+            continue;
+          } else {
+            values.push({ name: autoValue.key, kind: autoValue.kind, value: [autoValue.value] });
+          }
+        }
+
         // values now contain all collected values for this child element, each wrapped in an object containing the json element name.
         // since arrays and polymorphics are mutually exclusive, we can safely take the last value if it's polymorphic,
         // and all values if it's an array.
-        if (values.length === 0) {
-          // no values for this child element, skip it
-          continue;
-        }
+
         let finalValue;
         if (child.__name.length > 1) {
           // polymorphic element - take the last value (only one type is allowed)
