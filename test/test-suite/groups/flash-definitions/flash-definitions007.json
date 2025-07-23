@@ -1,6 +1,6 @@
 {
     "skip": false,
-    "expr": "Instance: 'abc'\r\nInstanceOf: Patient\r\n$semivar := 'semival';\r\n* name.given = first_name\r\n  $var := 'val'\r\n  * birthDate",
+    "expr": "InstanceOf: il-core-patient\r\n$a:=val\r\n* identifier[il-id].value.extension[dar]\r\n  $a:=ttt\r\n  * url = expr1\r\n  $a := something",
     "data": null,
     "bindings": {},
     "code": "F2002"

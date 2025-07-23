@@ -1,6 +1,0 @@
-{
-    "skip": false,
-    "expr": "Instance: 'abc'\nInstanceOf: abc",
-    "description": "FLASH block for a non-existant StructureDefinition, with `Instance:` declaration",
-    "code": "F2001"
-}

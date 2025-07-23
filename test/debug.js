@@ -188,8 +188,12 @@ void async function () {
 
 // a.b.c.($='1' ?: %.%.z)
 
-InstanceOf: Patient
-* extension[ext-il-hmo]//.value.text = a.b.%.z
+InstanceOf: bp
+// * extension[ext-il-hmo].extension
+  // * value.text = a.b.%.z
+  // * url = 'http://example.com/identifier-system'
+  // * extension
+    // * url = 'http://example.com/extension-url'
   `;
 
   var expr;

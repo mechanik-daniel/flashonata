@@ -1,7 +1,8 @@
 {
     "skip": false,
-    "expr": "InstanceOf: il-core-patient\r\n* identifier[2 - 1].value = field1",
+    "expr": "InstanceOf: Annotation\n* author",
+    "description": "FLASH rule referencing a polymorphic element",
     "data": null,
     "bindings": {},
-    "code": "F1027"
+    "code": "F2004"
 }

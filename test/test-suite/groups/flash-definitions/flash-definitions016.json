@@ -1,8 +1,0 @@
-{
-    "skip": false,
-    "expr": "InstanceOf: Annotation\n* author",
-    "description": "FLASH rule referencing a polymorphic element",
-    "data": null,
-    "bindings": {},
-    "code": "F2004"
-}

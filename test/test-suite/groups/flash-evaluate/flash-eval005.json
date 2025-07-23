@@ -1,11 +1,7 @@
 {
   "skip": false,
-  "expr": "InstanceOf: Patient\n* id = $resourceId & '-concat'",
-  "description": "Instance of Patient with id rule only - string concatenation on variable",
+  "expr": "Instance: ''\nInstanceOf: CodeableConcept",
+  "description": "Instance of CodeableConcept with falsy id set in `Instance:`",
   "data": null,
-  "bindings": {"resourceId": "ab-c.123-CAPITAL-then-lower.case"},
-  "result": {
-    "resourceType": "Patient",
-    "id": "ab-c.123-CAPITAL-then-lower.case-concat"
-  }
+  "undefinedResult": true
 }

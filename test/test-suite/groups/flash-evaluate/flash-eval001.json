@@ -1,7 +1,11 @@
 {
-  "expr": "InstanceOf: Basic\n* id = 'abc_123'",
-  "description": "Instance of Basic with both invalid string id rule and missing required element",
+  "skip": false,
+  "expr": "InstanceOf: Patient\n* id = 'ab-c.123-CAPITAL-then-lower.case'",
+  "description": "Instance of Patient with id rule only, literal string assigned (valid)",
   "data": null,
   "bindings": {},
-  "code": "F3001"
+  "result": {
+    "resourceType": "Patient",
+    "id": "ab-c.123-CAPITAL-then-lower.case"
+  }
 }

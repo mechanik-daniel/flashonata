@@ -1,0 +1,7 @@
+{
+  "expr": "InstanceOf: Basic\n* id = 'abc_123'",
+  "description": "Instance of Basic with both invalid string id rule and missing required element",
+  "data": null,
+  "bindings": {},
+  "code": "F3001"
+}
