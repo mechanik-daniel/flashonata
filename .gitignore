@@ -1,5 +1,5 @@
 coverage/
-dist/
+/dist/
 doc/
 fumifier.js
 fumifier.min.js

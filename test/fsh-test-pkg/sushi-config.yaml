@@ -1,0 +1,25 @@
+# ╭─────────────────────────Commonly Used ImplementationGuide Properties───────────────────────────╮
+# │  The properties below are used to create the ImplementationGuide resource. The most commonly   │
+# │  used properties are included. For a list of all supported properties and their functions,     │
+# │  see: https://fshschool.org/docs/sushi/configuration/.                                         │
+# ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+id: fumifier.test.pkg
+canonical: http://test.fumifier.fume.health/fhir
+name: FumifierTestPkg
+title: Fumifier Test Package
+description: Test package for Fumifier
+status: draft # draft | active | retired | unknown
+version: 0.1.0
+fhirVersion: 4.0.1 # https://www.hl7.org/fhir/valueset-FHIR-version.html
+copyrightYear: 2025+
+releaseLabel: test
+publisher:
+  name: Outburn Ltd.
+  url: https://outburn.health
+
+# dependencies:
+  # hl7.fhir.us.mcode:
+
+menu:
+  Home: index.html
+  Artifacts: artifacts.html

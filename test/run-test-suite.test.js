@@ -53,7 +53,7 @@ describe("Fumifier Test Suite", () => {
   var navigator;
   before(async () => {
     const fsg = await FhirSnapshotGenerator.create({
-      context: ['il.core.fhir.r4#0.17.0'],
+      context: ['il.core.fhir.r4#0.17.0', 'fumifier.test.pkg#0.1.0'],
       cachePath: './test/.test-cache',
       fhirVersion: '4.0.1',
       cacheMode: 'lazy'
