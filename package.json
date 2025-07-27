@@ -8,13 +8,15 @@
   "type": "module",
   "scripts": {
     "debug": "node test/debug.js",
-    "pretest": "npm run lint",
+    "pretest": "npm run lint && npm run install:fsh-package",
     "mocha": "c8 mocha \"test/**/*.test.js\" --timeout=15000",
     "test": "npm run mocha",
     "check-coverage": "c8 check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
     "lint": "eslint src",
     "cover": "c8 mocha",
-    "test:preprocessAst": "c8 mocha \"test/pre-process-ast.test.js\" --timeout=10000"
+    "test:preprocessAst": "c8 mocha \"test/pre-process-ast.test.js\" --timeout=10000",
+    "build:sushi": "rimraf test/fsh-test-pkg/dist && sushi -s test/fsh-test-pkg -o test/fsh-test-pkg/dist && node test/create-fsh-manifest.js && npm run install:fsh-package",
+    "install:fsh-package": "rimraf test/.test-cache/fumifier.test.pkg#0.1.0 && node test/install-fsh-package.js"
   },
   "license": "Apache-2.0",
   "keywords": [
