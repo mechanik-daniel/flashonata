@@ -1,0 +1,18 @@
+{
+  "expr": "InstanceOf: Patient\n$patientId := 'patient-' & $count(encounters)\n* id = $patientId\n* name\n  $displayName := given[0] & ' ' & family\n  * text = $displayName",
+  "description": "Variable scoping - nested variable available only within its scope",
+  "data": {
+    "encounters": [1, 2, 3],
+    "given": ["Alice"],
+    "family": "Johnson"
+  },
+  "result": {
+    "resourceType": "Patient",
+    "id": "patient-3",
+    "name": [
+      {
+        "text": "Alice Johnson"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "expr": "InstanceOf: Patient\n* identifier = {\"system\": config.systemUrl, \"value\": patientData.id & \"-suffix\"}",
+  "description": "JSONata expression combining object literal with variable references",
+  "data": {
+    "config": {
+      "systemUrl": "http://example.org/patient-ids"
+    },
+    "patientData": {
+      "id": "12345"
+    }
+  },
+  "result": {
+    "resourceType": "Patient",
+    "identifier": [
+      {
+        "system": "http://example.org/patient-ids",
+        "value": "12345-suffix"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "expr": "InstanceOf: Patient\n$defaultActive := true\n$statusText := active ? 'Active Patient' : 'Inactive Patient'\n* active = $defaultActive\n* name.text = $statusText",
+  "description": "Variable with conditional expression and boolean default value",
+  "data": {
+    "active": false
+  },
+  "result": {
+    "resourceType": "Patient",
+    "active": true,
+    "name": [
+      {
+        "text": "Inactive Patient"
+      }
+    ]
+  }
+}

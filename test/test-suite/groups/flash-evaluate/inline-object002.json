@@ -1,0 +1,14 @@
+{
+  "expr": "InstanceOf: Patient\n* name = {\n    \"family\": \"Smith\",\n    \"given\": [\"John\", \"William\"]\n  }",
+  "description": "Inline object with array property assignment",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "family": "Smith",
+        "given": ["John", "William"]
+      }
+    ]
+  }
+}

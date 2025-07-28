@@ -1,0 +1,16 @@
+{
+  "expr": "InstanceOf: Patient\n* address = {\n    \"city\": \"Haifa\",\n    \"country\": \"IL\"\n  }\n  * postalCode = \"12345\"\n  * use = \"home\"",
+  "description": "Inline object with subrules that merge additional properties",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "city": "Haifa",
+        "country": "IL",
+        "postalCode": "12345",
+        "use": "home"
+      }
+    ]
+  }
+}

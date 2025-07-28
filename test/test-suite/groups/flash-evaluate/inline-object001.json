@@ -1,0 +1,14 @@
+{
+  "expr": "InstanceOf: Patient\n* address = {\n    \"city\": \"Haifa\",\n    \"country\": \"IL\"\n  }",
+  "description": "Basic inline complex type assignment with object literal",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "city": "Haifa",
+        "country": "IL"
+      }
+    ]
+  }
+}

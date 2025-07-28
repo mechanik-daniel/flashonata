@@ -369,7 +369,70 @@ var fumifier = (function() {
     // the input object into a @@__flashRuleResult structure
     // TEMP: we currently just return the value as is without validating its structure
     if (kind === 'complex-type' || kind === 'resource') {
+      // Handle inline object assignments - objects can come from:
+      // 1. Object literals: * address = { "city": "Haifa", "country": "IL" }
+      // 2. Variable references: * address = $myAddress
+      // 3. Function calls: * address = getAddress()
+      // 4. JSONata expressions: * address = input.patientAddress
+      // 5. Complex expressions: * address = { "city": input.city, "country": "IL" }
+
+      // For all cases, use the input as-is since JSONata evaluation should handle them properly
       result.value = input;
+    }
+
+    return result;
+  }
+
+  /**
+   * Recursively fixes arrays within inline objects based on FHIR element definitions.
+   * If a property in the object corresponds to a FHIR element with max != '1' and the value is an array,
+   * the array items are spread rather than treated as a nested array.
+   */
+  /**
+   * Recursively fixes arrays within inline objects based on FHIR element definitions.
+   * If a property in the object corresponds to a FHIR element with max != '1' and the value is an array,
+   * the array items are spread rather than treated as a nested array.
+   */
+  function fixArraysInInlineObject(obj, children, environment, parentPath = '') {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      return obj;
+    }
+
+    const result = { ...obj };
+
+    for (const [key, value] of Object.entries(result)) {
+      // Find the FHIR element definition for this key
+      const elementDef = children.find(child =>
+        child.__name && child.__name.includes(key)
+      );
+
+      // If this is an array field (max != '1') and we have an array value,
+      // the array should be used as-is, not wrapped in another array
+      if (elementDef && elementDef.max !== '1' && Array.isArray(value)) {
+        // For array fields, keep the array as-is - don't double-wrap
+        result[key] = value;
+      } else if (Array.isArray(value)) {
+        // For non-array fields, recursively process array elements
+        result[key] = value.map(item =>
+          (typeof item === 'object' && !Array.isArray(item)) ?
+            fixArraysInInlineObject(item, children, environment, `${parentPath}.${key}`) :
+            item
+        );
+      } else if (typeof value === 'object' && value !== null && elementDef) {
+        // For complex types, get the children of that type and recursively process
+        const typeCode = elementDef.type?.[0]?.code;
+        if (typeCode) {
+          try {
+            const typeChildren = getFhirTypeChildren(environment, typeCode);
+            result[key] = fixArraysInInlineObject(value, typeChildren, environment, `${parentPath}.${key}`);
+          } catch (error) {
+            // If we can't get type children, just process with current children
+            result[key] = fixArraysInInlineObject(value, children, environment, `${parentPath}.${key}`);
+          }
+        } else {
+          result[key] = fixArraysInInlineObject(value, children, environment, `${parentPath}.${key}`);
+        }
+      }
     }
 
     return result;
@@ -490,6 +553,13 @@ var fumifier = (function() {
         };
       }
 
+      // Fix arrays within inline objects by checking FHIR definitions
+      if (inlineResult && typeof inlineResult === 'object' && !Array.isArray(inlineResult)) {
+        inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
+      }
+
+
+
       // if it's a resource, set the resourceType as the first key
       if (resourceType) {
         result.resourceType = resourceType;
@@ -560,19 +630,42 @@ var fumifier = (function() {
             // if it's not a fhir primitive, we just take the value
             if (kindForName !== 'primitive-type') {
               value = inlineResult[name];
+              // If the value is an array and this element can have multiple values,
+              // spread the array items instead of treating the whole array as one value
+              if (Array.isArray(value) && child.max !== '1') {
+                valuesForName.push(...value);
+              } else {
+                valuesForName.push(value);
+              }
             } else {
               // if it's a fhir primitive, we convert it to an object
-              value = {
-                value: inlineResult[name]
-              };
-              const siblingName = '_' + name;
-              if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
-                // if there's a sibling element with the same name prefixed with '_',
-                // we will copy its properties to the value object
-                Object.assign(value, inlineResult[siblingName]);
+              const rawValue = inlineResult[name];
+
+              // If the value is an array and this element can have multiple values,
+              // treat each array item as a separate primitive value
+              if (Array.isArray(rawValue) && child.max !== '1') {
+                for (const item of rawValue) {
+                  const primitiveValue = { value: item };
+                  const siblingName = '_' + name;
+                  if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
+                    // if there's a sibling element with the same name prefixed with '_',
+                    // we will copy its properties to the value object
+                    Object.assign(primitiveValue, inlineResult[siblingName]);
+                  }
+                  valuesForName.push(primitiveValue);
+                }
+              } else {
+                // Single value or array treated as single value
+                const primitiveValue = { value: rawValue };
+                const siblingName = '_' + name;
+                if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
+                  // if there's a sibling element with the same name prefixed with '_',
+                  // we will copy its properties to the value object
+                  Object.assign(primitiveValue, inlineResult[siblingName]);
+                }
+                valuesForName.push(primitiveValue);
               }
             }
-            valuesForName.push(value);
           }
 
           // now check if the subExpressionResults has a value for this name
@@ -765,7 +858,7 @@ var fumifier = (function() {
         )
       );
 
-      if (!satisfied) {
+      if (!satisfied && !expr.isVirtualRule) {
         throw {
           code: "F3002",
           stack: (new Error()).stack,
@@ -773,7 +866,7 @@ var fumifier = (function() {
           start: expr.start,
           line: expr.line,
           fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
-          fhirElement: names.join(', ')
+          fhirElement: child.__flashPathRefKey.split('::')[1],
         };
       }
     }

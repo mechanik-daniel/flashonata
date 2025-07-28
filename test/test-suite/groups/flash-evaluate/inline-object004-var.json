@@ -1,0 +1,28 @@
+{
+  "expr": "InstanceOf: Patient\n* address = addresses.temp\n  * use = \"home\"",
+  "description": "Object property access with subrule that overrides existing property",
+  "data": {
+    "addresses": {
+      "temp": {
+        "city": "Haifa",
+        "country": "IL",
+        "use": "temp"
+      },
+      "work": {
+        "city": "Tel Aviv",
+        "country": "IL",
+        "use": "work"
+      }
+    }
+  },
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "city": "Haifa",
+        "country": "IL", 
+        "use": "home"
+      }
+    ]
+  }
+}

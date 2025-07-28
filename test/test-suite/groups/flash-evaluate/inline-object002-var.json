@@ -1,0 +1,25 @@
+{
+  "expr": "InstanceOf: Patient\n* name = names[0]",
+  "description": "Inline complex type assignment with array indexing (includes primitive array)",
+  "data": {
+    "names": [
+      {
+        "family": "Smith",
+        "given": ["John", "William"]
+      },
+      {
+        "family": "Doe", 
+        "given": ["Jane"]
+      }
+    ]
+  },
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "family": "Smith",
+        "given": ["John", "William"]
+      }
+    ]
+  }
+}

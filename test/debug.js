@@ -6,7 +6,7 @@ import fumifier from '../src/fumifier.js';
 import { FhirSnapshotGenerator } from 'fhir-snapshot-generator';
 import { FhirStructureNavigator } from '@outburn/structure-navigator';
 
-var context = ['il.core.fhir.r4#0.17.0'];
+var context = ['il.core.fhir.r4#0.17.0', 'fumifier.test.pkg#0.1.0'];
 
 void async function () {
   // var expression = `
@@ -188,12 +188,19 @@ void async function () {
 
 // a.b.c.($='1' ?: %.%.z)
 
-InstanceOf: bp
+// InstanceOf: bp
+// * status = 'final'
+// * subject.reference = 'Patient/123'
+// * effectiveDateTime = '2023-10-01T00:00:00Z'
 // * extension[ext-il-hmo].extension
   // * value.text = a.b.%.z
   // * url = 'http://example.com/identifier-system'
   // * extension
     // * url = 'http://example.com/extension-url'
+
+InstanceOf: SimpleLiberalExtension
+* valueString = 'http://example.com/identifier-system'
+// * value = '123-456-789'
   `;
 
   var expr;

@@ -1,0 +1,9 @@
+{
+  "expr": "InstanceOf: Patient\n* active = true",
+  "description": "Simple test to verify basic Patient creation works",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "active": true
+  }
+}

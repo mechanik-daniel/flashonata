@@ -1,0 +1,9 @@
+{
+  "expr": "InstanceOf: SimpleLiberalExtension\n* valueString = 'http://example.com/identifier-system'",
+  "description": "Extension instance with automatic URL injection for mandatory fixed element",
+  "data": null,
+  "result": {
+    "url": "http://test.fumifier.fume.health/fhir/StructureDefinition/SimpleLiberalExtension",
+    "valueString": "http://example.com/identifier-system"
+  }
+}

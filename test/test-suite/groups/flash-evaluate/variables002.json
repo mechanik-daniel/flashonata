@@ -1,0 +1,14 @@
+{
+  "expr": "InstanceOf: Patient\n$firstName := 'John'\n$lastName := 'Doe'\n* name\n  * given = $firstName\n  * family = $lastName",
+  "description": "Multiple variable declarations used in different rules with proper indentation",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "given": ["John"],
+        "family": "Doe"
+      }
+    ]
+  }
+}

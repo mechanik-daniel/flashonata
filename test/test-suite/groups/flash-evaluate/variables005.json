@@ -1,0 +1,22 @@
+{
+  "expr": "InstanceOf: Patient\n$systemUrl := 'http://example.org/patient-id'\n* identifier\n  * system = $systemUrl\n  * value = patientId\n* extension[SimpleLiberalExtension]\n  $extValue := 'computed-' & patientId\n  * valueString = $extValue",
+  "description": "Variable declarations used across different elements and nested contexts",
+  "data": {
+    "patientId": "12345"
+  },
+  "result": {
+    "resourceType": "Patient",
+    "identifier": [
+      {
+        "system": "http://example.org/patient-id",
+        "value": "12345"
+      }
+    ],
+    "extension": [
+      {
+        "url": "http://test.fumifier.fume.health/fhir/StructureDefinition/SimpleLiberalExtension",
+        "valueString": "computed-12345"
+      }
+    ]
+  }
+}

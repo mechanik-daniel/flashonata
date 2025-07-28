@@ -1,0 +1,16 @@
+{
+  "expr": "InstanceOf: Patient\n$fullName := firstName & ' ' & lastName\n* name.text = $fullName",
+  "description": "Variable declaration with JSONata expression using input data",
+  "data": {
+    "firstName": "Jane",
+    "lastName": "Smith"
+  },
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "text": "Jane Smith"
+      }
+    ]
+  }
+}
