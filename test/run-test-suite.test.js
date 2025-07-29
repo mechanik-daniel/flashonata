@@ -24,6 +24,13 @@ const __dirname = path.dirname(__filename);
 
 let groups = fs.readdirSync(path.join(__dirname, "test-suite", "groups")).filter((name) => !name.endsWith(".json"));
 
+// Filter groups for flash-only mode if --flash-only argument is passed
+if (process.argv.includes('--flash-only')) {
+  groups = groups.filter(group => group.includes('flash'));
+  // eslint-disable-next-line no-console
+  console.log('🔥 Running in FLASH-ONLY mode - filtered groups:', groups);
+}
+
 /**
  * Simple function to read in JSON
  * @param {string} dir - Directory containing JSON file
