@@ -188,18 +188,18 @@ void async function () {
 
 // a.b.c.($='1' ?: %.%.z)
 
-// InstanceOf: bp
-// * status = 'final'
-// * subject.reference = 'Patient/123'
-// * effectiveDateTime = '2023-10-01T00:00:00Z'
+InstanceOf: bp
+* status = 'final'
+* subject.reference = 'Patient/123'
+* effectiveDateTime = '2023-10-01T00:00:00Z'
 // * extension[ext-il-hmo].extension
   // * value.text = a.b.%.z
   // * url = 'http://example.com/identifier-system'
   // * extension
     // * url = 'http://example.com/extension-url'
 
-InstanceOf: SimpleLiberalExtension
-* valueString = 'http://example.com/identifier-system'
+// InstanceOf: SimpleLiberalExtension
+// * valueString = 'http://example.com/identifier-system'
 // * value = '123-456-789'
   `;
 

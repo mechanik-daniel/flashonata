@@ -384,6 +384,101 @@ var fumifier = (function() {
   }
 
   /**
+   * Recursively flattens FHIR primitive values in an object.
+   * Converts {"value": "primitive"} to "primitive" while preserving sibling properties.
+   */
+  function flattenPrimitiveValues(obj, children, environment) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      return obj;
+    }
+
+    if (!children || !Array.isArray(children)) {
+      // If we don't have children, try a simple heuristic approach
+      // Look for objects with a 'value' property that might be FHIR primitives
+      const result = { ...obj };
+      for (const [key, value] of Object.entries(result)) {
+        if (value && typeof value === 'object' && !Array.isArray(value) &&
+            value.value !== undefined && Object.keys(value).length >= 1) {
+          // This looks like a FHIR primitive, flatten it
+          result[key] = value.value;
+
+          // Handle sibling properties
+          const props = Object.keys(value).filter(k => k !== 'value');
+          if (props.length > 0) {
+            const siblingKey = '_' + key;
+            result[siblingKey] = props.reduce((acc, k) => {
+              acc[k] = value[k];
+              return acc;
+            }, {});
+          }
+        } else if (Array.isArray(value)) {
+          // Recursively process array elements
+          result[key] = value.map(item => flattenPrimitiveValues(item, children, environment));
+        } else if (value && typeof value === 'object') {
+          // Recursively process nested objects
+          result[key] = flattenPrimitiveValues(value, children, environment);
+        }
+      }
+      return result;
+    }
+
+    const result = { ...obj };
+
+    for (const [key, value] of Object.entries(result)) {
+      // Find the FHIR element definition for this key
+      const elementDef = children.find(child =>
+        child.__name && child.__name.includes(key)
+      );
+
+      if (elementDef && elementDef.__kind === 'primitive-type' &&
+          value && typeof value === 'object' && !Array.isArray(value) &&
+          value.value !== undefined) {
+        // This is a FHIR primitive object, flatten it
+        result[key] = value.value;
+
+        // Handle sibling properties (those starting with _)
+        const props = Object.keys(value).filter(k => k !== 'value');
+        if (props.length > 0) {
+          const siblingKey = '_' + key;
+          result[siblingKey] = props.reduce((acc, k) => {
+            acc[k] = value[k];
+            return acc;
+          }, {});
+        }
+      } else if (Array.isArray(value)) {
+        // Recursively process array elements
+        result[key] = value.map(item => {
+          if (typeof item === 'object' && !Array.isArray(item) && elementDef) {
+            const typeCode = elementDef.type?.[0]?.code;
+            if (typeCode) {
+              try {
+                const typeChildren = getFhirTypeChildren(environment, typeCode);
+                return flattenPrimitiveValues(item, typeChildren, environment);
+              } catch (error) {
+                return flattenPrimitiveValues(item, children, environment);
+              }
+            }
+          }
+          return item;
+        });
+      } else if (typeof value === 'object' && value !== null && elementDef) {
+        // Recursively process nested objects
+        const typeCode = elementDef.type?.[0]?.code;
+        if (typeCode) {
+          try {
+            const typeChildren = getFhirTypeChildren(environment, typeCode);
+            result[key] = flattenPrimitiveValues(value, typeChildren, environment);
+          } catch (error) {
+            result[key] = flattenPrimitiveValues(value, children, environment);
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Recursively fixes arrays within inline objects based on FHIR element definitions.
    * If a property in the object corresponds to a FHIR element with max != '1' and the value is an array,
    * the array items are spread rather than treated as a nested array.
@@ -743,7 +838,41 @@ var fumifier = (function() {
               finalValue.value = [finalValue.value[finalValue.value.length - 1]];
             }
             if (typeof finalValue.value !== 'undefined' && (typeof finalValue.value === 'boolean' || boolize(finalValue.value))) {
-              result[finalValue.name] = finalValue.value;
+              // Flatten any FHIR primitive values within complex type objects before assignment
+              let valueToAssign = finalValue.value;
+              if (finalValue.kind === 'complex-type' || finalValue.kind === 'resource') {
+                if (Array.isArray(valueToAssign)) {
+                  valueToAssign = valueToAssign.map(item => {
+                    if (item && typeof item === 'object' && !Array.isArray(item)) {
+                      // Get the children for this specific complex type
+                      const elementDef = children.find(c => c.__name && c.__name.includes(finalValue.name));
+                      if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
+                        try {
+                          const typeChildren = getFhirTypeChildren(environment, elementDef.type[0].code);
+                          return flattenPrimitiveValues(item, typeChildren, environment);
+                        } catch (error) {
+                          // Fallback to current children if type children can't be retrieved
+                          return flattenPrimitiveValues(item, children, environment);
+                        }
+                      }
+                    }
+                    return item;
+                  });
+                } else if (valueToAssign && typeof valueToAssign === 'object') {
+                  // Get the children for this specific complex type
+                  const elementDef = children.find(c => c.__name && c.__name.includes(finalValue.name));
+                  if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
+                    try {
+                      const typeChildren = getFhirTypeChildren(environment, elementDef.type[0].code);
+                      valueToAssign = flattenPrimitiveValues(valueToAssign, typeChildren, environment);
+                    } catch (error) {
+                      // Fallback to current children if type children can't be retrieved
+                      valueToAssign = flattenPrimitiveValues(valueToAssign, children, environment);
+                    }
+                  }
+                }
+              }
+              result[finalValue.name] = valueToAssign;
             }
           } else {
             // if it's a fhir primitive, we need to convert the array to two arrays -
@@ -820,7 +949,33 @@ var fumifier = (function() {
         const colonIndex = key.indexOf(':');
         if (colonIndex !== -1) {
           const parentKey = key.slice(0, colonIndex);
-          result[parentKey] = fn.append(result[parentKey], result[key]);
+          let sliceValue = result[key];
+
+          // Get the element definition for the parent to determine the type
+          const parentElementDef = children.find(c => c.__name && c.__name.includes(parentKey));
+          let typeChildren = children; // fallback
+
+          if (parentElementDef && parentElementDef.type && parentElementDef.type[0] && parentElementDef.type[0].code) {
+            try {
+              typeChildren = getFhirTypeChildren(environment, parentElementDef.type[0].code);
+            } catch (error) {
+              // Use fallback children
+            }
+          }
+
+          // Flatten primitive values in slice results before appending
+          if (sliceValue && typeof sliceValue === 'object' && !Array.isArray(sliceValue)) {
+            sliceValue = flattenPrimitiveValues(sliceValue, typeChildren, environment);
+          } else if (Array.isArray(sliceValue)) {
+            sliceValue = sliceValue.map(item => {
+              if (item && typeof item === 'object' && !Array.isArray(item)) {
+                return flattenPrimitiveValues(item, typeChildren, environment);
+              }
+              return item;
+            });
+          }
+
+          result[parentKey] = fn.append(result[parentKey], sliceValue);
           // delete the slice key from the result
           delete result[key];
         }
@@ -831,7 +986,12 @@ var fumifier = (function() {
       // if meta is missing entirely, create it
         if (!result.meta) {
         // if it was missing, we need to put it right after the id, before all other properties
-          result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
+          const hasId = Object.prototype.hasOwnProperty.call(result, 'id');
+          if (hasId) {
+            result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
+          } else {
+            result = { resourceType, meta: { profile: [profileUrl] }, ...result };
+          }
         } else if (!result.meta.profile || !Array.isArray(result.meta.profile)){
           result.meta.profile = [profileUrl];
         } else if (!result.meta.profile.includes(profileUrl)) {
