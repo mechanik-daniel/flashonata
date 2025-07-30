@@ -15,3 +15,5 @@ test/ast.json
 test/fsh-test-pkg/dist/fsh-generated/data/
 test/fsh-test-pkg/dist/fsh-generated/includes/
 test/fsh-test-pkg/dist/fsh-generated/fsh-index.txt
+debug-logs.txt
+debug-result.json

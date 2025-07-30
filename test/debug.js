@@ -219,8 +219,12 @@ void async function () {
 // InstanceOf: ObsCodeOnly
 // * status = 'unknown'
 
-InstanceOf: Patient
-* extension[HearingLossDisability]
+// InstanceOf: Patient
+// * extension[HearingLossDisability]
+
+// InstanceOf: HearingLossDisability
+
+InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code.coding[MandatorySlice].display = 'Required display'
   `;
 
   console.log('Starting debug script...');
@@ -228,7 +232,10 @@ InstanceOf: Patient
   var expr;
   try {
     console.log('Compiling expression...');
-    expr = await fumifier(expression, { navigator });
+    expr = await fumifier(expression, {
+      navigator,
+      verbose: true  // Enable verbose logging
+    });
     console.log('Expression compiled successfully');
   } catch (e) {
     console.error('Error compiling expression:', e);
@@ -237,24 +244,61 @@ InstanceOf: Patient
   // console.log('Expression compiled:', expr.toString());
 
   console.log('Evaluating expression...');
-  var res = await expr.evaluate({
-    patientId: "12345"
-  });
-  console.log('Expression evaluated successfully');
-  // console.log('ast', JSON.stringify(await expr.ast(), null, 2));
-  // write the ast to a file
-  fs.writeFileSync(path.join('test', 'ast.json'), JSON.stringify(await expr.ast(), null, 2));
+  var res;
+  var evaluationError = null;
 
-  console.log('Result', JSON.stringify(res, null, 2));
+  try {
+    res = await expr.evaluate({
+      patientId: "12345"
+    });
+    console.log('Expression evaluated successfully');
+  } catch (e) {
+    console.error('Error evaluating expression:', e);
+    evaluationError = e;
+  }
 
-  // Write results to file for analysis
+  // Always export logs, regardless of success or failure
+  console.log('\n=== VERBOSE LOGS ===');
+  console.log(expr.exportLogs());
+
+  // Always save logs to file for analysis
+  if (expr.logs().length > 0) {
+    fs.writeFileSync('debug-logs.txt', expr.exportLogs());
+    console.log('\nVerbose logs written to debug-logs.txt');
+  }
+
+  // Write AST to file if available
+  try {
+    fs.writeFileSync(path.join('test', 'ast.json'), JSON.stringify(await expr.ast(), null, 2));
+    console.log('AST written to test/ast.json');
+  } catch (e) {
+    console.warn('Could not write AST:', e.message);
+  }
+
+  // Write results to file for analysis (including errors)
   const output = {
     expression: expression.trim(),
-    result: res,
+    result: evaluationError ? undefined : res,
+    error: evaluationError ? {
+      message: evaluationError.message,
+      code: evaluationError.code,
+      stack: evaluationError.stack,
+      position: evaluationError.position,
+      start: evaluationError.start
+    } : undefined,
     timestamp: new Date().toISOString()
   };
   fs.writeFileSync('debug-result.json', JSON.stringify(output, null, 2));
   console.log('Results written to debug-result.json');
+
+  if (res) {
+    console.log('Result', JSON.stringify(res, null, 2));
+  }
+
+  if (evaluationError) {
+    console.error('\nEvaluation failed with error:', evaluationError);
+    return; // Exit the function but logs are already saved
+  }
 
 //   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
 }();

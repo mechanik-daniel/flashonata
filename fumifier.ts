@@ -9,7 +9,8 @@ declare namespace fumifier {
 
   interface FumifierOptions {
     recover?: boolean,
-    navigator?: FhirStructureNavigator
+    navigator?: FhirStructureNavigator,
+    verbose?: boolean
   }
 
   interface ExprNode {
@@ -70,6 +71,9 @@ declare namespace fumifier {
     assign(name: string, value: any): void;
     registerFunction(name: string, implementation: (this: Focus, ...args: any[]) => any, signature?: string): void;
     ast(): ExprNode;
+    logs(): Array<any>;
+    exportLogs(): string;
+    clearLogs(): void;
   }
 }
 
