@@ -188,10 +188,10 @@ void async function () {
 
 // a.b.c.($='1' ?: %.%.z)
 
-InstanceOf: bp
-* status = 'final'
-* subject.reference = 'Patient/123'
-* effectiveDateTime = '2023-10-01T00:00:00Z'
+// InstanceOf: bp
+// * status = 'final'
+// * subject.reference = 'Patient/123'
+// * effectiveDateTime = '2023-10-01T00:00:00Z'
 // * extension[ext-il-hmo].extension
   // * value.text = a.b.%.z
   // * url = 'http://example.com/identifier-system'
@@ -201,30 +201,60 @@ InstanceOf: bp
 // InstanceOf: SimpleLiberalExtension
 // * valueString = 'http://example.com/identifier-system'
 // * value = '123-456-789'
+
+// InstanceOf: TestSliceValidation
+// * status = 'unknown'
+// * code.coding[MandatorySlice].display = 'required display'
+// * code.coding[OptionalSlice]
+// * code.coding[MandatorySlice]
+
+// InstanceOf: TestSliceValidation
+// * status = 'unknown'
+// * code.coding[MandatorySlice].display = 'required display'
+
+// InstanceOf: TestSliceValidation
+// * status = 'unknown'
+// * code
+
+// InstanceOf: ObsCodeOnly
+// * status = 'unknown'
+
+InstanceOf: Patient
+* extension[HearingLossDisability]
   `;
+
+  console.log('Starting debug script...');
 
   var expr;
   try {
+    console.log('Compiling expression...');
     expr = await fumifier(expression, { navigator });
+    console.log('Expression compiled successfully');
   } catch (e) {
     console.error('Error compiling expression:', e);
     return;
   }
   // console.log('Expression compiled:', expr.toString());
 
+  console.log('Evaluating expression...');
   var res = await expr.evaluate({
-    a: {
-      b: {
-        c: 'd'
-      },
-      z: 'sibling'
-    }
+    patientId: "12345"
   });
+  console.log('Expression evaluated successfully');
   // console.log('ast', JSON.stringify(await expr.ast(), null, 2));
   // write the ast to a file
   fs.writeFileSync(path.join('test', 'ast.json'), JSON.stringify(await expr.ast(), null, 2));
 
   console.log('Result', JSON.stringify(res, null, 2));
+
+  // Write results to file for analysis
+  const output = {
+    expression: expression.trim(),
+    result: res,
+    timestamp: new Date().toISOString()
+  };
+  fs.writeFileSync('debug-result.json', JSON.stringify(output, null, 2));
+  console.log('Results written to debug-result.json');
 
 //   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
 }();
