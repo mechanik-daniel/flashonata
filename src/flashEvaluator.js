@@ -645,6 +645,7 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} subExpressionResults - Sub-expression results
    * @param {Object} expr - Original flash expression
    * @param {Object} environment - Environment
+   * @param {Object} virtualRuleErrors - Object to collect virtual rule errors
    * @returns {Promise<Array>} Promise resolving to array of processed values
    */
   async function processChildValues(child, inlineResult, subExpressionResults, expr, environment) {
@@ -687,7 +688,7 @@ function createFlashEvaluator(evaluate) {
     // at this point, if we have no collected values for this element but it is mandatory,
     // we will try to evaluate it as a virtual rule.
     if (values.length === 0) {
-      if (child.min === 0 || child.type.length > 1) return values; // skip if not mandatory, or if polymorphic
+      if (child.min === 0 || child.type.length > 1) return { values }; // skip if not mandatory, or if polymorphic
 
       // try to evaluate the child as a virtual rule
       try {
@@ -732,17 +733,18 @@ function createFlashEvaluator(evaluate) {
           });
         }
       } catch (error) {
-        // If virtual rule evaluation fails, skip this child element silently
-        // This allows the parent evaluation to continue and potentially succeed
-        // with other children that might be provided
+        // For virtual rule errors during explicit assignment processing, collect but don't throw yet
+        // The parent will check if other flash rules provided values for this element
         const verboseLogger = environment.lookup('__verbose_logger');
         if (verboseLogger) {
-          verboseLogger.info('processChildValues', `Virtual rule evaluation failed for ${child.__flashPathRefKey}, skipping`, { error: error.code });
+          verboseLogger.info('processChildValues', `Virtual rule evaluation failed for ${child.__flashPathRefKey}, will be handled by parent`, { error: error.code });
         }
+        // Return the error along with the values so parent can decide what to do
+        return { values, virtualRuleError: error, childInfo: child };
       }
     }
 
-    return values;
+    return { values };
   }
 
   /**
@@ -1123,8 +1125,10 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} result - Result object
    * @param {Array} children - Children definitions
    * @param {Object} expr - Original expression
+   * @param {Array} collectedVirtualRuleErrors - Array of collected virtual rule errors from children processing
+   * @param {boolean} deferVirtualRuleErrors - Whether to defer virtual rule errors for potential merging
    */
-  function validateMandatoryChildren(result, children, expr) {
+  function validateMandatoryChildren(result, children, expr, collectedVirtualRuleErrors = [], deferVirtualRuleErrors = false) {
     // Ensure mandatory children exist
     for (const child of children) {
       // skip non-mandatory children
@@ -1143,7 +1147,19 @@ function createFlashEvaluator(evaluate) {
         )
       );
 
-      if (!satisfied && !expr.isVirtualRule) {
+      if (!satisfied) {
+        // If we should defer virtual rule errors for potential merging, don't throw yet
+        if (deferVirtualRuleErrors) {
+          continue; // Skip validation for this child, allow merging to happen
+        }
+
+        // If we have virtual rule errors and the element is still missing,
+        // then the virtual rule failure explains why - throw the first one
+        if (collectedVirtualRuleErrors.length > 0) {
+          throw collectedVirtualRuleErrors[0].error;
+        }
+
+        // Otherwise throw a generic mandatory element missing error
         throw {
           code: "F3002",
           stack: (new Error()).stack,
@@ -1211,6 +1227,7 @@ function createFlashEvaluator(evaluate) {
       let inlineResult = rawInlineResult;
 
       let result;
+      const collectedVirtualRuleErrors = [];
       if (kind === 'system') {
         // system primitive - the result is just the inline expression.
         // there could not be any child expressions
@@ -1266,14 +1283,22 @@ function createFlashEvaluator(evaluate) {
             });
           }
 
-          const values = await processChildValues(child, inlineResult, subExpressionResults, expr, environment);
+          const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment);
 
-          if (values.length > 0) {
-            assignValuesToResult(result, child, values, children, environment);
+          // Collect any virtual rule errors
+          if (childResult.virtualRuleError) {
+            collectedVirtualRuleErrors.push({
+              error: childResult.virtualRuleError,
+              childInfo: childResult.childInfo
+            });
+          }
+
+          if (childResult.values.length > 0) {
+            assignValuesToResult(result, child, childResult.values, children, environment);
             if (verboseLogger) {
               verboseLogger.info('evaluateFlash', 'Assigned child values', {
                 childName: child.__name[0],
-                valueCount: values.length,
+                valueCount: childResult.values.length,
                 isArray: child.max !== '1'
               });
             }
@@ -1295,7 +1320,15 @@ function createFlashEvaluator(evaluate) {
         result = injectMetaProfile(result, resourceType, profileUrl);
       }
 
-      validateMandatoryChildren(result, children, expr);
+      // Determine if we should defer virtual rule errors for potential merging
+      // Only defer for non-virtual explicit rules targeting non-array elements
+      // Don't defer for array slices (e.g., code.coding[SliceA])
+      const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
+      const isNonArrayElement = elementDefinition && elementDefinition.max === '1';
+      const isArraySlice = expr.flashPathRefKey && expr.flashPathRefKey.includes('[') && expr.flashPathRefKey.includes(']');
+      const shouldDeferVirtualRuleErrors = expr.isFlashRule && !expr.isVirtualRule && isNonArrayElement && !isArraySlice;
+
+      validateMandatoryChildren(result, children, expr, collectedVirtualRuleErrors, shouldDeferVirtualRuleErrors);
 
       if (expr.isFlashRule) {
         // if it's a flash rule, process and return the result as a flash rule

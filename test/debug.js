@@ -224,7 +224,15 @@ void async function () {
 
 // InstanceOf: HearingLossDisability
 
-InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code.coding[MandatorySlice].display = 'Required display'
+// InstanceOf: TestInheritedConstraints
+// * status = 'unknown'
+// * code.text = 'Required text'
+// * code.coding[MandatorySlice].display = 'Required display'
+
+InstanceOf: TestInheritedConstraints
+* status = 'unknown'
+* code.text = 'Required text'
+* code.coding[MandatorySlice].display = 'Required display'
   `;
 
   console.log('Starting debug script...');
