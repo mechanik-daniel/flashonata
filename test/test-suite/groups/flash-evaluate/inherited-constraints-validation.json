@@ -8,7 +8,7 @@
     "notes": "Should fail: code.text satisfied but MandatorySlice.display still missing"
   },
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code.coding[MandatorySlice].display = 'Required display'",
     "description": "Complete profile with all constraints satisfied - should PASS",
     "data": null,

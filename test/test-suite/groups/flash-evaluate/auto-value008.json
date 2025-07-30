@@ -1,6 +1,6 @@
 [
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: Patient\n* extension[HearingLossDisability]",
     "description": "Auto injection of full valid extension inside a Patient resource using empty rule with a virtual slice",
     "data": null,

@@ -18,6 +18,7 @@ Description: "A test profile to validate that top-level constraints are inherite
 // Mandatory slice
 * code.coding contains MandatorySlice 1..1
 * code.coding[MandatorySlice].system = "http://example.com/mandatory" (exactly)
+* code.coding[MandatorySlice].code 1..1
 * code.coding[MandatorySlice].code = #MANDATORY (exactly)
 
 // Optional slice
