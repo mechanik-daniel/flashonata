@@ -1,0 +1,47 @@
+[
+  {
+    "skip": true,
+    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code",
+    "description": "Case 1: Auto-generate code without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display",
+    "data": null,
+    "code": "F3002",
+    "notes": "This should fail because SliceA is mandatory (min=1) and SliceA.display is mandatory (min=1)"
+  },
+  {
+    "skip": true,
+    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code.coding",
+    "description": "Case 2: Auto-generate coding without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display", 
+    "data": null,
+    "code": "F3002",
+    "notes": "Same as Case 1 - should fail because the mandatory slice is auto-created but display is missing"
+  },
+  {
+    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code.coding[SliceA]",
+    "description": "Case 3: Explicit slice notation without display - should FAIL validation due to missing mandatory display",
+    "data": null,
+    "code": "F3002",
+    "notes": "This currently works correctly - fails validation as expected"
+  },
+  {
+    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code.coding[SliceA].display = 'test display'",
+    "description": "Case 4: Complete slice with all mandatory elements - should PASS",
+    "data": null,
+    "result": {
+      "resourceType": "Observation",
+      "meta": {
+        "profile": ["http://test.fumifier.fume.health/fhir/StructureDefinition/ObsCodeOnly"]
+      },
+      "status": "unknown",
+      "code": {
+        "coding": [
+          {
+            "system": "http://example.com/vital-signs-code",
+            "code": "123",
+            "display": "test display"
+          }
+        ]
+      }
+    },
+    "notes": "This should pass - all mandatory elements are present"
+  }
+]

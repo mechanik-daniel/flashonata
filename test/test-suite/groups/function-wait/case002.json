@@ -1,6 +1,6 @@
 {
-    "expr": "($a:=$rightNow();ms.($wait($));$b:=$rightNow();$round(($b-$a)/1000))",
-    "data": { "ms": [500,500,100,100,100,200,500] },
+    "expr": "($a:=$rightNow();ms.($wait($));$b:=$rightNow();($b-$a)>= 28)",
+    "data": { "ms": [1,2,3,4,5,6,7] },
     "bindings": {},
-    "result": 2
+    "result": true
 }

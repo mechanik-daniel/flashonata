@@ -1,0 +1,72 @@
+[
+  {
+    "skip": true,
+    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code",
+    "description": "Auto-generate code (should create MandatorySlice but FAIL on missing display)",
+    "data": null,
+    "code": "F3002",
+    "notes": "Should fail: MandatorySlice is required (min=1) and its display is mandatory (min=1)"
+  },
+  {
+    "skip": true,
+    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding",
+    "description": "Auto-generate coding (should create MandatorySlice but FAIL on missing display)",
+    "data": null, 
+    "code": "F3002",
+    "notes": "Should fail: Same as above - mandatory slice auto-created but display missing"
+  },
+  {
+    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[MandatorySlice]",
+    "description": "Explicit mandatory slice without display - should FAIL",
+    "data": null,
+    "code": "F3002",
+    "notes": "Should fail: Explicitly targeting mandatory slice but display is missing"
+  },
+  {
+    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[MandatorySlice].display = 'required display'",
+    "description": "Complete mandatory slice - should PASS",
+    "data": null,
+    "result": {
+      "resourceType": "Observation",
+      "meta": {
+        "profile": ["http://test.fumifier.fume.health/fhir/StructureDefinition/TestSliceValidation"]
+      },
+      "status": "unknown",
+      "code": {
+        "coding": [
+          {
+            "system": "http://example.com/optional-or-mandatory",
+            "code": "MANDATORY", 
+            "display": "required display"
+          }
+        ]
+      }
+    },
+    "notes": "Should pass: All mandatory elements present"
+  },
+  {
+    "skip": true,
+    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[OptionalSlice]",
+    "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL", 
+    "data": null,
+    "code": "F3002",
+    "notes": "Should fail: Optional slice may be valid but the mandatory slice is missing its display (min=1)"
+  },
+  {
+    "expr": "InstanceOf: Observation\n* status = 'unknown'\n* code.coding.system = 'http://example.com/test'",
+    "description": "Base Observation (control) - should PASS",
+    "data": null,
+    "result": {
+      "resourceType": "Observation",
+      "status": "unknown",
+      "code": {
+        "coding": [
+          {
+            "system": "http://example.com/test"
+          }
+        ]
+      }
+    },
+    "notes": "Control: Base Observation has no slice constraints, should always pass"
+  }
+]

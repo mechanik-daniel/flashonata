@@ -1,0 +1,42 @@
+[
+  {
+    "skip": true,
+    "expr": "InstanceOf: Patient\n* extension[HearingLossDisability]",
+    "description": "Auto injection of full valid extension inside a Patient resource using empty rule with a virtual slice",
+    "data": null,
+    "result": {
+      "resourceType": "Patient",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-disability",
+          "valueCodeableConcept": {
+            "coding": [
+              {
+                "code": "15188001",
+                "system": "http://snomed.info/sct",
+                "display": "Hearing loss (disorder)"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "expr": "InstanceOf: HearingLossDisability",
+    "description": "Auto generation of full valid extension as standalone flash declaration with no rules",
+    "data": null,
+    "result": {
+      "url": "http://hl7.org/fhir/StructureDefinition/patient-disability",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "15188001",
+            "system": "http://snomed.info/sct",
+            "display": "Hearing loss (disorder)"
+          }
+        ]
+      }
+    }
+  }
+]

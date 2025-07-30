@@ -1,6 +1,6 @@
 {
-    "expr": "ms.($wait($))",
-    "data": { "ms": [500,500] },
+    "expr": "(ms.($wait($));$now()=$rightNow() ? true : undefined)",
+    "data": { "ms": [1,2] },
     "bindings": {},
     "undefinedResult": true
 }

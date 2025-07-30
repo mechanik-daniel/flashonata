@@ -1,0 +1,33 @@
+[
+  {
+    "skip": true,
+    "expr": "InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code",
+    "description": "Auto-generate code with inherited constraint satisfied (should still FAIL on slice display)",
+    "data": null,
+    "code": "F3002", 
+    "notes": "Should fail: code.text satisfied but MandatorySlice.display still missing"
+  },
+  {
+    "skip": true,
+    "expr": "InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code.coding[MandatorySlice].display = 'Required display'",
+    "description": "Complete profile with all constraints satisfied - should PASS",
+    "data": null,
+    "result": {
+      "resourceType": "Observation",
+      "meta": {
+        "profile": ["http://test.fumifier.fume.health/fhir/StructureDefinition/TestInheritedConstraints"]
+      },
+      "status": "unknown",
+      "code": {
+        "text": "Required text",
+        "coding": [
+          {
+            "system": "http://example.com/mandatory",
+            "code": "MANDATORY",
+            "display": "Required display"
+          }
+        ]
+      }
+    }
+  }
+]

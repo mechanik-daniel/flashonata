@@ -1,6 +1,0 @@
-{
-    "expr": "($a:=$rightNow();$wait(ms);$b:=$rightNow();$round(($b-$a)/1000))",
-    "data": { "ms": 1000 },
-    "bindings": {},
-    "result": 1
-}
