@@ -89,6 +89,14 @@
       },
       {
         "reference": {
+          "reference": "StructureDefinition/ObsCodeOnly"
+        },
+        "name": "Observation.code Only",
+        "description": "A subset of an observation profile with only the code mandatory",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
           "reference": "StructureDefinition/OrganizationBasicProfile"
         },
         "name": "OrganizationBasicProfile",
@@ -148,6 +156,22 @@
         },
         "name": "SimpleMonopolyExtension",
         "description": "An extension that only confines the value[x] polymorphic to a single type",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
+          "reference": "StructureDefinition/TestInheritedConstraints"
+        },
+        "name": "Test Inherited Constraints Profile",
+        "description": "A test profile to validate that top-level constraints are inherited into slices",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
+          "reference": "StructureDefinition/TestSliceValidation"
+        },
+        "name": "Test Slice Validation Profile",
+        "description": "A test profile to validate slice-specific vs non-slice validation behavior",
         "exampleBoolean": false
       }
     ],

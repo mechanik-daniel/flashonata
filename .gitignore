@@ -13,3 +13,6 @@ npm-debug.log
 test/.test-cache
 test/ast.json
 .vscode/
+test/fsh-test-pkg/dist/fsh-generated/data/
+test/fsh-test-pkg/dist/fsh-generated/includes/
+test/fsh-test-pkg/dist/fsh-generated/fsh-index.txt
