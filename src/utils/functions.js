@@ -1441,6 +1441,16 @@ const functions = (() => {
   }
 
   /**
+     * Convert a value to boolean, with undefined mapping to false
+     * @param {*} value - Value to convert to boolean
+     * @returns {boolean} Boolean value (never undefined)
+     */
+  function boolize(value) {
+    var booledValue = boolean(value);
+    return typeof booledValue === 'undefined' ? false : booledValue;
+  }
+
+  /**
      * returns the Boolean NOT of the arg
      * @param {*} arg - argument
      * @returns {boolean} - NOT arg
@@ -2167,7 +2177,7 @@ const functions = (() => {
     string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
     match, contains, replace, split, join, startsWith, endsWith, isNumeric: _isNumeric,
     formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
-    boolean, not,
+    boolean, boolize, not,
     map, zip, filter, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
