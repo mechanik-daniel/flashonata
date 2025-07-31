@@ -9,6 +9,14 @@
   },
   {
     "skip": false,
+    "description": "Blood pressure with incomplete SystolicBP slice - missing mandatory unit",
+    "data": null,
+    "code": "F3002",
+    "notes": "Should fail: SystolicBP slice has value but missing mandatory unit element",
+    "expr-file": "inherited-constraints-validation-bp.fume"
+  },
+  {
+    "skip": false,
     "description": "Complete profile with all constraints satisfied - should PASS",
     "data": null,
     "result": {
