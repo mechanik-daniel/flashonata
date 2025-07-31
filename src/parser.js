@@ -286,13 +286,6 @@ const parser = (() => {
       node.position = next_token.position;
       node.start = next_token.start;
       node.line = next_token.line;
-      if (Object.prototype.hasOwnProperty.call(symbol, 'indent')) {
-        // we explicitly add the indent member to the node so it would show in the resulting tree when stringified.
-        // Otherwise it may look like the indent number wasn't registered because attributes inherited from
-        // the prototype object are hidden (like the id, lbp, nud and led). This helps debugging and enables AST serialization.
-        node.indent = symbol.indent;
-        // TODO: remove this when the parser is stabilized and serialization is no longer a priority
-      }
       return node;
     };
 
