@@ -1,0 +1,8 @@
+InstanceOf: Patient
+$systemUrl := 'http://example.org/patient-id'
+* identifier
+  * system = $systemUrl
+  * value = patientId
+* extension[SimpleLiberalExtension]
+  $extValue := 'computed-' & patientId
+  * valueString = $extValue

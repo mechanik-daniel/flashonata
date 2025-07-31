@@ -1,0 +1,5 @@
+(
+  InstanceOf: TestSliceValidation
+  * status = 'unknown'
+  * code.coding[MandatorySlice].display = 'required display'
+) ~> $keys()

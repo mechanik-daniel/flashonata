@@ -1,7 +1,7 @@
 {
   "skip": false,
-  "expr": "Instance: ''\nInstanceOf: CodeableConcept",
   "description": "Instance of CodeableConcept with falsy id set in `Instance:`",
   "data": null,
-  "undefinedResult": true
+  "undefinedResult": true,
+  "expr-file": "flash-eval005.fume"
 }

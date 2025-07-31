@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* identifier = {\n    \"system\": systemUrl,\n    \"value\": patientId & \"-suffix\"\n  }",
   "description": "Inline object with JSONata expressions referencing input data",
   "data": {
     "systemUrl": "http://example.org/patient-ids",
@@ -13,5 +12,6 @@
         "value": "12345-suffix"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object006.fume"
 }

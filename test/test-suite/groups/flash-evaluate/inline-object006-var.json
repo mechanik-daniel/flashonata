@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* identifier = {\"system\": config.systemUrl, \"value\": patientData.id & \"-suffix\"}",
   "description": "JSONata expression combining object literal with variable references",
   "data": {
     "config": {
@@ -17,5 +16,6 @@
         "value": "12345-suffix"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object006-var.fume"
 }

@@ -1,15 +1,19 @@
 {
-  "expr": "InstanceOf: Patient\n* name = names[0]",
   "description": "Inline complex type assignment with array indexing (includes primitive array)",
   "data": {
     "names": [
       {
         "family": "Smith",
-        "given": ["John", "William"]
+        "given": [
+          "John",
+          "William"
+        ]
       },
       {
-        "family": "Doe", 
-        "given": ["Jane"]
+        "family": "Doe",
+        "given": [
+          "Jane"
+        ]
       }
     ]
   },
@@ -18,8 +22,12 @@
     "name": [
       {
         "family": "Smith",
-        "given": ["John", "William"]
+        "given": [
+          "John",
+          "William"
+        ]
       }
     ]
-  }
+  },
+  "expr-file": "inline-object002-var.fume"
 }

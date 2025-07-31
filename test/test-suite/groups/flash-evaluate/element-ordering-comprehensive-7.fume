@@ -1,0 +1,5 @@
+(
+  InstanceOf: Extension
+  * url = 'http://example.com/test'
+  * valueString = 'test value'
+) ~> $keys()

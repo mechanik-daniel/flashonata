@@ -1,7 +1,7 @@
 {
-    "skip": false,
-    "expr": "field42.(InstanceOf: il-core-patient\r\n* identifier[il-id].value = field1)",
-    "data": null,
-    "bindings": {},
-    "undefinedResult": true
+  "skip": false,
+  "data": null,
+  "bindings": {},
+  "undefinedResult": true,
+  "expr-file": "flash-eval010.fume"
 }

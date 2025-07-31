@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* name = {\n    \"family\": \"Smith\",\n    \"given\": [\"John\", \"William\"]\n  }",
   "description": "Inline object with array property assignment",
   "data": null,
   "result": {
@@ -7,8 +6,12 @@
     "name": [
       {
         "family": "Smith",
-        "given": ["John", "William"]
+        "given": [
+          "John",
+          "William"
+        ]
       }
     ]
-  }
+  },
+  "expr-file": "inline-object002.fume"
 }

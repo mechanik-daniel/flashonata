@@ -1,0 +1,6 @@
+(
+  InstanceOf: bp
+  * status = 'final'
+  * subject.reference = 'Patient/123'
+  * effectiveDateTime = '2023-10-01T00:00:00Z'
+).component[0].code.coding[0] ~> $keys()

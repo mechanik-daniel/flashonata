@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* extension[SimpleLiberalExtension].valueString = '42'",
   "description": "Extension with automatic URL injection inside a Patient resource",
   "data": null,
   "result": {
@@ -10,5 +9,6 @@
         "valueString": "42"
       }
     ]
-  }
+  },
+  "expr-file": "auto-value005.fume"
 }

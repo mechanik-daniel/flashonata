@@ -1,0 +1,2 @@
+field42.(InstanceOf: il-core-patient
+* identifier[il-id].value = field1)

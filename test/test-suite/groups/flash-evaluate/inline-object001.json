@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* address = {\n    \"city\": \"Haifa\",\n    \"country\": \"IL\"\n  }",
   "description": "Basic inline complex type assignment with object literal",
   "data": null,
   "result": {
@@ -10,5 +9,6 @@
         "country": "IL"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object001.fume"
 }

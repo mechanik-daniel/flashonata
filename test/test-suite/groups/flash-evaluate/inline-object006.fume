@@ -1,0 +1,5 @@
+InstanceOf: Patient
+* identifier = {
+    "system": systemUrl,
+    "value": patientId & "-suffix"
+  }

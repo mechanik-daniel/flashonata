@@ -1,0 +1,6 @@
+(
+  InstanceOf: CodeableConcept
+  * text = 'Display text'
+  * coding.code = 'test-code'
+  * coding.system = 'http://example.com'
+) ~> $keys()

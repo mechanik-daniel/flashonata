@@ -1,56 +1,55 @@
 [
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n) ~> $keys()",
     "description": "Element ordering: bp profile with auto-injected category and component elements - keys should be in FHIR order",
     "data": null,
     "result": [
       "resourceType",
-      "meta", 
+      "meta",
       "status",
       "category",
       "code",
       "subject",
       "effectiveDateTime",
       "component"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: ext-il-hmo\n  * value.text = 'HMO Name'\n) ~> $keys()",
     "description": "Element ordering: Extension with auto-injected url - url should come before value",
     "data": null,
     "result": [
       "url",
       "valueCodeableConcept"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-2.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: Patient\n  * active = true\n  * extension[ext-il-hmo].value.text = 'HMO Name'\n) ~> $keys()",
     "description": "Element ordering: Patient with auto-injected extension - extension should come before active despite being assigned after",
     "data": null,
     "result": [
       "resourceType",
       "extension",
       "active"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-3.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: TestSliceValidation\n  * status = 'unknown'\n  * code.coding[MandatorySlice].display = 'required display'\n) ~> $keys()",
     "description": "Element ordering: Profile with auto-injected slice values - all elements should be in FHIR order",
     "data": null,
     "result": [
       "resourceType",
       "meta",
-      "status", 
+      "status",
       "code"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-4.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * id = 'test-123'\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n) ~> $keys()",
     "description": "Element ordering: bp profile with id - id should come after resourceType but before meta",
     "data": null,
     "result": [
@@ -58,112 +57,113 @@
       "id",
       "meta",
       "status",
-      "category", 
+      "category",
       "code",
       "subject",
       "effectiveDateTime",
       "component"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-5.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: Reference\n  * display = 'John Doe'\n  * reference = 'Patient/123'\n) ~> $keys()",
     "description": "Element ordering: Simple Reference type - no auto-values, but order should still be correct (reference before display)",
     "data": null,
     "result": [
       "reference",
       "display"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-6.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: Extension\n  * url = 'http://example.com/test'\n  * valueString = 'test value'\n) ~> $keys()",
     "description": "Element ordering: Base Extension type - url should come before valueString",
     "data": null,
     "result": [
       "url",
       "valueString"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-7.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: CodeableConcept\n  * text = 'Display text'\n  * coding.code = 'test-code'\n  * coding.system = 'http://example.com'\n) ~> $keys()",
     "description": "Element ordering: CodeableConcept - coding should come before text",
     "data": null,
     "result": [
       "coding",
       "text"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-8.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: Patient\n  * active = true\n  * extension[ext-il-hmo].value.text = 'HMO Name'\n).extension[0] ~> $keys()",
     "description": "Element ordering: Nested extension object - url should come before valueCodeableConcept despite value being assigned first",
     "data": null,
     "result": [
       "url",
       "valueCodeableConcept"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-9.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * subject.display = 'John Doe'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n).subject ~> $keys()",
     "description": "Element ordering: Nested Reference object - reference should come before display",
     "data": null,
     "result": [
       "reference",
       "display"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-10.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n  * code.text = 'Blood Pressure'\n).code ~> $keys()",
     "description": "Element ordering: Nested CodeableConcept with auto-injected coding - coding should come before text",
     "data": null,
     "result": [
       "coding",
       "text"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-11.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n  * component[SystolicBP].code.text = 'Systolic BP'\n).component[0].code ~> $keys()",
     "description": "Element ordering: Deeply nested CodeableConcept in auto-injected component - coding should come before text",
     "data": null,
     "result": [
       "coding",
       "text"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-12.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: bp\n  * status = 'final'\n  * subject.reference = 'Patient/123'\n  * effectiveDateTime = '2023-10-01T00:00:00Z'\n).component[0].code.coding[0] ~> $keys()",
     "description": "Element ordering: Very deep nesting - Coding object with auto-injected system and code should be in FHIR order",
     "data": null,
     "result": [
       "system",
       "code"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-13.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: TestSliceValidation\n  * status = 'unknown'\n  * code\n    * text = 'Custom text'\n    * coding[MandatorySlice].display = 'required display'\n).code ~> $keys()",
     "description": "Element ordering: CodeableConcept with sliced coding - coding should come before text",
     "data": null,
     "result": [
       "coding",
       "text"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-14.fume"
   },
   {
     "skip": false,
-    "expr": "(\n  InstanceOf: TestSliceValidation\n  * status = 'unknown'\n  * code.coding[MandatorySlice].display = 'required display'\n).code.coding[0] ~> $keys()",
     "description": "Element ordering: Nested Coding with auto-injected values from slice - should be in FHIR order (system, code, display)",
     "data": null,
     "result": [
       "system",
       "code",
       "display"
-    ]
+    ],
+    "expr-file": "element-ordering-comprehensive-15.fume"
   }
 ]

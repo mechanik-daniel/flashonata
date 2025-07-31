@@ -1,0 +1,3 @@
+InstanceOf: Patient
+$fullName := firstName & ' ' & lastName
+* name.text = $fullName

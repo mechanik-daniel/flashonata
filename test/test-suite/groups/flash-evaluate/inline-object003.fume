@@ -1,0 +1,7 @@
+InstanceOf: Patient
+* address = {
+    "city": "Haifa",
+    "country": "IL"
+  }
+  * postalCode = "12345"
+  * use = "home"

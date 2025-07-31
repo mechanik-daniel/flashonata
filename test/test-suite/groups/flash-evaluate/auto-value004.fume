@@ -1,0 +1,2 @@
+InstanceOf: SimpleLiberalExtension
+* valueString = 'http://example.com/identifier-system'

@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* extension[ext-il-hmo].value.text = $",
   "description": "Injection of extension URL inside a Patient resource",
   "data": "HMO Name",
   "result": {
@@ -12,5 +11,6 @@
         }
       }
     ]
-  }
+  },
+  "expr-file": "auto-value001.fume"
 }

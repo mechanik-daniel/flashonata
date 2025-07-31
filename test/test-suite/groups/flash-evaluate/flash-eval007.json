@@ -1,10 +1,10 @@
 {
-    "skip": false,
-    "expr": "Instance: '123'\nInstanceOf: Patient",
-    "data": null,
-    "bindings": {},
-    "result": {
-        "resourceType": "Patient",
-        "id": "123"
-    }
+  "skip": false,
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "123"
+  },
+  "expr-file": "flash-eval007.fume"
 }

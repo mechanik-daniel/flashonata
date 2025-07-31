@@ -1,0 +1,5 @@
+InstanceOf: Patient
+$defaultActive := true
+$statusText := active ? 'Active Patient' : 'Inactive Patient'
+* active = $defaultActive
+* name.text = $statusText

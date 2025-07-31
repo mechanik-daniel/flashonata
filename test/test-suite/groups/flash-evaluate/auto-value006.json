@@ -1,6 +1,5 @@
 {
   "skip": false,
-  "expr": "InstanceOf: bp\n* status = 'final'\n* subject.reference = 'Patient/123'\n* effectiveDateTime = '2023-10-01T00:00:00Z'",
   "description": "Blood pressure profile with primitive flattening in auto-values - ensures FHIR primitives like system and code are flattened from {\"value\": \"primitive\"} to \"primitive\"",
   "data": null,
   "result": {
@@ -55,5 +54,6 @@
         }
       }
     ]
-  }
+  },
+  "expr-file": "auto-value006.fume"
 }

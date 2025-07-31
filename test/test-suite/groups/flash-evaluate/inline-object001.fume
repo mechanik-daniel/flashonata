@@ -1,0 +1,5 @@
+InstanceOf: Patient
+* address = {
+    "city": "Haifa",
+    "country": "IL"
+  }

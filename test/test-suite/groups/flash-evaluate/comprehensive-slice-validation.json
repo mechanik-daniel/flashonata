@@ -1,59 +1,60 @@
 [
   {
     "skip": false,
-    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code",
     "description": "Auto-generate code (should create MandatorySlice but FAIL on missing display)",
     "data": null,
     "code": "F3002",
-    "notes": "Should fail: MandatorySlice is required (min=1) and its display is mandatory (min=1)"
+    "notes": "Should fail: MandatorySlice is required (min=1) and its display is mandatory (min=1)",
+    "expr-file": "comprehensive-slice-validation.fume"
   },
   {
     "skip": false,
-    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding",
     "description": "Auto-generate coding (should create MandatorySlice but FAIL on missing display)",
-    "data": null, 
+    "data": null,
     "code": "F3002",
-    "notes": "Should fail: Same as above - mandatory slice auto-created but display missing"
+    "notes": "Should fail: Same as above - mandatory slice auto-created but display missing",
+    "expr-file": "comprehensive-slice-validation-2.fume"
   },
   {
-    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[MandatorySlice]",
     "description": "Explicit mandatory slice without display - should FAIL",
     "data": null,
     "code": "F3002",
-    "notes": "Should fail: Explicitly targeting mandatory slice but display is missing"
+    "notes": "Should fail: Explicitly targeting mandatory slice but display is missing",
+    "expr-file": "comprehensive-slice-validation-3.fume"
   },
   {
-    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[MandatorySlice].display = 'required display'",
     "description": "Complete mandatory slice - should PASS",
     "data": null,
     "result": {
       "resourceType": "Observation",
       "meta": {
-        "profile": ["http://test.fumifier.fume.health/fhir/StructureDefinition/TestSliceValidation"]
+        "profile": [
+          "http://test.fumifier.fume.health/fhir/StructureDefinition/TestSliceValidation"
+        ]
       },
       "status": "unknown",
       "code": {
         "coding": [
           {
             "system": "http://example.com/optional-or-mandatory",
-            "code": "MANDATORY", 
+            "code": "MANDATORY",
             "display": "required display"
           }
         ]
       }
     },
-    "notes": "Should pass: All mandatory elements present"
+    "notes": "Should pass: All mandatory elements present",
+    "expr-file": "comprehensive-slice-validation-4.fume"
   },
   {
     "skip": false,
-    "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[OptionalSlice]",
-    "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL", 
+    "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL",
     "data": null,
     "code": "F3002",
-    "notes": "Should fail: Optional slice may be valid but the mandatory slice is missing its display (min=1)"
+    "notes": "Should fail: Optional slice may be valid but the mandatory slice is missing its display (min=1)",
+    "expr-file": "comprehensive-slice-validation-5.fume"
   },
   {
-    "expr": "InstanceOf: Observation\n* status = 'unknown'\n* code.coding.system = 'http://example.com/test'",
     "description": "Base Observation (control) - should PASS",
     "data": null,
     "result": {
@@ -67,6 +68,7 @@
         ]
       }
     },
-    "notes": "Control: Base Observation has no slice constraints, should always pass"
+    "notes": "Control: Base Observation has no slice constraints, should always pass",
+    "expr-file": "comprehensive-slice-validation-6.fume"
   }
 ]

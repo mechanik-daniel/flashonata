@@ -1,20 +1,19 @@
 [
   {
     "skip": false,
-    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code",
     "description": "ObsCodeOnly profile with incomplete code - should fail validation for missing mandatory display in slice",
     "data": null,
-    "code": "F3002"
+    "code": "F3002",
+    "expr-file": "obs-code-only.fume"
   },
   {
     "skip": false,
-    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'",
     "description": "ObsCodeOnly profile without code - should fail validation for missing mandatory display element",
     "data": null,
-    "code": "F3002"
+    "code": "F3002",
+    "expr-file": "obs-code-only-2.fume"
   },
   {
-    "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code.coding[SliceA].display = 'there we go'",
     "description": "ObsCodeOnly profile with complete mandatory elements - should pass and generate correct auto-values",
     "data": null,
     "result": {
@@ -34,6 +33,7 @@
           }
         ]
       }
-    }
+    },
+    "expr-file": "obs-code-only-3.fume"
   }
 ]

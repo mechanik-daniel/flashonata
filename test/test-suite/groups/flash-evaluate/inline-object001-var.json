@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* address = $",
   "description": "Basic inline complex type assignment with variable reference",
   "data": {
     "city": "Haifa",
@@ -13,5 +12,6 @@
         "country": "IL"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object001-var.fume"
 }

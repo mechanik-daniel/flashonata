@@ -1,0 +1,3 @@
+InstanceOf: ObsCodeOnly
+* status = 'unknown'
+* code.coding[SliceA].display = 'test display'

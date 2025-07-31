@@ -1,6 +1,5 @@
 {
   "skip": false,
-  "expr": "Instance: 'abc'\nInstanceOf: Patient\r\n* (context ?? undefined).active = status='active'\r* name\r\n\t* given = first_name\r\n\t* family = last_name\r\n  * period\r\n\t  * start = '2000-01-01'\r\n* birthDate = birth_date\r\n* generalPractitioner\r\n\t* (abc).identifier\r\n    * assigner\r\n      * identifier\r\n        * assigner\r\n          * identifier\r\n            * assigner\r\n\t  \t\t\t    * (some_path.context_value).reference = 'Organization/123'\r\n  * display = primary_doctor.full_name",
   "data": null,
   "bindings": {},
   "result": {
@@ -13,5 +12,6 @@
         }
       }
     ]
-  }
+  },
+  "expr-file": "flash-eval009.fume"
 }

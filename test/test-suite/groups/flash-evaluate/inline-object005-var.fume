@@ -1,0 +1,7 @@
+InstanceOf: Patient
+* contact = contactInfo
+  * name
+    * family = "Emergency Contact"
+  * telecom
+    * system = "phone"
+    * value = "555-1234"

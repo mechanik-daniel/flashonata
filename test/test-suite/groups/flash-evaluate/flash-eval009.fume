@@ -1,0 +1,17 @@
+Instance: 'abc'
+InstanceOf: Patient
+* (context ?? undefined).active = status='active'* name
+	* given = first_name
+	* family = last_name
+  * period
+	  * start = '2000-01-01'
+* birthDate = birth_date
+* generalPractitioner
+	* (abc).identifier
+    * assigner
+      * identifier
+        * assigner
+          * identifier
+            * assigner
+	  			    * (some_path.context_value).reference = 'Organization/123'
+  * display = primary_doctor.full_name

@@ -1,7 +1,7 @@
 {
-    "skip": false,
-    "expr": "InstanceOf: il-core-patient\r\n* identifier[il-id].value = field1",
-    "data": null,
-    "bindings": {},
-    "code": "F3002"
+  "skip": false,
+  "data": null,
+  "bindings": {},
+  "code": "F3002",
+  "expr-file": "flash-eval-error003.fume"
 }

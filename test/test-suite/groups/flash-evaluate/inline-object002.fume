@@ -1,0 +1,5 @@
+InstanceOf: Patient
+* name = {
+    "family": "Smith",
+    "given": ["John", "William"]
+  }

@@ -1,7 +1,7 @@
 {
-    "skip": false,
-    "expr": "InstanceOf: SimpleQuantity\n* comparator = '>='",
-    "data": null,
-    "bindings": {},
-    "code": "F3008"
+  "skip": false,
+  "data": null,
+  "bindings": {},
+  "code": "F3008",
+  "expr-file": "flash-eval-error008.fume"
 }

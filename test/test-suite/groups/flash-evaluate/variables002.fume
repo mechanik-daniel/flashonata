@@ -1,0 +1,6 @@
+InstanceOf: Patient
+$firstName := 'John'
+$lastName := 'Doe'
+* name
+  * given = $firstName
+  * family = $lastName

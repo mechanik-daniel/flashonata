@@ -1,0 +1,6 @@
+InstanceOf: Patient
+$patientId := 'patient-' & $count(encounters)
+* id = $patientId
+* name
+  $displayName := given[0] & ' ' & family
+  * text = $displayName

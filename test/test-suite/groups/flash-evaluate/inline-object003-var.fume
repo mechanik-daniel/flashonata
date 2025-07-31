@@ -1,0 +1,4 @@
+InstanceOf: Patient
+* address = baseAddress
+  * postalCode = "12345"
+  * use = "home"

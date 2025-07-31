@@ -1,0 +1,3 @@
+InstanceOf: FixedSystemIdentifier
+* system = 'http://example.com/identifier-system'
+* value = '123-456-789'

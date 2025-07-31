@@ -1,8 +1,8 @@
 {
   "skip": false,
-  "expr": "InstanceOf: Patient\n* gender = ' male'",
   "description": "Instance of Patient with gender code failing regex validation",
   "data": null,
   "bindings": {},
-  "code": "F3001"
+  "code": "F3001",
+  "expr-file": "flash-eval-error004.fume"
 }

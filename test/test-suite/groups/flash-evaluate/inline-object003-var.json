@@ -1,6 +1,5 @@
 {
-  "expr": "InstanceOf: Patient\n* address = baseAddress\n  * postalCode = \"12345\"\n  * use = \"home\"",
-  "description": "Variable reference with subrules that merge additional properties", 
+  "description": "Variable reference with subrules that merge additional properties",
   "data": {
     "baseAddress": {
       "city": "Haifa",
@@ -17,5 +16,6 @@
         "use": "home"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object003-var.fume"
 }

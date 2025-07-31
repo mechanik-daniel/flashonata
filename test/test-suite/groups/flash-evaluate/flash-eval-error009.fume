@@ -1,0 +1,3 @@
+InstanceOf: Extension
+* url = 'abc'
+* value[SimpleQuantity].comparator = '>'

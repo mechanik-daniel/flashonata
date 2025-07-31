@@ -1,13 +1,15 @@
 {
-  "expr": "InstanceOf: Patient\n$firstName := 'John'\n* name.given = $firstName",
   "description": "Simple variable declaration and usage within flash block",
   "data": null,
   "result": {
     "resourceType": "Patient",
     "name": [
       {
-        "given": ["John"]
+        "given": [
+          "John"
+        ]
       }
     ]
-  }
+  },
+  "expr-file": "variables001.fume"
 }

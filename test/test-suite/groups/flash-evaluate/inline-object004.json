@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* address = {\n    \"city\": \"Haifa\",\n    \"country\": \"IL\",\n    \"use\": \"temp\"\n  }\n  * use = \"home\"",
   "description": "Inline object with subrule that overrides existing property",
   "data": null,
   "result": {
@@ -11,5 +10,6 @@
         "use": "home"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object004.fume"
 }

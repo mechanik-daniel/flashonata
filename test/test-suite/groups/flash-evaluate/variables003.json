@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n$fullName := firstName & ' ' & lastName\n* name.text = $fullName",
   "description": "Variable declaration with JSONata expression using input data",
   "data": {
     "firstName": "Jane",
@@ -12,5 +11,6 @@
         "text": "Jane Smith"
       }
     ]
-  }
+  },
+  "expr-file": "variables003.fume"
 }

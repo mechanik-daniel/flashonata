@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* contact = {\n    \"relationship\": [{\n      \"coding\": [{\n        \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0131\",\n        \"code\": \"C\"\n      }]\n    }]\n  }\n  * name\n    * family = \"Emergency Contact\"\n  * telecom\n    * system = \"phone\"\n    * value = \"555-1234\"",
   "description": "Complex nested inline object with subrules adding separate nested structures",
   "data": null,
   "result": {
@@ -27,5 +26,6 @@
         ]
       }
     ]
-  }
+  },
+  "expr-file": "inline-object005.fume"
 }

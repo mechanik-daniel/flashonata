@@ -1,8 +1,8 @@
 {
   "skip": false,
-  "expr": "InstanceOf: Binary\n* contentType = null",
   "description": "Instance of resource with valid id but required element null (Binary.contentType)",
   "data": {},
   "bindings": {},
-  "code": "F3002"
+  "code": "F3002",
+  "expr-file": "flash-eval-error006.fume"
 }

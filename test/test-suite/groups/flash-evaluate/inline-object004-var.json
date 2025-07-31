@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n* address = addresses.temp\n  * use = \"home\"",
   "description": "Object property access with subrule that overrides existing property",
   "data": {
     "addresses": {
@@ -20,9 +19,10 @@
     "address": [
       {
         "city": "Haifa",
-        "country": "IL", 
+        "country": "IL",
         "use": "home"
       }
     ]
-  }
+  },
+  "expr-file": "inline-object004-var.fume"
 }

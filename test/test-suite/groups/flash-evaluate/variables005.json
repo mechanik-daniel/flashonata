@@ -1,5 +1,4 @@
 {
-  "expr": "InstanceOf: Patient\n$systemUrl := 'http://example.org/patient-id'\n* identifier\n  * system = $systemUrl\n  * value = patientId\n* extension[SimpleLiberalExtension]\n  $extValue := 'computed-' & patientId\n  * valueString = $extValue",
   "description": "Variable declarations used across different elements and nested contexts",
   "data": {
     "patientId": "12345"
@@ -18,5 +17,6 @@
         "valueString": "computed-12345"
       }
     ]
-  }
+  },
+  "expr-file": "variables005.fume"
 }

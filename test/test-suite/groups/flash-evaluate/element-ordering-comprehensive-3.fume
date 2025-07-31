@@ -1,0 +1,5 @@
+(
+  InstanceOf: Patient
+  * active = true
+  * extension[ext-il-hmo].value.text = 'HMO Name'
+) ~> $keys()

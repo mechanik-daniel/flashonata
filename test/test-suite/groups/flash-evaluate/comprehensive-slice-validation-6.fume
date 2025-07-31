@@ -1,0 +1,3 @@
+InstanceOf: Observation
+* status = 'unknown'
+* code.coding.system = 'http://example.com/test'
