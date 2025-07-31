@@ -108,11 +108,16 @@ function createFlashEvaluator(evaluate) {
       // handle numeric fhir types
       if (['decimal', 'integer', 'positiveInt', 'integer64', 'unsignedInt'].includes(fhirTypeCode)) {
         // numeric primitive - cast as number.
-        // TODO: how to retain decimal percision in js?? not sure it's possible...
+        // TODO: FHIR spec requires preserving decimal precision for presentation purposes (e.g., 1.00 vs 1)
+        // JavaScript natively supports only floating point numbers, causing loss of precision for trailing zeros.
+        // FHIR JSON spec suggests using custom parsers and big number libraries (e.g. javascript-bignum) to meet this requirement.
+        // Most JavaScript-based FHIR implementations face this same limitation due to JSON.parse() behavior.
+        // Alternative approach: Define an extension to preserve original string representation alongside the numeric value.
+        // This would be standards-compliant and solve the interoperability issue without breaking JSON compatibility.
         if (valueType === 'number') {
-          return input; // already a number
+          return input; // already a number (precision already lost if input came from JSON.parse)
         } else if (valueType === 'string') {
-          return Number(input); // convert string to number
+          return Number(input); // convert string to number (precision lost here)
         } else if (valueType === 'boolean') {
           return input ? 1 : 0; // convert boolean to number
         }
