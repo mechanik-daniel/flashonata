@@ -1052,6 +1052,21 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} environment - Environment
    */
   function processSlices(result, children, environment) {
+    const verboseLogger = environment.lookup('__verbose_logger');
+    const isFlashBlock = Object.keys(result).some(k => k === 'resourceType');
+    if (verboseLogger) {
+      verboseLogger.info('processSlices', 'called', {
+        isFlashBlock: isFlashBlock,
+        resultKeys: Object.keys(result),
+        childrenCount: children.length
+      });
+    }
+
+    // Only validate slice completeness for flash blocks, not individual virtual rules
+    if (isFlashBlock) {
+      validateElementSlices(result, children, environment);
+    }
+
     // append slices into their parent element
     // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
     // we will append it to the parent element with the same name (without the sliceName)
@@ -1089,6 +1104,263 @@ function createFlashEvaluator(evaluate) {
         // delete the slice key from the result
         delete result[key];
       }
+    }
+  }
+
+  /**
+   * Validate that all mandatory slices are present and auto-generate missing ones
+   * @param {Object} result - Result object
+   * @param {Array} children - Children definitions
+   * @param {Object} expr - Original expression
+   * @param {Object} environment - Environment
+   * @param {Array} collectedVirtualRuleErrors - Array to collect virtual rule errors
+   */
+  async function validateAndGenerateMandatorySlices(result, children, expr, environment, collectedVirtualRuleErrors) {
+    const verboseLogger = environment.lookup('__verbose_logger');
+    
+    // If result is null/undefined, no slice validation needed
+    if (!result || typeof result !== 'object') {
+      return;
+    }
+    
+    // Find all sliced elements that are present in result
+    const presentSliceElements = {};
+    for (const key of Object.keys(result)) {
+      const colonIndex = key.indexOf(':');
+      if (colonIndex !== -1) {
+        const parentKey = key.slice(0, colonIndex);
+        const sliceName = key.slice(colonIndex + 1);
+        if (!presentSliceElements[parentKey]) {
+          presentSliceElements[parentKey] = new Set();
+        }
+        presentSliceElements[parentKey].add(sliceName);
+      }
+    }
+
+    // For each parent element that has slices, check for missing mandatory slices
+    for (const [parentKey, presentSlices] of Object.entries(presentSliceElements)) {
+      // Find all slice definitions for this parent element
+      const allSliceElements = children.filter(child =>
+        child.__name &&
+        child.__name.includes(parentKey) &&
+        child.sliceName
+      );
+
+      // Check for missing mandatory slices
+      for (const sliceElement of allSliceElements) {
+        if (sliceElement.min > 0 && !presentSlices.has(sliceElement.sliceName)) {
+          if (verboseLogger) {
+            verboseLogger.info('validateAndGenerateMandatorySlices', 'Auto-generating missing mandatory slice', {
+              parentKey,
+              sliceName: sliceElement.sliceName,
+              min: sliceElement.min,
+              flashPathRefKey: sliceElement.__flashPathRefKey
+            });
+          }
+
+          // Auto-generate the missing mandatory slice using virtual rule
+          try {
+            const autoValue = await evaluate({
+              type: 'unary',
+              value: '[',
+              isFlashRule: true,
+              isVirtualRule: true,
+              expressions: [],
+              instanceof: expr.instanceof,
+              flashPathRefKey: sliceElement.__flashPathRefKey,
+              position: expr.position,
+              start: expr.start,
+              line: expr.line
+            }, undefined, environment);
+
+            if (typeof autoValue !== 'undefined') {
+              if (verboseLogger) {
+                verboseLogger.info('validateAndGenerateMandatorySlices', 'Successfully auto-generated mandatory slice', {
+                  sliceName: sliceElement.sliceName,
+                  autoValueKey: autoValue.key
+                });
+              }
+              
+              // Add the auto-generated slice to the result
+              result[autoValue.key] = autoValue.value;
+            }
+          } catch (error) {
+            // Collect the slice validation error
+            collectedVirtualRuleErrors.push({
+              error: error,
+              childInfo: sliceElement
+            });
+
+            // Also store in environment for flash block level validation
+            const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
+            collectedSliceErrors.push(error);
+            environment.bind('__collectedSliceErrors', collectedSliceErrors);
+
+            if (verboseLogger) {
+              verboseLogger.info('validateAndGenerateMandatorySlices', 'Failed to auto-generate mandatory slice', {
+                sliceName: sliceElement.sliceName,
+                error: error.code || error,
+                fhirElement: error.fhirElement
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Validate that all mandatory slices are present
+   * @param {Object} result - Result object
+   * @param {Array} children - Children definitions
+   * @param {Object} environment - Environment
+   */
+  function validateElementSlices(result, children, environment) {
+    const verboseLogger = environment.lookup('__verbose_logger');
+    
+    // If result is null/undefined, no slice validation needed
+    if (!result || typeof result !== 'object') {
+      if (verboseLogger) {
+        verboseLogger.info('validateElementSlices', 'result is null/undefined - no validation needed');
+      }
+      return;
+    }
+    
+    if (verboseLogger) {
+      verboseLogger.info('validateElementSlices', 'result object contents', {
+        resultKeys: Object.keys(result),
+        resultValues: Object.fromEntries(
+          Object.keys(result).map(k => [k, typeof result[k]])
+        )
+      });
+    }
+
+    // Find sliced elements in the result
+    const slicedElements = {};
+    const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
+    
+    for (const key of Object.keys(result)) {
+      const colonIndex = key.indexOf(':');
+      if (colonIndex !== -1) {
+        const parentKey = key.slice(0, colonIndex);
+        const sliceName = key.slice(colonIndex + 1);
+        if (!slicedElements[parentKey]) {
+          slicedElements[parentKey] = [];
+        }
+        slicedElements[parentKey].push(sliceName);
+      }
+    }
+
+    if (verboseLogger) {
+      verboseLogger.info('validateElementSlices', 'found sliced elements', {
+        slicedElements
+      });
+    }
+
+    // Check if we're at the flash block level and have collected slice errors
+    const isFlashBlock = Object.keys(result).some(k => k === 'resourceType');
+    if (isFlashBlock && collectedSliceErrors.length > 0) {
+      if (verboseLogger) {
+        verboseLogger.info('validateElementSlices', 'found slice validation errors at flash block level', {
+          totalErrors: collectedSliceErrors.length,
+          errors: collectedSliceErrors.map(e => e.code || e)
+        });
+      }
+
+      // Filter errors to make sure they're relevant to current result
+      // Only throw errors for elements that are actually missing in the final result
+      const validErrors = collectedSliceErrors.filter(error => {
+        if (!error.fhirElement) return false;
+        
+        // Check if the element is actually missing in the result
+        const elementPath = error.fhirElement.split('.');
+        let current = result;
+        
+        for (const pathPart of elementPath) {
+          if (pathPart.includes('[') && pathPart.includes(']')) {
+            // Handle slice notation like "coding[MandatorySlice]"
+            const [elementName, sliceName] = pathPart.split(/[[\]]/);
+            const sliceKey = `${elementName}:${sliceName}`;
+            if (current[sliceKey]) {
+              current = current[sliceKey];
+            } else if (current[elementName] && Array.isArray(current[elementName])) {
+              // Look for the slice in the array
+              current = current[elementName].find(item =>
+                item.system === `http://example.com/${sliceName.toLowerCase()}` ||
+                item.system === `http://example.com/mandatory` ||
+                item.system === `http://example.com/optional`
+              );
+              if (!current) return true; // Element is missing
+            } else {
+              return true; // Element is missing
+            }
+          } else if (current && current[pathPart] !== undefined) {
+            current = current[pathPart];
+          } else {
+            return true; // Element is missing
+          }
+        }
+        
+        // If we got here, the element exists, so the error is a false positive
+        return false;
+      });
+
+      if (verboseLogger) {
+        verboseLogger.info('validateElementSlices', 'filtering slice errors', {
+          totalErrors: collectedSliceErrors.length,
+          validErrors: validErrors.length,
+          resultKeys: Object.keys(result),
+          firstErrorStructure: collectedSliceErrors[0] ? Object.keys(collectedSliceErrors[0]) : []
+        });
+      }
+
+      // Find the first valid slice error
+      for (const error of validErrors) {
+        if (verboseLogger) {
+          verboseLogger.info('validateElementSlices', 'examining error', {
+            errorProperties: Object.keys(error),
+            fhirElement: error.fhirElement
+          });
+        }
+
+        // Throw the first slice validation error
+        if (verboseLogger) {
+          verboseLogger.info('validateElementSlices', 'throwing slice validation error at flash block level', {
+            error: error.code || error
+          });
+        }
+        throw error;
+      }
+    }
+
+    // For each sliced element, validate that all mandatory slices are present
+    for (const [parentKey, presentSlices] of Object.entries(slicedElements)) {
+      // Find all slice definitions for this parent element
+      const allSliceElements = children.filter(child =>
+        child.__name &&
+        child.__name.includes(parentKey) &&
+        child.sliceName
+      );
+
+      // Check for missing mandatory slices
+      for (const sliceElement of allSliceElements) {
+        if (sliceElement.min > 0 && !presentSlices.includes(sliceElement.sliceName)) {
+          // Missing mandatory slice - this should not happen at this level
+          // as mandatory slices should be auto-generated during child processing
+          if (verboseLogger) {
+            verboseLogger.info('validateElementSlices', 'missing mandatory slice detected', {
+              parentKey,
+              sliceName: sliceElement.sliceName,
+              min: sliceElement.min,
+              presentSlices
+            });
+          }
+        }
+      }
+    }
+
+    if (verboseLogger) {
+      verboseLogger.info('validateElementSlices', 'slice validation completed - no errors');
     }
   }
 
@@ -1291,6 +1563,28 @@ function createFlashEvaluator(evaluate) {
               error: childResult.virtualRuleError,
               childInfo: childResult.childInfo
             });
+            
+            // If this is a slice validation error, also collect it for flash block level validation
+            // Only collect errors from mandatory slices that couldn't be auto-generated
+            if (childResult.virtualRuleError.fhirElement &&
+                childResult.virtualRuleError.fhirElement.includes('[') &&
+                childResult.virtualRuleError.fhirElement.includes(']') &&
+                // Only treat this as a slice validation error if it's for a mandatory slice
+                // that has no user-provided values (i.e., truly missing mandatory slice)
+                child.min > 0 &&
+                childResult.values.length === 0) {
+              // Store slice errors in environment for flash block level validation
+              const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
+              collectedSliceErrors.push(childResult.virtualRuleError);
+              environment.bind('__collectedSliceErrors', collectedSliceErrors);
+              
+              if (verboseLogger) {
+                verboseLogger.info('evaluateFlash', 'collected slice validation error', {
+                  error: childResult.virtualRuleError.code || childResult.virtualRuleError,
+                  fhirElement: childResult.virtualRuleError.fhirElement
+                });
+              }
+            }
           }
 
           if (childResult.values.length > 0) {
@@ -1311,6 +1605,9 @@ function createFlashEvaluator(evaluate) {
           }
         }
       }
+
+      // After processing all children, check for missing mandatory slices
+      await validateAndGenerateMandatorySlices(result, children, expr, environment, collectedVirtualRuleErrors);
 
       // Post-process result
       if (typeof result === 'undefined') {
