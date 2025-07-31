@@ -229,10 +229,13 @@ void async function () {
 // * code.text = 'Required text'
 // * code.coding[MandatorySlice].display = 'Required display'
 
-InstanceOf: TestInheritedConstraints
-* status = 'unknown'
-* code.text = 'Required text'
-* code.coding[MandatorySlice].display = 'Required display'
+// InstanceOf: TestInheritedConstraints
+// * status = 'unknown'
+// * code.text = 'Required text'
+// * code.coding[MandatorySlice].display = 'Required display'
+
+Instance: ''
+InstanceOf: CodeableConcept
   `;
 
   console.log('Starting debug script...');

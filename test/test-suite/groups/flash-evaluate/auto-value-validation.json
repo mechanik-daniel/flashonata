@@ -1,6 +1,6 @@
 [
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code",
     "description": "Case 1: Auto-generate code without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display",
     "data": null,
@@ -8,7 +8,7 @@
     "notes": "This should fail because SliceA is mandatory (min=1) and SliceA.display is mandatory (min=1)"
   },
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: ObsCodeOnly\n* status = 'unknown'\n* code.coding",
     "description": "Case 2: Auto-generate coding without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display", 
     "data": null,

@@ -1,6 +1,6 @@
 [
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code",
     "description": "Auto-generate code (should create MandatorySlice but FAIL on missing display)",
     "data": null,
@@ -8,7 +8,7 @@
     "notes": "Should fail: MandatorySlice is required (min=1) and its display is mandatory (min=1)"
   },
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding",
     "description": "Auto-generate coding (should create MandatorySlice but FAIL on missing display)",
     "data": null, 
@@ -45,7 +45,7 @@
     "notes": "Should pass: All mandatory elements present"
   },
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: TestSliceValidation\n* status = 'unknown'\n* code.coding[OptionalSlice]",
     "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL", 
     "data": null,

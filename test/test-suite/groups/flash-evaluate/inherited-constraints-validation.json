@@ -1,6 +1,6 @@
 [
   {
-    "skip": true,
+    "skip": false,
     "expr": "InstanceOf: TestInheritedConstraints\n* status = 'unknown'\n* code.text = 'Required text'\n* code",
     "description": "Auto-generate code with inherited constraint satisfied (should still FAIL on slice display)",
     "data": null,
