@@ -1606,6 +1606,11 @@ function createFlashEvaluator(evaluate) {
         }
       }
 
+      // Track keys before auto-injection for reordering optimization
+      if (typeof result === 'object' && result !== null) {
+        environment.bind('__keys_before_auto_injection', Object.keys(result));
+      }
+
       // After processing all children, check for missing mandatory slices
       await validateAndGenerateMandatorySlices(result, children, expr, environment, collectedVirtualRuleErrors);
 
@@ -1615,6 +1620,39 @@ function createFlashEvaluator(evaluate) {
       } else {
         processSlices(result, children, environment);
         result = injectMetaProfile(result, resourceType, profileUrl);
+
+        // Reorder result keys according to FHIR element definition order
+        // This ensures that auto-injected values appear in the correct order
+        // Only needed if new keys were added during auto-value injection (slices, meta.profile, etc.)
+        // Performance note: this can be disabled by setting __disable_reordering in environment
+        if (children && children.length > 0) {
+          const disableReordering = environment.lookup('__disable_reordering');
+          if (!disableReordering) {
+            // Check if we actually need reordering by comparing key count before/after auto-injection
+            const keysBeforeAutoInjection = environment.lookup('__keys_before_auto_injection');
+            const currentKeys = Object.keys(result);
+
+            // Only reorder if new keys were added or if we don't have the before-state tracked
+            const needsReordering = !keysBeforeAutoInjection ||
+                                  currentKeys.length !== keysBeforeAutoInjection.length ||
+                                  !keysBeforeAutoInjection.every(key => currentKeys.includes(key));
+
+            if (needsReordering) {
+              result = reorderResultByFhirDefinition(result, children, environment);
+              if (verboseLogger) {
+                verboseLogger.info('evaluateFlash', 'Result reordered according to FHIR definition', {
+                  keysBeforeAutoInjection: keysBeforeAutoInjection || 'not tracked',
+                  currentKeys,
+                  finalKeys: Object.keys(result)
+                });
+              }
+            } else if (verboseLogger) {
+              verboseLogger.info('evaluateFlash', 'No reordering needed - no new keys added during auto-injection');
+            }
+          } else if (verboseLogger) {
+            verboseLogger.info('evaluateFlash', 'Result reordering skipped due to __disable_reordering flag');
+          }
+        }
       }
 
       // Determine if we should defer virtual rule errors for potential merging
@@ -1731,6 +1769,157 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
+   * Reorder object keys according to FHIR element definition order
+   * @param {Object} result - Result object to reorder
+   * @param {Array} children - FHIR children definitions in order
+   * @param {Object} environment - Environment
+   * @returns {Object} Reordered result object
+   */
+  function reorderResultByFhirDefinition(result, children, environment) {
+    if (!result || typeof result !== 'object' || Array.isArray(result) || !children || children.length === 0) {
+      return result;
+    }
+
+    const existingKeys = Object.keys(result);
+    const verboseLogger = environment.lookup && environment.lookup('__verbose_logger');
+
+    // Create a key-to-index map for faster lookups
+    const existingKeySet = new Set(existingKeys);
+    const orderedKeys = [];
+    const processedKeys = new Set();
+
+    if (verboseLogger) {
+      verboseLogger.info('reorderResultByFhirDefinition', 'Starting reorder', {
+        existingKeys,
+        childrenCount: children.length
+      });
+    }
+
+    // First, add resourceType if it exists (should always be first)
+    if (existingKeySet.has('resourceType')) {
+      orderedKeys.push('resourceType');
+      processedKeys.add('resourceType');
+      if (verboseLogger) {
+        verboseLogger.info('reorderResultByFhirDefinition', 'Added resourceType first');
+      }
+    }
+
+    // Pre-compute slice keys for faster lookup
+    const sliceKeyMap = new Map(); // parentName -> [sliceKey1, sliceKey2, ...]
+    for (const key of existingKeys) {
+      const colonIndex = key.indexOf(':');
+      if (colonIndex !== -1) {
+        const parentKey = key.slice(0, colonIndex);
+        if (!sliceKeyMap.has(parentKey)) {
+          sliceKeyMap.set(parentKey, []);
+        }
+        sliceKeyMap.get(parentKey).push(key);
+      }
+    }
+
+    // Then, add keys in the order defined by FHIR children definitions
+    for (const child of children) {
+      if (!child.__name || child.max === '0') {
+        continue;
+      }
+
+      // Check all possible names for this child (handles polymorphic elements)
+      for (const possibleName of child.__name) {
+        // Main element key
+        if (existingKeySet.has(possibleName) && !processedKeys.has(possibleName)) {
+          orderedKeys.push(possibleName);
+          processedKeys.add(possibleName);
+
+          if (verboseLogger) {
+            verboseLogger.info('reorderResultByFhirDefinition', 'Added key from FHIR definition', {
+              key: possibleName,
+              childPath: child.path
+            });
+          }
+        }
+
+        // Slice keys for this element (pre-computed for performance)
+        const sliceKeys = sliceKeyMap.get(possibleName);
+        if (sliceKeys) {
+          for (const sliceKey of sliceKeys) {
+            if (!processedKeys.has(sliceKey)) {
+              orderedKeys.push(sliceKey);
+              processedKeys.add(sliceKey);
+
+              if (verboseLogger) {
+                verboseLogger.info('reorderResultByFhirDefinition', 'Added slice key from FHIR definition', {
+                  key: sliceKey,
+                  parentElement: possibleName
+                });
+              }
+            }
+          }
+        }
+
+        // Primitive sibling keys (e.g., "_elementName")
+        const siblingKey = '_' + possibleName;
+        if (existingKeySet.has(siblingKey) && !processedKeys.has(siblingKey)) {
+          orderedKeys.push(siblingKey);
+          processedKeys.add(siblingKey);
+
+          if (verboseLogger) {
+            verboseLogger.info('reorderResultByFhirDefinition', 'Added primitive sibling key', {
+              key: siblingKey,
+              parentElement: possibleName
+            });
+          }
+        }
+      }
+    }
+
+    // Finally, add any remaining keys that weren't in the FHIR definition (shouldn't happen normally)
+    for (const key of existingKeys) {
+      if (!processedKeys.has(key)) {
+        orderedKeys.push(key);
+        if (verboseLogger) {
+          verboseLogger.info('reorderResultByFhirDefinition', 'Added remaining key not in FHIR definition', {
+            key
+          });
+        }
+      }
+    }
+
+    // Performance optimization: only recreate object if order actually changed
+    let orderChanged = false;
+    if (existingKeys.length === orderedKeys.length) {
+      for (let i = 0; i < existingKeys.length; i++) {
+        if (existingKeys[i] !== orderedKeys[i]) {
+          orderChanged = true;
+          break;
+        }
+      }
+    } else {
+      orderChanged = true;
+    }
+
+    if (!orderChanged) {
+      if (verboseLogger) {
+        verboseLogger.info('reorderResultByFhirDefinition', 'No reordering needed - keys already in correct order');
+      }
+      return result;
+    }
+
+    // Create new object with reordered keys
+    const reorderedResult = {};
+    for (const key of orderedKeys) {
+      reorderedResult[key] = result[key];
+    }
+
+    if (verboseLogger) {
+      verboseLogger.info('reorderResultByFhirDefinition', 'Completed reorder', {
+        originalOrder: existingKeys,
+        newOrder: orderedKeys,
+        changed: true
+      });
+    }
+
+    return reorderedResult;
+  }  /**
    * Get FHIR element children definitions
    * @param {Object} environment - Environment with FHIR definitions
    * @param {string} referenceKey - Reference key for element
@@ -1766,7 +1955,8 @@ function createFlashEvaluator(evaluate) {
     parseSystemPrimitive,
     finalizeFlashRuleResult,
     flattenPrimitiveValues,
-    fixArraysInInlineObject
+    fixArraysInInlineObject,
+    reorderResultByFhirDefinition
   };
 }
 

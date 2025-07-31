@@ -234,9 +234,20 @@ void async function () {
 // * code.text = 'Required text'
 // * code.coding[MandatorySlice].display = 'Required display'
 
-Instance: ''
-InstanceOf: CodeableConcept
-  `;
+// Instance: ''
+// InstanceOf: CodeableConcept
+
+// InstanceOf: bp
+// * status = 'final'
+// * subject.reference = 'Patient/123'
+// * effectiveDateTime = '2023-10-01T00:00:00Z'
+
+(
+  InstanceOf: TestSliceValidation
+  * status = 'unknown'
+  * code.coding[MandatorySlice].display = 'required display'
+).code.coding[0] ~> $keys()
+`;
 
   console.log('Starting debug script...');
 
