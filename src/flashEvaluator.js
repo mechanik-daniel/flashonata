@@ -189,9 +189,8 @@ function createFlashEvaluator(evaluate) {
         position: expr.position,
         start: expr.start,
         line: expr.line,
-        fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
-        fhirElement: expr.flashPathRefKey ? expr.flashPathRefKey.split('::')[1] : 'Resource',
-        message: `Resource datatype requires a non-empty resourceType attribute, got ${input.resourceType}`
+        fhirParent: expr.instanceof,
+        fhirElement: expr.flashPathRefKey.split('::')[1]
       };
 
       if (verboseLogger) {
