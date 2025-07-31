@@ -1,0 +1,19 @@
+{
+  "description": "Array of inline resources with additional properties in contained element",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "contained": [
+      {
+        "resourceType": "Observation",
+        "status": "final"
+      },
+      {
+        "resourceType": "Organization",
+        "active": true
+      }
+    ]
+  },
+  "expr-file": "inline-resources003.fume"
+}

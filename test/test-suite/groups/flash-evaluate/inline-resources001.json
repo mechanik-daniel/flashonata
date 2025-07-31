@@ -1,0 +1,14 @@
+{
+  "description": "Single inline resource in contained element - valid Patient resource",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "contained": [
+      {
+        "resourceType": "Patient"
+      }
+    ]
+  },
+  "expr-file": "inline-resources001.fume"
+}

@@ -1,0 +1,6 @@
+InstanceOf: Patient
+$patientResource := {"resourceType": "Patient", "id": "from-variable"}
+* contained = [
+    $patientResource,
+    {"resourceType": "Organization", "name": "Direct Org"}
+  ]

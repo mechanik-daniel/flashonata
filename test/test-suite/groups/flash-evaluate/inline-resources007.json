@@ -1,0 +1,24 @@
+{
+  "description": "Multiple Bundle entries with inline resources",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle",
+    "type": "collection",
+    "entry": [
+      {
+        "resource": {
+          "resourceType": "Patient",
+          "id": "patient1"
+        }
+      },
+      {
+        "resource": {
+          "resourceType": "Observation",
+          "status": "final"
+        }
+      }
+    ]
+  },
+  "expr-file": "inline-resources007.fume"
+}

@@ -1,0 +1,2 @@
+InstanceOf: Patient
+* contained = "not an object"

@@ -1,0 +1,17 @@
+{
+  "description": "Array of inline resources in contained element - multiple resource types",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "contained": [
+      {
+        "resourceType": "Patient"
+      },
+      {
+        "resourceType": "Organization"
+      }
+    ]
+  },
+  "expr-file": "inline-resources002.fume"
+}

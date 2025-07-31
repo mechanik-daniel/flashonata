@@ -1,0 +1,19 @@
+{
+  "description": "Inline resources mixed with variables in contained element",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "contained": [
+      {
+        "resourceType": "Patient",
+        "id": "from-variable"
+      },
+      {
+        "resourceType": "Organization",
+        "name": "Direct Org"
+      }
+    ]
+  },
+  "expr-file": "inline-resources009.fume"
+}

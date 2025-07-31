@@ -1,0 +1,8 @@
+InstanceOf: Parameters
+* parameter
+  * name = "test-resource"
+  * resource = {
+    "resourceType": "Person",
+    "id": "p1",
+    "gender": "female"
+  }

@@ -170,7 +170,8 @@ const errorCodes = {
   "F3005": "Failed to determine the JSON element name of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3006": "Value for {{fhirElement}} in {{instanceOf}} must be a primitive value, recieved type: {{valueType}}.",
   "F3007": "Failed to determine the data type of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
-  "F3008": "Element {{value}} is forbidden according to definition: {{fhirType}}."
+  "F3008": "Element {{value}} is forbidden according to definition: {{fhirType}}.",
+  "F3011": "Resource datatype requires a non-empty resourceType attribute, got {{value}}."
 };
 
 /**

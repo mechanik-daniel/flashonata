@@ -248,11 +248,18 @@ void async function () {
 //   * code.coding[MandatorySlice].display = 'required display'
 // ).code.coding[0] ~> $keys()
 
-InstanceOf: bp
-* status = 'final'
-* subject.reference = 'Patient/123'
-* effectiveDateTime = '2023-10-01T00:00:00Z'
-* component[SystolicBP].value.value = '120.00'
+// InstanceOf: Patient
+// * contained = {"invalid": "resource"}
+// 
+
+InstanceOf: Patient
+// $patientResource := {"resourceType": "Patient", "id": "from-variable"}
+* contained = ([
+  $patientResource,
+  {"resourceType": "Organization", "name": "Direct Org"}
+])
+
+
 `;
 
   console.log('Starting debug script...');
@@ -277,7 +284,7 @@ InstanceOf: bp
 
   try {
     res = await expr.evaluate({
-      patientId: "12345"
+      resourceType: "Patient"
     });
     console.log('Expression evaluated successfully');
   } catch (e) {

@@ -1,0 +1,11 @@
+InstanceOf: Patient
+* contained = [
+    {
+      "resourceType": "Observation",
+      "status": "final"
+    },
+    {
+      "resourceType": "Organization",
+      "active": true
+    }
+  ]

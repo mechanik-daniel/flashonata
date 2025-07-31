@@ -1,0 +1,25 @@
+{
+  "description": "Inline resource in Bundle.entry.response.outcome element",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle",
+    "type": "transaction-response",
+    "entry": [
+      {
+        "response": {
+          "outcome": {
+            "resourceType": "OperationOutcome",
+            "issue": [
+              {
+                "severity": "error",
+                "code": "invalid"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expr-file": "inline-resources006.fume"
+}

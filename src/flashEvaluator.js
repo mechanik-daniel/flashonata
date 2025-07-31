@@ -129,6 +129,94 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
+   * Validate Resource datatype input - ensures object has resourceType attribute
+   * @param {*} input - Input value to validate
+   * @param {Object} expr - Expression with position info for errors
+   * @param {Object} environment - Environment with logger
+   * @returns {*} Validated resource input
+   */
+  function validateResourceInput(input, expr, environment) {
+    const verboseLogger = environment.lookup('__verbose_logger');
+
+    if (verboseLogger) {
+      verboseLogger.info('validateResourceInput', 'Function called', {
+        inputType: typeof input,
+        input: input,
+        isArray: Array.isArray(input),
+        flashPathRefKey: expr.flashPathRefKey,
+        position: expr.position
+      });
+    }
+
+    // Handle arrays of resources
+    if (Array.isArray(input)) {
+      if (verboseLogger) {
+        verboseLogger.info('validateResourceInput', 'Validating array of resources', {
+          arrayLength: input.length
+        });
+      }
+      return input.map(item => validateResourceInput(item, expr, environment));
+    }
+
+    // Input must be an object
+    if (!input || typeof input !== 'object') {
+      const error = {
+        code: "F3010",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
+        fhirElement: expr.flashPathRefKey ? expr.flashPathRefKey.split('::')[1] : 'Resource',
+        message: `Resource datatype requires an object, got ${typeof input}`
+      };
+
+      if (verboseLogger) {
+        verboseLogger.info('validateResourceInput', 'Resource validation failed - not an object', {
+          inputType: typeof input,
+          error: error.code
+        });
+      }
+
+      throw error;
+    }
+
+    // Object must have resourceType attribute
+    if (!input.resourceType || typeof input.resourceType !== 'string' || input.resourceType.trim() === '') {
+      const error = {
+        code: "F3011",
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line,
+        fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
+        fhirElement: expr.flashPathRefKey ? expr.flashPathRefKey.split('::')[1] : 'Resource',
+        message: `Resource datatype requires a non-empty resourceType attribute, got ${input.resourceType}`
+      };
+
+      if (verboseLogger) {
+        verboseLogger.info('validateResourceInput', 'Resource validation failed - missing or invalid resourceType', {
+          hasResourceType: 'resourceType' in input,
+          resourceType: input.resourceType,
+          resourceTypeType: typeof input.resourceType,
+          error: error.code
+        });
+      }
+
+      throw error;
+    }
+
+    if (verboseLogger) {
+      verboseLogger.info('validateResourceInput', 'Resource validation passed', {
+        resourceType: input.resourceType,
+        hasKeys: Object.keys(input).length > 1
+      });
+    }
+
+    return input;
+  }
+
+  /**
    * Once an expression flagged as a FLASH rule is evaluated, this function is called on the result
    * to validate it according to its element definition and return it as a flashrule result object.
    * @param {*} expr The AST node of the FLASH rule - includes references to FHIR definitions
@@ -240,9 +328,9 @@ function createFlashEvaluator(evaluate) {
     // and/or child rules. child rules are handled by the block eval logic
     // here we only handle inline value assignments by converting any key: value pair of
     // the input object into a @@__flashRuleResult structure
-    // TEMP: we currently just return the value as is without validating its structure
-    if (kind === 'complex-type' || kind === 'resource') {
-      // Handle inline object assignments - objects can come from:
+
+    if (kind === 'complex-type') {
+      // Handle inline object assignments for complex types - objects can come from:
       // 1. Object literals: * address = { "city": "Haifa", "country": "IL" }
       // 2. Variable references: * address = $myAddress
       // 3. Function calls: * address = getAddress()
@@ -251,6 +339,21 @@ function createFlashEvaluator(evaluate) {
 
       // For all cases, use the input as-is since JSONata evaluation should handle them properly
       result.value = input;
+    } else if (kind === 'resource') {
+      // Handle Resource datatype - validation already done earlier in evaluateFlash
+      // For arrays of resources, we need to create multiple FlashRuleResults
+      if (Array.isArray(input)) {
+        // Return an array where each resource becomes a separate FlashRuleResult
+        return input.map(resource => ({
+          '@@__flashRuleResult': true,
+          key: groupingKey,
+          value: resource,
+          kind
+        }));
+      } else {
+        // Single resource
+        result.value = input;
+      }
     }
 
     return result;
@@ -1531,6 +1634,18 @@ function createFlashEvaluator(evaluate) {
           inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
           if (verboseLogger) {
             verboseLogger.info('evaluateFlash', 'Fixed arrays in inline object', { inlineResult });
+          }
+        }
+
+        // For Resource datatypes with inline results, use the inline result as the base result
+        if (kind === 'resource' && inlineResult !== undefined) {
+          // Validate the Resource inline result first
+          const validatedResource = validateResourceInput(inlineResult, expr, environment);
+          result = validatedResource; // Use the validated resource directly (don't spread arrays)
+          if (verboseLogger) {
+            verboseLogger.info('evaluateFlash', 'Set Resource inline result as base', {
+              inlineResult: validatedResource
+            });
           }
         }
 

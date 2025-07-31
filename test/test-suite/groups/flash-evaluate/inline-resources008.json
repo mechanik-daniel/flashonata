@@ -1,0 +1,25 @@
+{
+  "description": "Multiple Parameters with inline resources",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Parameters",
+    "parameter": [
+      {
+        "name": "resource1",
+        "resource": {
+          "resourceType": "Patient",
+          "active": true
+        }
+      },
+      {
+        "name": "resource2",
+        "resource": {
+          "resourceType": "Organization",
+          "name": "Test Org"
+        }
+      }
+    ]
+  },
+  "expr-file": "inline-resources008.fume"
+}

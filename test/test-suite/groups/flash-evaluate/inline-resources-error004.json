@@ -1,0 +1,7 @@
+{
+  "description": "Invalid inline resource - string instead of object",
+  "data": null,
+  "bindings": {},
+  "code": "F3010",
+  "expr-file": "inline-resources-error004.fume"
+}

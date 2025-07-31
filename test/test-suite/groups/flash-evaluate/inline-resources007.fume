@@ -1,0 +1,6 @@
+InstanceOf: Bundle
+* type = "collection"
+* ([
+    {"resourceType": "Patient", "id": "patient1"},
+    {"resourceType": "Observation", "status": "final"}
+  ]).entry.resource = $

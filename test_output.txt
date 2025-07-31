@@ -1,0 +1,970 @@
+
+> fumifier@1.0.0 test:flash
+> c8 mocha "test/run-test-suite.test.js" --timeout=15000 -- --flash-only
+
+🔥 Running in FLASH-ONLY mode - filtered groups: [ 'flash-definitions', 'flash-evaluate', 'flash-parse' ]
+
+
+  Fumifier Test Suite
+    Group: flash-definitions
+Error: No StructureDefinition found for ID 'non-existant-profile'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+Error: No StructureDefinition found for name 'non-existant-profile'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+      ✔ FLASH declaration of a non-existant profile: InstanceOf: non-existant-profile
+ (637ms)
+      ✔ flash-definitions002.json: InstanceOf: Patient
+     * a = b
+ (42ms)
+      ✔ flash-definitions003.json: Instance: 'abc'
+     InstanceOf: Patient
+     * active = status
+       $var := 'val'
+     ... (truncated)
+
+      ✔ flash-definitions004.json: Instance: 'abc'
+     InstanceOf: Patient
+     $semivar := 'semival';
+     * name.given = first_name
+     ... (truncated)
+ (52ms)
+      ✔ flash-definitions005.json: InstanceOf: il-core-patient
+     * identifier[2 - 1].value = field1
+
+      ✔ flash-definitions006.json: InstanceOf: il-core-patient
+     * name[0].given = first_name
+
+Error: No StructureDefinition found for ID 'dar'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator._attemptRebase (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:6927)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5343)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:150:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+Error: No StructureDefinition found for name 'dar'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator._attemptRebase (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:6927)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5343)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:150:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+      ✔ flash-definitions007.json: InstanceOf: il-core-patient
+     $a:=val
+     * identifier[il-id].value.extension[dar]
+       $a:=ttt
+     ... (truncated)
+ (40ms)
+Error: No StructureDefinition found for ID 'dar'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator._attemptRebase (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:6927)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5343)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 1)
+Error: No StructureDefinition found for name 'dar'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator._attemptRebase (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:6927)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5343)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 1)
+Error: No StructureDefinition found for ID 'non-existant-profile'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+Error: No StructureDefinition found for name 'non-existant-profile'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+      ✔ flash-definitions008.json: InstanceOf: non-existant-profile
+     * name = first_name
+
+      ✔ FLASH rule referencing a polymorphic element: InstanceOf: Annotation
+     * author
+
+Error: No StructureDefinition found for ID 'abc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+Error: No StructureDefinition found for name 'abc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async getTypeMeta (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:23:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:106:40
+    at async Promise.all (index 0)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:104:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+      ✔ FLASH block for a non-existant StructureDefinition, with `Instance:` declaration: Instance: 'abc'
+     InstanceOf: abc
+
+    Group: flash-evaluate
+      ✔ Case 1: Auto-generate code without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code
+ (49ms)
+      ✔ Case 2: Auto-generate coding without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code.coding
+
+      ✔ Case 3: Explicit slice notation without display - should FAIL validation due to missing mandatory display: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code.coding[SliceA]
+
+      ✔ Case 4: Complete slice with all mandatory elements - should PASS: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code.coding[SliceA].display = 'test display'
+
+      ✔ Injection of extension URL inside a Patient resource: InstanceOf: Patient
+     * extension[ext-il-hmo].value.text = $
+ (40ms)
+      ✔ Injection of extension URL in a standalone instance of ext-il-hmo: InstanceOf: ext-il-hmo
+     * value.text = $
+
+      ✔ Identifier profile instance with fixed system overriding the assigned value: InstanceOf: FixedSystemIdentifier
+     * system = 'http://example.com/identifier-system'
+     * value = '123-456-789'
+
+      ✔ Extension instance with automatic URL injection for mandatory fixed element: InstanceOf: SimpleLiberalExtension
+     * valueString = 'http://example.com/identifier-system'
+
+      ✔ Extension with automatic URL injection inside a Patient resource: InstanceOf: Patient
+     * extension[SimpleLiberalExtension].valueString = '42'
+
+      ✔ Blood pressure profile with primitive flattening in auto-values - ensures FHIR primitives like system and code are flattened from {"value": "primitive"} to "primitive": InstanceOf: bp
+     * status = 'final'
+     * subject.reference = 'Patient/123'
+     * effectiveDateTime = '2023-10-01T00:00:00Z'
+ (56ms)
+      ✔ Blood pressure profile with id and primitive flattening in auto-values - ensures FHIR primitives like system and code are flattened from {"value": "primitive"} to "primitive": Instance: '123'
+     InstanceOf: bp
+     * status = 'final'
+     * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Auto injection of full valid extension inside a Patient resource using empty rule with a virtual slice: InstanceOf: Patient
+     * extension[HearingLossDisability]
+ (45ms)
+      ✔ Auto generation of full valid extension as standalone flash declaration with no rules: InstanceOf: HearingLossDisability
+
+      ✔ Auto-generate code (should create MandatorySlice but FAIL on missing display): InstanceOf: TestSliceValidation
+     * status = 'unknown'
+     * code
+
+      ✔ Auto-generate coding (should create MandatorySlice but FAIL on missing display): InstanceOf: TestSliceValidation
+     * status = 'unknown'
+     * code.coding
+
+      ✔ Explicit mandatory slice without display - should FAIL: InstanceOf: TestSliceValidation
+     * status = 'unknown'
+     * code.coding[MandatorySlice]
+
+      ✔ Complete mandatory slice - should PASS: InstanceOf: TestSliceValidation
+     * status = 'unknown'
+     * code.coding[MandatorySlice].display = 'required display'
+
+      ✔ Optional slice as empty rule with mandatory slice with missing display  -should FAIL: InstanceOf: TestSliceValidation
+     * status = 'unknown'
+     * code.coding[OptionalSlice]
+
+      ✔ Base Observation (control) - should PASS: InstanceOf: Observation
+     * status = 'unknown'
+     * code.coding.system = 'http://example.com/test'
+
+      ✔ Simple test to verify basic Patient creation works: InstanceOf: Patient
+     * active = true
+
+      ✔ Element ordering: bp profile with auto-injected category and component elements - keys should be in FHIR order: (
+       InstanceOf: bp
+       * status = 'final'
+       * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: Extension with auto-injected url - url should come before value: (
+       InstanceOf: ext-il-hmo
+       * value.text = 'HMO Name'
+     ) ~> $keys()
+
+      ✔ Element ordering: Patient with auto-injected extension - extension should come before active despite being assigned after: (
+       InstanceOf: Patient
+       * active = true
+       * extension[ext-il-hmo].value.text = 'HMO Name'
+     ... (truncated)
+
+      ✔ Element ordering: Profile with auto-injected slice values - all elements should be in FHIR order: (
+       InstanceOf: TestSliceValidation
+       * status = 'unknown'
+       * code.coding[MandatorySlice].display = 'required display'
+     ... (truncated)
+
+      ✔ Element ordering: bp profile with id - id should come after resourceType but before meta: (
+       InstanceOf: bp
+       * id = 'test-123'
+       * status = 'final'
+     ... (truncated)
+
+      ✔ Element ordering: Simple Reference type - no auto-values, but order should still be correct (reference before display): (
+       InstanceOf: Reference
+       * display = 'John Doe'
+       * reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: Base Extension type - url should come before valueString: (
+       InstanceOf: Extension
+       * url = 'http://example.com/test'
+       * valueString = 'test value'
+     ... (truncated)
+
+      ✔ Element ordering: CodeableConcept - coding should come before text: (
+       InstanceOf: CodeableConcept
+       * text = 'Display text'
+       * coding.code = 'test-code'
+     ... (truncated)
+
+      ✔ Element ordering: Nested extension object - url should come before valueCodeableConcept despite value being assigned first: (
+       InstanceOf: Patient
+       * active = true
+       * extension[ext-il-hmo].value.text = 'HMO Name'
+     ... (truncated)
+
+      ✔ Element ordering: Nested Reference object - reference should come before display: (
+       InstanceOf: bp
+       * status = 'final'
+       * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: Nested CodeableConcept with auto-injected coding - coding should come before text: (
+       InstanceOf: bp
+       * status = 'final'
+       * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: Deeply nested CodeableConcept in auto-injected component - coding should come before text: (
+       InstanceOf: bp
+       * status = 'final'
+       * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: Very deep nesting - Coding object with auto-injected system and code should be in FHIR order: (
+       InstanceOf: bp
+       * status = 'final'
+       * subject.reference = 'Patient/123'
+     ... (truncated)
+
+      ✔ Element ordering: CodeableConcept with sliced coding - coding should come before text: (
+       InstanceOf: TestSliceValidation
+       * status = 'unknown'
+       * code
+     ... (truncated)
+
+      ✔ Element ordering: Nested Coding with auto-injected values from slice - should be in FHIR order (system, code, display): (
+       InstanceOf: TestSliceValidation
+       * status = 'unknown'
+       * code.coding[MandatorySlice].display = 'required display'
+     ... (truncated)
+
+      ✔ Instance of Basic with both invalid string id rule and missing required element: InstanceOf: Basic
+     * id = 'abc_123'
+
+      ✔ Instance of resource with valid id but required element missing (Basic.code): InstanceOf: Basic
+     * id = 'ab-c.123'
+
+      ✔ flash-eval-error003.json: InstanceOf: il-core-patient
+     * identifier[il-id].value = field1
+
+      ✔ Instance of Patient with gender code failing regex validation: InstanceOf: Patient
+     * gender = ' male'
+
+      ✔ Instance of resource with valid id but required element missing (Binary.contentType): InstanceOf: Binary
+     * contentType = missingFieldName
+
+      ✔ Instance of resource with valid id but required element null (Binary.contentType): InstanceOf: Binary
+     * contentType = null
+
+      ✔ Instance of resource with valid id but required element empty object (Binary.contentType): InstanceOf: Binary
+     * contentType = {}
+
+      ✔ flash-eval-error008.json: InstanceOf: SimpleQuantity
+     * comparator = '>='
+
+      ✔ flash-eval-error009.json: InstanceOf: Extension
+     * url = 'abc'
+     * value[SimpleQuantity].comparator = '>'
+
+      ✔ Throws on forbidden element when assigning a sub-extension to ext-il-hmo: InstanceOf: Patient
+     * extension[ext-il-hmo].extension
+
+      ✔ Instance of Patient with id rule only, literal string assigned (valid): InstanceOf: Patient
+     * id = 'ab-c.123-CAPITAL-then-lower.case'
+
+      ✔ Instance of Patient with id rule only - string concatenation on field from input: InstanceOf: Patient
+     * id = resourceId & '-concat'
+
+      ✔ Instance of Patient with id rule only - string concatenation on variable: InstanceOf: Patient
+     * id = $resourceId & '-concat'
+
+      ✔ Instance of CodeableConcept with id implicitly set in `Instance:` (valid): Instance: 'abc'
+     InstanceOf: CodeableConcept
+
+      ✔ Instance of CodeableConcept with falsy id set in `Instance:`: Instance: ''
+     InstanceOf: CodeableConcept
+
+      ✔ flash-eval006.json: Instance: 'abc'
+     InstanceOf: Patient
+     * active = status='active'
+     * name
+     ... (truncated)
+ (82ms)
+      ✔ flash-eval007.json: Instance: '123'
+     InstanceOf: Patient
+
+      ✔ flash-eval008.json: Instance: 'abc'
+     InstanceOf: Patient
+     * (context ?? undefined).active = status='active'* name
+       * given = first_name
+     ... (truncated)
+
+      ✔ flash-eval009.json: Instance: 'abc'
+     InstanceOf: Patient
+     * (context ?? undefined).active = status='active'* name
+     	* given = first_name
+     ... (truncated)
+
+      ✔ flash-eval010.json: field42.(InstanceOf: il-core-patient
+     * identifier[il-id].value = field1)
+
+      ✔ Assignment of datetime into Patient.birthDate - should truncate to date: (InstanceOf: Patient
+     * birthDate = '2025-07-21T23:27:35.948Z').birthDate
+
+      ✔ Auto-generate code with inherited constraint satisfied (should still FAIL on slice display): InstanceOf: TestInheritedConstraints
+     * status = 'unknown'
+     * code.text = 'Required text'
+     * code
+
+      ✔ Blood pressure with incomplete SystolicBP slice - missing mandatory unit: InstanceOf: bp
+     * status = 'final'
+     * subject.reference = 'Patient/123'
+     * effectiveDateTime = '2023-10-01T00:00:00Z'
+     ... (truncated)
+
+      ✔ Complete profile with all constraints satisfied - should PASS: InstanceOf: TestInheritedConstraints
+     * status = 'unknown'
+     * code.text = 'Required text'
+     * code.coding[MandatorySlice].display = 'Required display'
+
+      ✔ Basic inline complex type assignment with variable reference: InstanceOf: Patient
+     * address = $
+
+      ✔ Basic inline complex type assignment with object literal: InstanceOf: Patient
+     * address = {
+         "city": "Haifa",
+         "country": "IL"
+     ... (truncated)
+
+      ✔ Inline complex type assignment with array indexing (includes primitive array): InstanceOf: Patient
+     * name = names[0]
+
+      ✔ Inline object with array property assignment: InstanceOf: Patient
+     * name = {
+         "family": "Smith",
+         "given": ["John", "William"]
+     ... (truncated)
+
+      ✔ Variable reference with subrules that merge additional properties: InstanceOf: Patient
+     * address = baseAddress
+       * postalCode = "12345"
+       * use = "home"
+
+      ✔ Inline object with subrules that merge additional properties: InstanceOf: Patient
+     * address = {
+         "city": "Haifa",
+         "country": "IL"
+     ... (truncated)
+
+      ✔ Object property access with subrule that overrides existing property: InstanceOf: Patient
+     * address = addresses.temp
+       * use = "home"
+
+      ✔ Inline object with subrule that overrides existing property: InstanceOf: Patient
+     * address = {
+         "city": "Haifa",
+         "country": "IL",
+     ... (truncated)
+
+      ✔ Complex nested object from variable with nested subrules: InstanceOf: Patient
+     * contact = contactInfo
+       * name
+         * family = "Emergency Contact"
+     ... (truncated)
+
+      ✔ Complex nested inline object with subrules adding separate nested structures: InstanceOf: Patient
+     * contact = {
+         "relationship": [{
+           "coding": [{
+     ... (truncated)
+
+      ✔ JSONata expression combining object literal with variable references: InstanceOf: Patient
+     * identifier = {"system": config.systemUrl, "value": patientData.id & "-suffix"}
+
+      ✔ Inline object with JSONata expressions referencing input data: InstanceOf: Patient
+     * identifier = {
+         "system": systemUrl,
+         "value": patientId & "-suffix"
+     ... (truncated)
+
+      ✔ Invalid inline resource - missing resourceType attribute: InstanceOf: Patient
+     * contained = {"invalid": "resource"}
+     
+
+      ✔ Invalid inline resource - empty resourceType attribute: InstanceOf: Patient
+     * contained = {"resourceType": ""}
+     
+
+      ✔ Invalid inline resource - non-string resourceType attribute: InstanceOf: Patient
+     * contained = {"resourceType": 123}
+     
+
+      ✔ Invalid inline resource - string instead of object: InstanceOf: Patient
+     * contained = "not an object"
+     
+
+      ✔ Invalid inline resource array - one valid, one invalid resource: InstanceOf: Patient
+     * contained = [
+         {"resourceType": "Patient"},
+         {"invalid": "resource"}
+     ... (truncated)
+
+      ✔ Invalid inline resource in Bundle.entry.resource - null resourceType: InstanceOf: Bundle
+     * entry.resource = {"resourceType": null}
+     
+
+      ✔ Single inline resource in contained element - valid Patient resource: InstanceOf: Patient
+     * contained = {"resourceType": "Patient"}
+     
+
+      ✔ Array of inline resources in contained element - multiple resource types: InstanceOf: Patient
+     * contained = [
+         {"resourceType": "Patient"},
+         {"resourceType": "Organization"}
+     ... (truncated)
+
+      ✔ Array of inline resources with additional properties in contained element: InstanceOf: Patient
+     * contained = [
+         {
+           "resourceType": "Observation",
+     ... (truncated)
+
+      ✔ Inline resource in Bundle.entry.resource element: InstanceOf: Bundle
+     * type = "transaction"
+     * entry.resource = {
+         "resourceType": "Patient",
+     ... (truncated)
+
+      1) Inline resource in Parameters.parameter.resource element: InstanceOf: Parameters
+     * parameter.resource = {
+         "resourceType": "Observation",
+         "status": "final",
+     ... (truncated)
+
+      ✔ Inline resource in Bundle.entry.response.outcome element: InstanceOf: Bundle
+     * type = "transaction-response"
+     * entry.response.outcome = {
+         "resourceType": "OperationOutcome",
+     ... (truncated)
+
+      2) Multiple Bundle entries with inline resources: InstanceOf: Bundle
+     * type = "transaction"
+     * entry = [
+         {
+     ... (truncated)
+
+      3) Multiple Parameters with inline resources: InstanceOf: Parameters
+     * parameter = [
+         {
+           "name": "resource1",
+     ... (truncated)
+
+      4) Inline resources mixed with variables in contained element: InstanceOf: Patient
+     $patientResource := {"resourceType": "Patient", "id": "from-variable"}
+     * contained = [
+         $patientResource,
+     ... (truncated)
+
+      ✔ ObsCodeOnly profile with incomplete code - should fail validation for missing mandatory display in slice: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code
+
+      ✔ ObsCodeOnly profile without code - should fail validation for missing mandatory display element: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+
+      ✔ ObsCodeOnly profile with complete mandatory elements - should pass and generate correct auto-values: InstanceOf: ObsCodeOnly
+     * status = 'unknown'
+     * code.coding[SliceA].display = 'there we go'
+
+      ✔ Simple variable declaration and usage within flash block: InstanceOf: Patient
+     $firstName := 'John'
+     * name.given = $firstName
+
+      ✔ Multiple variable declarations used in different rules with proper indentation: InstanceOf: Patient
+     $firstName := 'John'
+     $lastName := 'Doe'
+     * name
+     ... (truncated)
+
+      ✔ Variable declaration with JSONata expression using input data: InstanceOf: Patient
+     $fullName := firstName & ' ' & lastName
+     * name.text = $fullName
+
+      ✔ Variable scoping - nested variable available only within its scope: InstanceOf: Patient
+     $patientId := 'patient-' & $count(encounters)
+     * id = $patientId
+     * name
+     ... (truncated)
+
+      ✔ Variable declarations used across different elements and nested contexts: InstanceOf: Patient
+     $systemUrl := 'http://example.org/patient-id'
+     * identifier
+       * system = $systemUrl
+     ... (truncated)
+
+      ✔ Variable with conditional expression and boolean default value: InstanceOf: Patient
+     $defaultActive := true
+     $statusText := active ? 'Active Patient' : 'Inactive Patient'
+     * active = $defaultActive
+     ... (truncated)
+
+    Group: flash-parse
+      ✔ flash-parse000.json: InstanceOf: Basic
+     
+
+      ✔ flash-parse001.json: Instance:
+
+      ✔ flash-parse002.json: Instance: $a
+
+      ✔ flash-parse003.json: Instance: 
+     InstanceOf: abc
+
+      ✔ flash-parse004.json: Instance: 1 InstanceOf: abc
+
+      ✔ `Instance:` declaration must come BEFORE `InstanceOf:`: InstanceOf: Patient
+     Instance: abc
+
+      ✔ flash-parse006.json: InstanceOf: Patient
+     * path := something
+
+      ✔ flash-parse007.json: InstanceOf: Patient
+     * path = something
+       * subpath = something
+     * path2 = something
+     ... (truncated)
+
+      ✔ flash-parse008.json: InstanceOf: Patient
+     * path = something
+       $subpath > something
+
+      ✔ flash-parse009.json: InstanceOf: Patient
+     * path = something
+       $subpath = something
+
+      ✔ flash-parse010.json: InstanceOf: Patient
+     * path = something
+       * subpath = something
+         * subsub := a
+
+      ✔ flash-parse011.json: Instance: 123 
+       InstanceOf: Patient
+     * path = something
+       * subpath = something
+     ... (truncated)
+
+      ✔ flash-parse012.json: Instance: 123 
+       InstanceOf: Patient
+     * path = something
+       * subpath = something
+     ... (truncated)
+
+      ✔ flash-parse013.json: 
+             Instance: 123
+             InstanceOf: http://dssdsds
+         * a
+     ... (truncated)
+
+      ✔ flash-parse014.json: 
+             Instance: 123
+             InstanceOf: http://dssdsds
+               * a
+     ... (truncated)
+
+      ✔ flash-parse015.json: Instance: 
+      /* comment  more comment */ InstanceOf: abc
+
+      ✔ flash-parse016.json: InstanceOf: Patient
+     * (contextExpr).path = something
+       * subpath = something
+     * path2 = something
+     ... (truncated)
+
+      ✔ flash-parse017.json: InstanceOf: Patient
+     * path = something
+       * subpath = 
+
+      ✔ flash-parse018.json: InstanceOf: Patient
+     * path = something
+       * * subpath
+
+      ✔ flash-parse019.json: InstanceOf: Patient
+     * path = something
+       * $subpath
+
+      ✔ flash-parse020.json: InstanceOf: Patient
+     * path = something
+       * 
+
+      ✔ flash-parse021.json: Instance: 123 
+     InstanceOf:
+     
+
+      ✔ flash-parse022.json: //Instance: 123 
+     InstanceOf:
+     
+
+      ✔ flash-parse023.json: InstanceOf: il-core-patient
+     * [il-id].value = field1
+
+      ✔ flash-parse024.json: InstanceOf: il-core-patient
+     * identifier[1 + 2].value = field1
+
+      ✔ flash-parse025.json: InstanceOf: il-core-patient
+     * identifier(2 - 1).value = field1
+
+      ✔ flash-parse026.json: InstanceOf: il-core-patient
+     * name(given) = first_name
+
+      ✔ flash-parse027.json: InstanceOf: il-core-patient
+     * name[a]#$i = first_name
+
+      ✔ flash-parse028.json: InstanceOf: il-core-patient
+     * name#$i = first_name
+
+      ✔ flash-parse029.json: InstanceOf: il-core-patient
+     * name[$a] = first_name
+
+      ✔ flash-parse030.json: InstanceOf: il-core-patient
+     * name[-a] = first_name
+
+Error: No StructureDefinition found for ID 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 3)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:150:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+Error: No StructureDefinition found for name 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 3)
+    at async resolveDefinitions (file:///C:/git/fumifier/src/utils/resolveDefinitions.js:150:3)
+    at async fumifier (file:///C:/git/fumifier/src/fumifier.js:2020:17)
+    at async file:///C:/git/fumifier/test/run-test-suite.test.js:135:22
+      ✔ flash-parse031.json: InstanceOf: il-core-patient
+     * identifier[il-id][enc].value.extension[dar]
+       * url = expr1
+
+Error: No StructureDefinition found for ID 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 1)
+Error: No StructureDefinition found for name 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 1)
+Error: No StructureDefinition found for ID 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 0)
+Error: No StructureDefinition found for name 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 0)
+Error: No StructureDefinition found for ID 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52648)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 2)
+Error: No StructureDefinition found for name 'il-id][enc'
+    at FhirSnapshotGenerator.getMetadata (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:52989)
+    at async FhirSnapshotGenerator.getSnapshot (file:///C:/git/fumifier/node_modules/fhir-snapshot-generator/dist/index.js:1:55735)
+    at async FhirStructureNavigator._getCachedSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:1600)
+    at async FhirStructureNavigator._tryResolveSnapshot (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7933)
+    at async FhirStructureNavigator._resolveSlice (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:7311)
+    at async FhirStructureNavigator._resolvePath (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:5533)
+    at async FhirStructureNavigator.getElement (file:///C:/git/fumifier/node_modules/@outburn/structure-navigator/dist/index.js:1:2919)
+    at async getElement (file:///C:/git/fumifier/src/utils/createFhirFetchers.js:15:14)
+    at async file:///C:/git/fumifier/src/utils/resolveDefinitions.js:163:18
+    at async Promise.all (index 2)
+      ✔ flash-parse032.json: InstanceOf: il-core+patient
+     * identifier[il-id].value = field2
+
+      ✔ flash-parse033.json: InstanceOf: Patient
+     * identifier.assigner
+     .reference = field2
+
+The following parsing errors were caught: 
+
+
+Error 1: {
+  code: [32m'F1106'[39m,
+  stack: [32m'Error\n'[39m +
+    [32m'    at handleError (file:///C:/git/fumifier/src/parser.js:136:22)\n'[39m +
+    [32m'    at Object.nud (file:///C:/git/fumifier/src/parser.js:1118:20)\n'[39m +
+    [32m'    at expression (file:///C:/git/fumifier/src/parser.js:309:20)\n'[39m +
+    [32m'    at Object.nud (file:///C:/git/fumifier/src/parser.js:765:37)\n'[39m +
+    [32m'    at expression (file:///C:/git/fumifier/src/parser.js:309:20)\n'[39m +
+    [32m'    at collectRules (file:///C:/git/fumifier/src/parser.js:534:20)\n'[39m +
+    [32m'    at Object.nud (file:///C:/git/fumifier/src/parser.js:920:19)\n'[39m +
+    [32m'    at expression (file:///C:/git/fumifier/src/parser.js:309:20)\n'[39m +
+    [32m'    at parser (file:///C:/git/fumifier/src/parser.js:1408:16)\n'[39m +
+    [32m'    at fumifier (file:///C:/git/fumifier/src/fumifier.js:1995:13)\n'[39m +
+    [32m'    at file:///C:/git/fumifier/test/run-test-suite.test.js:135:28\n'[39m +
+    [32m'    at Context.testFn (file:///C:/git/fumifier/test/run-test-suite.test.js:188:13)\n'[39m +
+    [32m'    at callFn (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runnable.js:366:21)\n'[39m +
+    [32m'    at Runnable.run (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runnable.js:354:5)\n'[39m +
+    [32m'    at Runner.runTest (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:715:10)\n'[39m +
+    [32m'    at C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:838:12\n'[39m +
+    [32m'    at next (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:630:14)\n'[39m +
+    [32m'    at C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:640:7\n'[39m +
+    [32m'    at next (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:523:14)\n'[39m +
+    [32m'    at Immediate._onImmediate (C:\\git\\fumifier\\node_modules\\mocha\\lib\\runner.js:608:5)\n'[39m +
+    [32m'    at process.processImmediate (node:internal/timers:483:21)'[39m,
+  position: [33m130[39m,
+  start: [33m114[39m,
+  line: [33m4[39m,
+  token: [32m','[39m,
+  message: [32m'Looks like a comma "," is missing here, to separate the values in the array.'[39m
+}
+
+
+Total of 1 parsing errors caught.
+
+
+  135 passing (2s)
+  4 failing
+
+  1) Fumifier Test Suite
+       Group: flash-evaluate
+         Inline resource in Parameters.parameter.resource element: InstanceOf: Parameters
+     * parameter.resource = {
+         "resourceType": "Observation",
+         "status": "final",
+     ... (truncated)
+:
+     The FHIR element "parameter.name" is required in "Parameters/parameter", but no value was provided.
+  Error
+      at validateMandatoryChildren (file:///C:/git/fumifier/src/flashEvaluator.js:1545:19)
+      at Object.evaluateFlash (file:///C:/git/fumifier/src/flashEvaluator.js:1786:7)
+      at async evaluateUnary (file:///C:/git/fumifier/src/fumifier.js:210:18)
+      at async evaluate (file:///C:/git/fumifier/src/fumifier.js:80:20)
+      at async processFlashExpressions (file:///C:/git/fumifier/src/flashEvaluator.js:679:17)
+      at async Object.evaluateFlash (file:///C:/git/fumifier/src/flashEvaluator.js:1598:71)
+      at async evaluateUnary (file:///C:/git/fumifier/src/fumifier.js:210:18)
+      at async evaluate (file:///C:/git/fumifier/src/fumifier.js:80:20)
+      at async Object.evaluate (file:///C:/git/fumifier/src/fumifier.js:2107:16)
+
+  2) Fumifier Test Suite
+       Group: flash-evaluate
+         Multiple Bundle entries with inline resources: InstanceOf: Bundle
+     * type = "transaction"
+     * entry = [
+         {
+     ... (truncated)
+:
+
+      AssertionError: expected { resourceType: 'Bundle', …(1) } to deeply equal { resourceType: 'Bundle', …(2) }
+      + expected - actual
+
+       {
+      +  "entry": [
+      +    {
+      +      "resource": {
+      +        "id": "patient1"
+      +        "resourceType": "Patient"
+      +      }
+      +    }
+      +    {
+      +      "resource": {
+      +        "resourceType": "Observation"
+      +        "status": "final"
+      +      }
+      +    }
+      +  ]
+         "resourceType": "Bundle"
+         "type": "transaction"
+       }
+      
+      at C:\git\fumifier\node_modules\chai-as-promised\lib\chai-as-promised.js:302:22
+
+  3) Fumifier Test Suite
+       Group: flash-evaluate
+         Multiple Parameters with inline resources: InstanceOf: Parameters
+     * parameter = [
+         {
+           "name": "resource1",
+     ... (truncated)
+:
+     The FHIR element "parameter.name" is required in "Parameters/parameter", but no value was provided.
+  Error
+      at validateMandatoryChildren (file:///C:/git/fumifier/src/flashEvaluator.js:1545:19)
+      at Object.evaluateFlash (file:///C:/git/fumifier/src/flashEvaluator.js:1786:7)
+      at async evaluateUnary (file:///C:/git/fumifier/src/fumifier.js:210:18)
+      at async evaluate (file:///C:/git/fumifier/src/fumifier.js:80:20)
+      at async processFlashExpressions (file:///C:/git/fumifier/src/flashEvaluator.js:679:17)
+      at async Object.evaluateFlash (file:///C:/git/fumifier/src/flashEvaluator.js:1598:71)
+      at async evaluateUnary (file:///C:/git/fumifier/src/fumifier.js:210:18)
+      at async evaluate (file:///C:/git/fumifier/src/fumifier.js:80:20)
+      at async Object.evaluate (file:///C:/git/fumifier/src/fumifier.js:2107:16)
+
+  4) Fumifier Test Suite
+       Group: flash-evaluate
+         Inline resources mixed with variables in contained element: InstanceOf: Patient
+     $patientResource := {"resourceType": "Patient", "id": "from-variable"}
+     * contained = [
+         $patientResource,
+     ... (truncated)
+:
+     Error: Unexpected parse-time exception: Looks like a comma "," is missing here, to separate the values in the array.
+      at file:///C:/git/fumifier/test/run-test-suite.test.js:155:23
+
+
+
+---------------------------|---------|----------|---------|---------|-------------------------------
+File                       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s             
+---------------------------|---------|----------|---------|---------|-------------------------------
+All files                  |   55.29 |    74.72 |   49.27 |   55.29 |                               
+ src                       |   64.05 |    73.39 |   66.66 |   64.05 |                               
+  flashEvaluator.js        |   74.17 |     76.1 |     100 |   74.17 | ...4-2039,2055-2061,2064-2070 
+  fumifier.js              |   50.67 |    58.98 |      45 |   50.67 | ...2-2136,2139-2143,2146-2150 
+  parser.js                |   69.44 |    82.21 |   83.33 |   69.44 | ...0-1440,1446-1454,1457-1458 
+ src/utils                 |    47.9 |    76.88 |   37.95 |    47.9 |                               
+  createFhirFetchers.js    |     100 |      100 |     100 |     100 |                               
+  datetime.js              |   17.63 |      100 |       0 |   17.63 | ...1-1301,1314-1332,1342-1348 
+  defineFunction.js        |     100 |      100 |     100 |     100 |                               
+  errorCodes.js            |     100 |      100 |     100 |     100 |                               
+  escapes.js               |     100 |      100 |     100 |     100 |                               
+  extractSystemFhirType.js |     100 |      100 |     100 |     100 |                               
+  functions.js             |   31.94 |    66.21 |   17.64 |   31.94 | ...8-2130,2142-2148,2162-2168 
+  logger.js                |   40.54 |      100 |    6.66 |   40.54 | ...51,258-259,265-268,275-290 
+  operators.js             |     100 |      100 |     100 |     100 |                               
+  preprocessAst.js         |    99.2 |    97.29 |     100 |    99.2 | 195-196                       
+  processAst.js            |   58.31 |    64.58 |      50 |   58.31 | ...24,542-543,545-546,548-549 
+  pushAncestry.js          |   33.33 |    66.66 |     100 |   33.33 | 3-12                          
+  registerNativeFn.js      |   91.66 |      100 |      50 |   91.66 | 11-18                         
+  resolveAncestry.js       |   33.33 |       40 |     100 |   33.33 | 8-9,11-30                     
+  resolveDefinitions.js    |   89.23 |    78.21 |     100 |   89.23 | ...42,374-375,380-386,420-421 
+  seekParent.js            |    7.84 |      100 |       0 |    7.84 | 2-48                          
+  signature.js             |   67.72 |    69.81 |   83.33 |   67.72 | ...66-282,284-291,294-295,308 
+  tailCallOptimize.js      |   28.12 |      100 |       0 |   28.12 | 7-29                          
+  tokenizer.js             |   67.74 |    84.25 |    87.5 |   67.74 | ...06,415-423,428-444,467,471 
+  utils.js                 |   68.32 |    74.07 |   66.66 |   68.32 | ...97,121,136-173,185,195-200 
+  validateFhirTypeId.js    |     100 |      100 |     100 |     100 |                               
+---------------------------|---------|----------|---------|---------|-------------------------------

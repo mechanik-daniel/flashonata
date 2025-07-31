@@ -1,0 +1,13 @@
+InstanceOf: Parameters
+* ([
+    {
+      "name": "resource1",
+      "resource": {"resourceType": "Patient", "active": true}
+    },
+    {
+      "name": "resource2", 
+      "resource": {"resourceType": "Organization", "name": "Test Org"}
+    }
+  ]).parameter
+  * name = name
+  * resource = resource

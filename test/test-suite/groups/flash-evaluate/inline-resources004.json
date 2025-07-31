@@ -1,0 +1,18 @@
+{
+  "description": "Inline resource in Bundle.entry.resource element",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle",
+    "type": "transaction",
+    "entry": [
+      {
+        "resource": {
+          "resourceType": "Patient",
+          "id": "example-patient"
+        }
+      }
+    ]
+  },
+  "expr-file": "inline-resources004.fume"
+}

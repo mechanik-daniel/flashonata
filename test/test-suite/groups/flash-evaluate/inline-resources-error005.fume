@@ -1,0 +1,5 @@
+InstanceOf: Patient
+* contained = [
+    {"resourceType": "Patient"},
+    {"invalid": "resource"}
+  ]
