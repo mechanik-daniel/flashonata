@@ -120,6 +120,14 @@
       },
       {
         "reference": {
+          "reference": "StructureDefinition/PatternSystemPatientIdentifier"
+        },
+        "name": "PatternSystemPatientIdentifier",
+        "description": "A test profile of the Patient resource with pattern identifier system on all slices.",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
           "reference": "StructureDefinition/PractitionerQualificationSlices"
         },
         "name": "PractitionerQualificationSlices",
