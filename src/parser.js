@@ -1059,6 +1059,10 @@ const parser = (() => {
 
     // parenthesis - block expression
     prefix("(", function () {
+      // if first token in block is an indent token, we should skip it
+      if (node.id === '(indent)') {
+        advance('(indent)');
+      }
       const wasIndentAwareOnEnter = indentAwareMode;
       indentAwareMode = false; // disable indent aware mode for block expressions
       var expressions = [];
@@ -1078,6 +1082,12 @@ const parser = (() => {
 
     // array constructor
     prefix("[", function () {
+      // if first token in array is an indent token, we should skip it
+      if (node.id === '(indent)') {
+        advance('(indent)');
+      }
+      const wasIndentAwareOnEnter = indentAwareMode;
+      indentAwareMode = false; // disable indent aware mode for array expressions
       var a = [];
       if (node.id !== "]") {
         for (; ;) {
@@ -1150,6 +1160,7 @@ const parser = (() => {
           advance(",");
         }
       }
+      indentAwareMode = wasIndentAwareOnEnter; // restore indent aware mode
       advance("]", true);
       this.expressions = a;
       this.type = "unary";
@@ -1209,6 +1220,17 @@ const parser = (() => {
     });
 
     var objectParser = function (left) {
+      // if left is passed it's an infix, if left is undefined, it's a unary prefix
+      const wasIndentAwareOnEnter = indentAwareMode;
+      if (typeof left === 'undefined') {
+        // disable indent aware mode for object parsing (prefix) - just like we do for blocks.
+        // this allows literal object expressions to span multiple lines without breaking on special flash tokens
+        // if first token in an object is an indent token, we should skip it
+        if (node.id === '(indent)') {
+          advance('(indent)');
+        }
+        indentAwareMode = false;
+      }
       var a = [];
       // if the first token is a comma, we are missing a key-value pair
       if (node.id === ",") {
@@ -1280,6 +1302,7 @@ const parser = (() => {
           advance(",");
         }
       }
+      indentAwareMode = wasIndentAwareOnEnter;
       advance("}", true);
       if (typeof left === 'undefined') {
         // NUD - unary prefix form
