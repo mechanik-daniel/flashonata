@@ -1,0 +1,29 @@
+{
+  "skip": false,
+  "description": "Auto injection of pattern system identifier inside a Patient resource - pattern value should override user value, user children should be preserved",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "meta": {
+      "profile": [
+        "http://test.fumifier.fume.health/fhir/StructureDefinition/PatternSystemPatientIdentifier"
+      ]
+    },
+    "identifier": [
+      {
+        "system": "http://example.org/pattern-system",
+        "_system": {
+        "id": "123",
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "unknown"
+          }
+        ]
+      },
+        "value": "123456789"
+      }
+    ]
+  },
+  "expr-file": "auto-value012.fume"
+}

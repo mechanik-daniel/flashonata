@@ -1,6 +1,6 @@
 {
   "skip": false,
-  "description": "Auto injection of pattern system identifier inside a Patient resource - pattern should merge with user value",
+  "description": "Auto injection of pattern system identifier inside a Patient resource - pattern value should override user value, user child should be preserved",
   "data": null,
   "result": {
     "resourceType": "Patient",
@@ -19,5 +19,5 @@
       }
     ]
   },
-  "expr-file": "auto-value010.fume"
+  "expr-file": "auto-value011.fume"
 }

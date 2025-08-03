@@ -1,0 +1,5 @@
+InstanceOf: PatternSystemPatientIdentifier
+* identifier
+  * system = 'user-value'
+    * id = '123'
+  * value = '123456789'

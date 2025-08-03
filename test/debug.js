@@ -252,10 +252,11 @@ void async function () {
 // * contained = {"invalid": "resource"}
 // 
 
-InstanceOf: PatternSystemPatientIdentifier
+InstanceOf: PatternPatientIdentifier
 * identifier
-  * system = 'user-system'
+  * system = 'user-value'
     * id = '123'
+    * extension[data-absent-reason].value = 'unknown'
   * value = '123456789'
 
 

@@ -644,6 +644,16 @@ function createFlashEvaluator(evaluate) {
           });
         }
         if (def.__patternValue) {
+          const verboseLogger = environment?.lookup('__verbose_logger');
+          if (verboseLogger) {
+            verboseLogger.info('initializeFlashContext', 'Found pattern value in definition', {
+              patternValue: def.__patternValue,
+              patternValueType: typeof def.__patternValue,
+              isArray: Array.isArray(def.__patternValue),
+              elementName: def.__name[0],
+              flashPathRefKey: def.__flashPathRefKey
+            });
+          }
           return {
             kind,
             children,
@@ -916,17 +926,30 @@ function createFlashEvaluator(evaluate) {
    * @returns {Promise<Array>} Promise resolving to array of values for this name
    */
   async function processValuesForName(name, child, inlineResult, subExpressionResults, parentPatternValue) {
-    // if the parent pattern has a value for this name, we will use it
-    if (parentPatternValue && parentPatternValue.value && parentPatternValue.value[name] && typeof parentPatternValue.value[name] !== undefined) {
-      return [parentPatternValue.value[name]]; // return the value from the parent pattern
-    }
-    const valuesForName = []; // keep all values for this json element name
-
-    // to determine the kind of this specific element name, and accounting for polymorphic elements,
-    // we will have to find the corresponding type entry in the element definition
+    // Determine the kind of this specific element name, accounting for polymorphic elements
     const kindForName = child.type.length === 1 ?
       child.type[0].__kind :
-      child.type.find(type => name.endsWith(initCap(type.code))).__kind;    // check if the inline expression has a value for this name
+      child.type.find(type => name.endsWith(initCap(type.code))).__kind;
+
+    // if the parent pattern has a value for this name, we will use it
+    if (parentPatternValue && parentPatternValue.value && parentPatternValue.value[name] && typeof parentPatternValue.value[name] !== undefined) {
+      const patternValue = parentPatternValue.value[name];
+
+      // For primitive types, if the pattern value is a raw string, wrap it in proper FHIR primitive structure
+      if (kindForName === 'primitive-type') {
+        // if there are sibling attributes, merge them into the value object
+        const siblingName = '_' + name;
+        if (typeof parentPatternValue.value[siblingName] === 'object' && Object.keys(parentPatternValue.value[siblingName]).length > 0) {
+          const primitiveValue = { value: patternValue };
+          Object.assign(primitiveValue, parentPatternValue.value[siblingName]);
+          return [{ value: primitiveValue }]; // wrap in proper FHIR primitive structure
+        }
+        return [{ value: patternValue }]; // wrap in proper FHIR primitive structure
+      }
+
+      return [patternValue]; // return the value from the parent pattern as-is for other types
+    }
+    const valuesForName = []; // keep all values for this json element name    // check if the inline expression has a value for this name
     if (
       inlineResult &&
       !child.sliceName && // we skip this child if it's a slice since slices are not directly represented in the json
@@ -1697,6 +1720,15 @@ function createFlashEvaluator(evaluate) {
           }
 
           const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
+
+          if (verboseLogger && patternValue) {
+            verboseLogger.info('evaluateFlash', 'Passed pattern value to child', {
+              childName: child.__name[0],
+              patternValue: patternValue,
+              patternValueType: typeof patternValue?.value,
+              flashPathRefKey: child.__flashPathRefKey
+            });
+          }
 
           // Collect any virtual rule errors
           if (childResult.virtualRuleError) {

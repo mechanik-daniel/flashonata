@@ -1,0 +1,6 @@
+InstanceOf: PatternSystemPatientIdentifier
+* identifier
+  * system = 'user-value'
+    * id = '123'
+    * extension[data-absent-reason].value = 'unknown'
+  * value = '123456789'

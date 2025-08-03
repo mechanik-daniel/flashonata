@@ -1,0 +1,20 @@
+{
+  "skip": false,
+  "description": "Auto injection of pattern identifier inside a Patient resource - pattern child should completely override user children",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "meta": {
+      "profile": [
+        "http://test.fumifier.fume.health/fhir/StructureDefinition/PatternPatientIdentifier"
+      ]
+    },
+    "identifier": [
+      {
+        "system": "http://example.org/pattern-system",
+        "value": "123456789"
+      }
+    ]
+  },
+  "expr-file": "auto-value013.fume"
+}
