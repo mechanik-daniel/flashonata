@@ -59,6 +59,14 @@
       },
       {
         "reference": {
+          "reference": "StructureDefinition/FixedPatientIdentifierWithChildren"
+        },
+        "name": "FixedPatientIdentifierWithChildren",
+        "description": "A test profile of the Patient resource with fixed identifier on all slices having children on primitive.",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
           "reference": "StructureDefinition/fixed-system-identifier"
         },
         "name": "FixedSystemIdentifier",
@@ -131,7 +139,7 @@
           "reference": "StructureDefinition/PatternPatientIdentifierWithChildren"
         },
         "name": "PatternPatientIdentifierWithChildren",
-        "description": "A test profile of the Patient resource with pattern identifier on all slices.",
+        "description": "A test profile of the Patient resource with pattern identifier on all slices having children on primitive.",
         "exampleBoolean": false
       },
       {

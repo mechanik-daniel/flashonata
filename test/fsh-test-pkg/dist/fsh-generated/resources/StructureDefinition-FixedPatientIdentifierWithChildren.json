@@ -1,10 +1,10 @@
 {
   "resourceType": "StructureDefinition",
-  "id": "PatternPatientIdentifierWithChildren",
-  "url": "http://test.fumifier.fume.health/fhir/StructureDefinition/PatternPatientIdentifierWithChildren",
-  "name": "PatternPatientIdentifierWithChildren",
+  "id": "FixedPatientIdentifierWithChildren",
+  "url": "http://test.fumifier.fume.health/fhir/StructureDefinition/FixedPatientIdentifierWithChildren",
+  "name": "FixedPatientIdentifierWithChildren",
   "status": "draft",
-  "description": "A test profile of the Patient resource with pattern identifier on all slices having children on primitive.",
+  "description": "A test profile of the Patient resource with fixed identifier on all slices having children on primitive.",
   "fhirVersion": "4.0.1",
   "mapping": [
     {
@@ -456,8 +456,8 @@
             "code": "Identifier"
           }
         ],
-        "patternIdentifier": {
-          "system": "http://example.org/pattern-system",
+        "fixedIdentifier": {
+          "system": "http://example.org/fixed-system",
           "_system": {
             "id": "123",
             "extension": [
@@ -2615,8 +2615,8 @@
         "id": "Patient.identifier",
         "path": "Patient.identifier",
         "min": 1,
-        "patternIdentifier": {
-          "system": "http://example.org/pattern-system",
+        "fixedIdentifier": {
+          "system": "http://example.org/fixed-system",
           "_system": {
             "id": "123",
             "extension": [
