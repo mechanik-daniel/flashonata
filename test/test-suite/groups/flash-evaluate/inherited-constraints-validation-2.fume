@@ -1,4 +1,5 @@
 InstanceOf: TestInheritedConstraints
 * status = 'unknown'
-* code.text = 'Required text'
-* code.coding[MandatorySlice].display = 'Required display'
+* code
+  * text = 'Required text'
+  * coding[MandatorySlice].display = 'Required display'

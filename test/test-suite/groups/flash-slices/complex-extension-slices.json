@@ -1,0 +1,58 @@
+[
+  {
+    "description": "Complex extension with 3 slices and a primitive child - standalone",
+    "data": null,
+    "result": {
+      "extension": [
+        {
+          "url": "given",
+          "valueString": "John",
+          "_valueString": {
+            "id": "parent-name-id"
+          }
+        },
+        {
+          "url": "role",
+          "valueCode": "FTH"
+        },
+        {
+          "url": "official",
+          "valueBoolean": true
+        }
+      ],
+      "url": "http://fhir.health.gov.il/StructureDefinition/ext-administrative-parent-name"
+    },
+    "expr-file": "complex-extension001.fume"
+  },
+  {
+    "skip": false,
+    "description": "Complex extension with 3 slices and a primitive child - inline",
+    "data": null,
+    "result": {
+      "resourceType": "Patient",
+      "extension": [
+        {
+          "extension": [
+            {
+              "url": "given",
+              "valueString": "John",
+              "_valueString": {
+                "id": "parent-name-id"
+              }
+            },
+            {
+              "url": "role",
+              "valueCode": "FTH"
+            },
+            {
+              "url": "official",
+              "valueBoolean": true
+            }
+          ],
+          "url": "http://fhir.health.gov.il/StructureDefinition/ext-administrative-parent-name"
+        }
+      ]
+    },
+    "expr-file": "complex-extension002.fume"
+  }
+]

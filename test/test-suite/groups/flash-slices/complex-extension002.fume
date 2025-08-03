@@ -1,0 +1,6 @@
+InstanceOf: Patient
+* extension[ext-administrative-parent-name]
+  * extension[given].value = 'John'
+    * id = 'parent-name-id'
+  * extension[role].value = 'FTH'
+  * extension[official].value = true

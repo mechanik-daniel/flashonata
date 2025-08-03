@@ -50,7 +50,7 @@
     "skip": false,
     "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL",
     "data": null,
-    "code": "F3002",
+    "code": "F3012",
     "notes": "Should fail: Optional slice may be valid but the mandatory slice is missing its display (min=1)",
     "expr-file": "comprehensive-slice-validation-5.fume"
   },

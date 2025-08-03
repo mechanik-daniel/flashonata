@@ -253,14 +253,19 @@ void async function () {
 // 
 
 
-InstanceOf: Address
-* line
-  * extension[data-absent-reason].value = 'unknown'
-* line
-  * extension[data-absent-reason].value = 'masked'
-* line
-  * extension[data-absent-reason].value = 'temp-unavailable'
+// InstanceOf: Patient
+// * extension[ext-administrative-parent-name]
+//   * extension[given].value = 'John'
+//     * id = 'parent-name-id'
+//   * extension[role].value = 'FTH'
+//   * extension[official].value = true
 
+InstanceOf: Patient
+* extension[ext-administrative-parent-name]
+  * extension[given].value = 'John'
+    * id = 'parent-name-id'
+  * extension[role].value = 'FTH'
+  * extension[official].value = true
 
 `;
 

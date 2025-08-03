@@ -1,25 +1,35 @@
-{
-  "description": "Inline resource in Bundle.entry.response.outcome element",
-  "data": null,
-  "bindings": {},
-  "result": {
-    "resourceType": "Bundle",
-    "type": "transaction-response",
-    "entry": [
-      {
-        "response": {
-          "outcome": {
-            "resourceType": "OperationOutcome",
-            "issue": [
-              {
-                "severity": "error",
-                "code": "invalid"
-              }
-            ]
+[
+  {
+    "description": "Inline resource in Bundle.entry.response.outcome element - with status (should PASS)",
+    "data": "201 Created",
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "transaction-response",
+      "entry": [
+        {
+          "response": {
+            "status": "201 Created",
+            "outcome": {
+              "resourceType": "OperationOutcome",
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "invalid"
+                }
+              ]
+            }
           }
         }
-      }
-    ]
+      ]
+    },
+    "expr-file": "inline-resources006.fume"
   },
-  "expr-file": "inline-resources006.fume"
-}
+  {
+    "description": "Inline resource in Bundle.entry.response.outcome element - no status (should FAIL)",
+    "data": null,
+    "bindings": {},
+    "code": "F3002",
+    "expr-file": "inline-resources006.fume"
+  }
+]

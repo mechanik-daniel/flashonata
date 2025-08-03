@@ -1,6 +1,8 @@
 InstanceOf: Bundle
 * type = "transaction-response"
-* entry.response.outcome = {
+* entry.response
+  * status = $
+  * outcome = {
     "resourceType": "OperationOutcome",
     "issue": [
       {

@@ -10,7 +10,7 @@ const { initCap, boolize } = fn;
 
 /**
  * Flash evaluation module that contains all FLASH-specific evaluation logic
- * @param {Function} evaluate - Main evaluate function from fumifier
+ * @param {Function} evaluate - Main evaluate function from fumifier (jsonata)
  * @returns {Object} Flash evaluation functions
  */
 function createFlashEvaluator(evaluate) {
@@ -313,45 +313,29 @@ function createFlashEvaluator(evaluate) {
     // this is treated as the primitive value of the 'value' child element
     // (we treat FHIR primitives as objects since they can have children)
     if (kind === 'primitive-type') {
-      // input is always an array (could be singleton or empty)
-      // need to return an array of evaluated values
-      const evaluated = parseSystemPrimitive(expr, input.value, elementDefinition, environment);
+      const evaluated = parseSystemPrimitive(
+        expr,
+        input.value, // input's `value` attribute is the primitive value we parse
+        elementDefinition,
+        environment
+      );
 
       // For primitive types, we always create a result object even if there's no value
-      // This is necessary for elements that have extensions but no values
+      // This is necessary for elements that have children (extension or id) but no value
       result.value = {
-        ...input, // copy all properties from the input value (includes extensions, etc.)
+        ...input, // copy all properties from the input value (includes extension, id)
         value: evaluated // assign the evaluated value to the 'value' key (can be undefined)
       };
     }
 
-    // TODO: handle complex types
-    // these may have an object assined to them as the inline input expression
-    // and/or child rules. child rules are handled by the block eval logic
-    // here we only handle inline value assignments by converting any key: value pair of
-    // the input object into a @@__flashRuleResult structure
-
     if (kind === 'complex-type') {
-      // Handle inline object assignments for complex types - objects can come from:
-      // 1. Object literals: * address = { "city": "Haifa", "country": "IL" }
-      // 2. Variable references: * address = $myAddress
-      // 3. Function calls: * address = getAddress()
-      // 4. JSONata expressions: * address = input.patientAddress
-      // 5. Complex expressions: * address = { "city": input.city, "country": "IL" }
-
-      // For all cases, use the input as-is since JSONata evaluation should handle them properly
       result.value = input;
     } else if (kind === 'resource') {
       // Handle Resource datatype - validation already done earlier in evaluateFlash
       // For arrays of resources, we need to create multiple FlashRuleResults
       if (Array.isArray(input)) {
         // Return an array where each resource becomes a separate FlashRuleResult
-        return input.map(resource => ({
-          '@@__flashRuleResult': true,
-          key: groupingKey,
-          value: resource,
-          kind
-        }));
+        return input.map(resource => ({...result, value: resource}));
       } else {
         // Single resource
         result.value = input;
@@ -1229,11 +1213,6 @@ function createFlashEvaluator(evaluate) {
       });
     }
 
-    // Only validate slice completeness for flash blocks, not individual virtual rules
-    if (isFlashBlock) {
-      validateElementSlices(result, children, environment);
-    }
-
     // append slices into their parent element
     // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
     // we will append it to the parent element with the same name (without the sliceName)
@@ -1282,7 +1261,7 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} environment - Environment
    * @param {Array} collectedVirtualRuleErrors - Array to collect virtual rule errors
    */
-  async function validateAndGenerateMandatorySlices(result, children, expr, environment, collectedVirtualRuleErrors) {
+  async function validateAndGenerateMandatorySlices(result, children, expr, environment) {
     const verboseLogger = environment.lookup('__verbose_logger');
 
     // If result is null/undefined, no slice validation needed
@@ -1325,7 +1304,7 @@ function createFlashEvaluator(evaluate) {
             });
           }
 
-          // Auto-generate the missing mandatory slice using virtual rule
+          // Try to auto-generate the missing mandatory slice using virtual rule
           try {
             const autoValue = await evaluate({
               type: 'unary',
@@ -1352,17 +1331,7 @@ function createFlashEvaluator(evaluate) {
               result[autoValue.key] = autoValue.value;
             }
           } catch (error) {
-            // Collect the slice validation error
-            collectedVirtualRuleErrors.push({
-              error: error,
-              childInfo: sliceElement
-            });
-
-            // Also store in environment for flash block level validation
-            const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
-            collectedSliceErrors.push(error);
-            environment.bind('__collectedSliceErrors', collectedSliceErrors);
-
+            // Ignore the error, but log it for debugging purposes
             if (verboseLogger) {
               verboseLogger.info('validateAndGenerateMandatorySlices', 'Failed to auto-generate mandatory slice', {
                 sliceName: sliceElement.sliceName,
@@ -1371,163 +1340,22 @@ function createFlashEvaluator(evaluate) {
               });
             }
           }
-        }
-      }
-    }
-  }
-
-  /**
-   * Validate that all mandatory slices are present
-   * @param {Object} result - Result object
-   * @param {Array} children - Children definitions
-   * @param {Object} environment - Environment
-   */
-  function validateElementSlices(result, children, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-
-    // If result is null/undefined, no slice validation needed
-    if (!result || typeof result !== 'object') {
-      if (verboseLogger) {
-        verboseLogger.info('validateElementSlices', 'result is null/undefined - no validation needed');
-      }
-      return;
-    }
-
-    if (verboseLogger) {
-      verboseLogger.info('validateElementSlices', 'result object contents', {
-        resultKeys: Object.keys(result),
-        resultValues: Object.fromEntries(
-          Object.keys(result).map(k => [k, typeof result[k]])
-        )
-      });
-    }
-
-    // Find sliced elements in the result
-    const slicedElements = {};
-    const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
-
-    for (const key of Object.keys(result)) {
-      const colonIndex = key.indexOf(':');
-      if (colonIndex !== -1) {
-        const parentKey = key.slice(0, colonIndex);
-        const sliceName = key.slice(colonIndex + 1);
-        if (!slicedElements[parentKey]) {
-          slicedElements[parentKey] = [];
-        }
-        slicedElements[parentKey].push(sliceName);
-      }
-    }
-
-    if (verboseLogger) {
-      verboseLogger.info('validateElementSlices', 'found sliced elements', {
-        slicedElements
-      });
-    }
-
-    // Check if we're at the flash block level and have collected slice errors
-    const isFlashBlock = Object.keys(result).some(k => k === 'resourceType');
-    if (isFlashBlock && collectedSliceErrors.length > 0) {
-      if (verboseLogger) {
-        verboseLogger.info('validateElementSlices', 'found slice validation errors at flash block level', {
-          totalErrors: collectedSliceErrors.length,
-          errors: collectedSliceErrors.map(e => e.code || e)
-        });
-      }
-
-      // Filter errors to make sure they're relevant to current result
-      // Only throw errors for elements that are actually missing in the final result
-      const validErrors = collectedSliceErrors.filter(error => {
-        if (!error.fhirElement) return false;
-
-        // Check if the element is actually missing in the result
-        const elementPath = error.fhirElement.split('.');
-        let current = result;
-
-        for (const pathPart of elementPath) {
-          if (pathPart.includes('[') && pathPart.includes(']')) {
-            // Handle slice notation like "coding[MandatorySlice]"
-            const [elementName, sliceName] = pathPart.split(/[[\]]/);
-            const sliceKey = `${elementName}:${sliceName}`;
-            if (current[sliceKey]) {
-              current = current[sliceKey];
-            } else if (current[elementName] && Array.isArray(current[elementName])) {
-              // Look for the slice in the array
-              current = current[elementName].find(item =>
-                item.system === `http://example.com/${sliceName.toLowerCase()}` ||
-                item.system === `http://example.com/mandatory` ||
-                item.system === `http://example.com/optional`
-              );
-              if (!current) return true; // Element is missing
-            } else {
-              return true; // Element is missing
-            }
-          } else if (current && current[pathPart] !== undefined) {
-            current = current[pathPart];
-          } else {
-            return true; // Element is missing
-          }
-        }
-
-        // If we got here, the element exists, so the error is a false positive
-        return false;
-      });
-
-      if (verboseLogger) {
-        verboseLogger.info('validateElementSlices', 'filtering slice errors', {
-          totalErrors: collectedSliceErrors.length,
-          validErrors: validErrors.length,
-          resultKeys: Object.keys(result),
-          firstErrorStructure: collectedSliceErrors[0] ? Object.keys(collectedSliceErrors[0]) : []
-        });
-      }
-
-      // Find the first valid slice error
-      for (const error of validErrors) {
-        if (verboseLogger) {
-          verboseLogger.info('validateElementSlices', 'examining error', {
-            errorProperties: Object.keys(error),
-            fhirElement: error.fhirElement
-          });
-        }
-
-        // Throw the first slice validation error
-        if (verboseLogger) {
-          verboseLogger.info('validateElementSlices', 'throwing slice validation error at flash block level', {
-            error: error.code || error
-          });
-        }
-        throw error;
-      }
-    }
-
-    // For each sliced element, validate that all mandatory slices are present
-    for (const [parentKey, presentSlices] of Object.entries(slicedElements)) {
-      // Find all slice definitions for this parent element
-      const allSliceElements = children.filter(child =>
-        child.__name &&
-        child.__name.includes(parentKey) &&
-        child.sliceName
-      );
-
-      // Check for missing mandatory slices
-      for (const sliceElement of allSliceElements) {
-        if (sliceElement.min > 0 && !presentSlices.includes(sliceElement.sliceName)) {
-          // Missing mandatory slice - this should not happen at this level
-          // as mandatory slices should be auto-generated during child processing
-          if (verboseLogger) {
-            verboseLogger.info('validateElementSlices', 'missing mandatory slice detected', {
-              parentKey,
-              sliceName: sliceElement.sliceName,
-              min: sliceElement.min,
-              presentSlices
-            });
+          // if result is still missing the mandatory slice, throw an error
+          if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
+            // throw F3012 with sliceName and fhir parent
+            throw {
+              code: "F3012",
+              stack: (new Error()).stack,
+              position: expr.position,
+              start: expr.start,
+              line: expr.line,
+              fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
+              fhirElement: parentKey,
+              sliceName: sliceElement.sliceName
+            };
           }
         }
       }
-    }
-
-    if (verboseLogger) {
-      verboseLogger.info('validateElementSlices', 'slice validation completed - no errors');
     }
   }
 
@@ -1564,10 +1392,8 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} result - Result object
    * @param {Array} children - Children definitions
    * @param {Object} expr - Original expression
-   * @param {Array} collectedVirtualRuleErrors - Array of collected virtual rule errors from children processing
-   * @param {boolean} deferVirtualRuleErrors - Whether to defer virtual rule errors for potential merging
    */
-  function validateMandatoryChildren(result, children, expr, collectedVirtualRuleErrors = [], deferVirtualRuleErrors = false) {
+  function validateMandatoryChildren(result, children, expr) {
     // Ensure mandatory children exist
     for (const child of children) {
       // skip non-mandatory children
@@ -1587,18 +1413,16 @@ function createFlashEvaluator(evaluate) {
       );
 
       if (!satisfied) {
-        // If we should defer virtual rule errors for potential merging, don't throw yet
-        if (deferVirtualRuleErrors) {
-          continue; // Skip validation for this child, allow merging to happen
+        // if this is an array element and has a single possible name, it may have slices that satisfy the requirement.
+        // so before we throw on missing mandatory child, we will check if any of the keys in the result start with name[0]:
+        const isArrayElement = child.__isArray && child.__name.length === 1;
+        if (isArrayElement) {
+          const arrayName = child.__name[0];
+          const hasSlice = Object.keys(result).some(key => key.startsWith(`${arrayName}:`));
+          if (hasSlice) {
+            continue; // skip this child, slices satisfy the requirement
+          }
         }
-
-        // If we have virtual rule errors and the element is still missing,
-        // then the virtual rule failure explains why - throw the first one
-        if (collectedVirtualRuleErrors.length > 0) {
-          throw collectedVirtualRuleErrors[0].error;
-        }
-
-        // Otherwise throw a generic mandatory element missing error
         throw {
           code: "F3002",
           stack: (new Error()).stack,
@@ -1644,6 +1468,9 @@ function createFlashEvaluator(evaluate) {
       }
 
       if (context.fixedValue) {
+        // when evaluating a rule with a fixed value, we just return the fixed value
+        // no processing of sub-expressions or inline expressions is relevant
+        // NOTE: at this stage, fhir primitives are still objects with a `value` key and possibly other properties
         if (verboseLogger) {
           verboseLogger.info('evaluateFlash', 'Using fixed value', { fixedValue: context.fixedValue });
           verboseLogger.exit('evaluateFlash', context.fixedValue, { fixedValue: true });
@@ -1653,8 +1480,11 @@ function createFlashEvaluator(evaluate) {
 
       const { kind, children, resourceType, profileUrl, patternValue } = context;
 
-      // Process all expressions
-      const { inlineResult: rawInlineResult, subExpressionResults } = await processFlashExpressions(expr, input, environment);
+      // Process all expressions (inline + sub-rules)
+      const {
+        inlineResult: rawInlineResult, // we use rawInlineResult so we can declare inlineResult as var (not const)
+        subExpressionResults
+      } = await processFlashExpressions(expr, input, environment);
       if (verboseLogger) {
         verboseLogger.info('evaluateFlash', 'Flash expressions processed', {
           hasInlineResult: rawInlineResult !== undefined,
@@ -1663,13 +1493,14 @@ function createFlashEvaluator(evaluate) {
         });
       }
 
+      // declare inlineResult as a variable so we can override it if needed
       let inlineResult = rawInlineResult;
 
+      // at this stage, result could be anything
       let result;
-      const collectedVirtualRuleErrors = [];
       if (kind === 'system') {
         // system primitive - the result is just the inline expression.
-        // there could not be any child expressions
+        // there could not be any child expressions (parsing would have failed if there were).
         result = inlineResult;
         if (verboseLogger) {
           verboseLogger.info('evaluateFlash', 'System primitive result', { result });
@@ -1678,7 +1509,10 @@ function createFlashEvaluator(evaluate) {
         // result is going to be an object (including fhir primitives - they are still objects at this stage).
         result = {};
 
-        // if it's a fhir primitive, wrap the inline result in an object with a 'value' key
+        // if it's a fhir primitive, wrap the inline result in an object with a 'value' key.
+        // this is because unlike with complex-types (inline assignments are objects),
+        // we expect the user to assing the primitive value itself in an inline expression,
+        // not the intermediate object representation of a primitive (with the `value` as property).
         if (kind === 'primitive-type' && inlineResult !== undefined) {
           inlineResult = {
             value: inlineResult
@@ -1689,6 +1523,7 @@ function createFlashEvaluator(evaluate) {
         }
 
         // Fix arrays within inline objects by checking FHIR definitions
+        // TODO: this looks strange. arrays are ignored?
         if (inlineResult && typeof inlineResult === 'object' && !Array.isArray(inlineResult)) {
           inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
           if (verboseLogger) {
@@ -1696,7 +1531,7 @@ function createFlashEvaluator(evaluate) {
           }
         }
 
-        // For Resource datatypes with inline results, use the inline result as the base result
+        // For Resource datatypes with inline results, use the inline result as the base
         if (kind === 'resource' && inlineResult !== undefined) {
           // Validate the Resource inline result first
           const validatedResource = validateResourceInput(inlineResult, expr, environment);
@@ -1745,36 +1580,6 @@ function createFlashEvaluator(evaluate) {
             });
           }
 
-          // Collect any virtual rule errors
-          if (childResult.virtualRuleError) {
-            collectedVirtualRuleErrors.push({
-              error: childResult.virtualRuleError,
-              childInfo: childResult.childInfo
-            });
-
-            // If this is a slice validation error, also collect it for flash block level validation
-            // Only collect errors from mandatory slices that couldn't be auto-generated
-            if (childResult.virtualRuleError.fhirElement &&
-                childResult.virtualRuleError.fhirElement.includes('[') &&
-                childResult.virtualRuleError.fhirElement.includes(']') &&
-                // Only treat this as a slice validation error if it's for a mandatory slice
-                // that has no user-provided values (i.e., truly missing mandatory slice)
-                child.min > 0 &&
-                childResult.values.length === 0) {
-              // Store slice errors in environment for flash block level validation
-              const collectedSliceErrors = environment.lookup('__collectedSliceErrors') || [];
-              collectedSliceErrors.push(childResult.virtualRuleError);
-              environment.bind('__collectedSliceErrors', collectedSliceErrors);
-
-              if (verboseLogger) {
-                verboseLogger.info('evaluateFlash', 'collected slice validation error', {
-                  error: childResult.virtualRuleError.code || childResult.virtualRuleError,
-                  fhirElement: childResult.virtualRuleError.fhirElement
-                });
-              }
-            }
-          }
-
           if (childResult.values.length > 0) {
             assignValuesToResult(result, child, childResult.values, children, environment);
             if (verboseLogger) {
@@ -1800,7 +1605,7 @@ function createFlashEvaluator(evaluate) {
       }
 
       // After processing all children, check for missing mandatory slices
-      await validateAndGenerateMandatorySlices(result, children, expr, environment, collectedVirtualRuleErrors);
+      await validateAndGenerateMandatorySlices(result, children, expr, environment);
 
       // Post-process result
       if (typeof result === 'undefined') {
@@ -1843,15 +1648,7 @@ function createFlashEvaluator(evaluate) {
         }
       }
 
-      // Determine if we should defer virtual rule errors for potential merging
-      // Only defer for non-virtual explicit rules targeting non-array elements
-      // Don't defer for array slices (e.g., code.coding[SliceA])
-      const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
-      const isNonArrayElement = elementDefinition && elementDefinition.max === '1';
-      const isArraySlice = expr.flashPathRefKey && expr.flashPathRefKey.includes('[') && expr.flashPathRefKey.includes(']');
-      const shouldDeferVirtualRuleErrors = expr.isFlashRule && !expr.isVirtualRule && isNonArrayElement && !isArraySlice;
-
-      validateMandatoryChildren(result, children, expr, collectedVirtualRuleErrors, shouldDeferVirtualRuleErrors);
+      validateMandatoryChildren(result, children, expr);
 
       if (expr.isFlashRule) {
         // if it's a flash rule, process and return the result as a flash rule
@@ -2107,7 +1904,9 @@ function createFlashEvaluator(evaluate) {
     }
 
     return reorderedResult;
-  }  /**
+  }
+
+  /**
    * Get FHIR element children definitions
    * @param {Object} environment - Environment with FHIR definitions
    * @param {string} referenceKey - Reference key for element
