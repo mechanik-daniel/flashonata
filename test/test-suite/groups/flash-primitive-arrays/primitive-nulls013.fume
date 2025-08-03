@@ -1,0 +1,9 @@
+InstanceOf: Patient
+* address
+  * line = 'home line 1'
+  * line = 'home line 2'
+    * extension[data-absent-reason].value = 'unknown'
+* address
+  * line
+    * extension[data-absent-reason].value = 'masked'
+  * line = 'work line 2'

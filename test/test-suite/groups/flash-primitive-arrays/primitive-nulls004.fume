@@ -1,0 +1,5 @@
+InstanceOf: Patient
+* name
+  * given = 'John'
+  * given = 'Michael'
+    * extension[data-absent-reason].value = 'unknown'

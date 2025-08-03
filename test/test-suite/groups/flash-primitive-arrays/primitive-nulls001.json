@@ -1,0 +1,28 @@
+{
+  "description": "Patient.address.line with two values, second has extension - null in _line array",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "line": [
+          "line1",
+          "line2"
+        ],
+        "_line": [
+          null,
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls001.fume"
+}

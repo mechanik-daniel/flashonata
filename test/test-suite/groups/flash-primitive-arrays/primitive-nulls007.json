@@ -1,0 +1,29 @@
+{
+  "description": "Patient.name.given with extension only on middle index (no value), other indices have values - null value at index 1",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "given": [
+          "John",
+          null,
+          "Robert"
+        ],
+        "_given": [
+          null,
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "masked"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls007.fume"
+}

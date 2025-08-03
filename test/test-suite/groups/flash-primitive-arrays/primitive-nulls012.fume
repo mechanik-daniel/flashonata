@@ -1,0 +1,8 @@
+InstanceOf: Patient
+* name
+  * given = 'John'
+    * extension[data-absent-reason].value = 'unknown'
+    * id = 'first-given-id'
+  * given = 'Michael'
+  * given = 'Robert'
+    * extension[data-absent-reason].value = 'masked'

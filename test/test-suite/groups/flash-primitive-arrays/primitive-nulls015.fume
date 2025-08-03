@@ -1,0 +1,8 @@
+InstanceOf: Patient
+* address
+  * line = 'line1'
+  * line = 'line2'
+  * line = 'line3'
+* name
+  * given = 'John'
+  * given = 'Michael'

@@ -1,0 +1,44 @@
+{
+  "description": "Patient with multiple address blocks, each with different line patterns and extensions",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "line": [
+          "home line 1",
+          "home line 2"
+        ],
+        "_line": [
+          null,
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "line": [
+          null,
+          "work line 2"
+        ],
+        "_line": [
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "masked"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls013.fume"
+}

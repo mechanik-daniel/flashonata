@@ -1,0 +1,26 @@
+{
+  "description": "Patient with only primitive values (no extensions) - should NOT create sibling arrays",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "line": [
+          "line1",
+          "line2",
+          "line3"
+        ]
+      }
+    ],
+    "name": [
+      {
+        "given": [
+          "John",
+          "Michael"
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls015.fume"
+}

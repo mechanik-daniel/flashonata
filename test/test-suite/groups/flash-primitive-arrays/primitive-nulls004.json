@@ -1,0 +1,28 @@
+{
+  "description": "Patient.name.given with two values, second has extension - null in _given array",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "given": [
+          "John",
+          "Michael"
+        ],
+        "_given": [
+          null,
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls004.fume"
+}

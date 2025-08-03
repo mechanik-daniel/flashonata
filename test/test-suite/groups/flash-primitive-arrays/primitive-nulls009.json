@@ -1,0 +1,32 @@
+{
+  "description": "Standalone Address.line with three values, first and third have extensions - null in _line array at index 1",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "line": [
+      "street1",
+      "street2",
+      "apt 3"
+    ],
+    "_line": [
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "unknown"
+          }
+        ]
+      },
+      null,
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "masked"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls009.fume"
+}

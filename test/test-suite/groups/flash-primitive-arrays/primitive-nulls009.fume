@@ -1,0 +1,6 @@
+InstanceOf: Address
+* line = 'street1'
+  * extension[data-absent-reason].value = 'unknown'
+* line = 'street2'
+* line = 'apt 3'
+  * extension[data-absent-reason].value = 'masked'

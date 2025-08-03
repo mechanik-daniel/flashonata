@@ -1,0 +1,22 @@
+{
+  "description": "Standalone HumanName.given with extension only on first index (no value), second has value - null value at index 0",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "given": [
+      null,
+      "Michael"
+    ],
+    "_given": [
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "unknown"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls010.fume"
+}

@@ -1,0 +1,27 @@
+{
+  "description": "Patient.address.line with extension only on first index (no value), second has value - null value at index 0",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "address": [
+      {
+        "line": [
+          null,
+          "line2"
+        ],
+        "_line": [
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls006.fume"
+}

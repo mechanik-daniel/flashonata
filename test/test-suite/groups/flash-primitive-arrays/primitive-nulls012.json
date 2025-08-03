@@ -1,0 +1,38 @@
+{
+  "description": "Patient.name.given with both value and children (extension + id) on multiple indices",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "given": [
+          "John",
+          "Michael",
+          "Robert"
+        ],
+        "_given": [
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown"
+              }
+            ],
+            "id": "first-given-id"
+          },
+          null,
+          {
+            "extension": [
+              {
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "masked"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls012.fume"
+}

@@ -1,0 +1,34 @@
+{
+  "description": "Standalone Address.line with only extensions (no values) - all null values with corresponding extension objects",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "_line": [
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "unknown"
+          }
+        ]
+      },
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "masked"
+          }
+        ]
+      },
+      {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+            "valueCode": "temp-unavailable"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "primitive-nulls014.fume"
+}

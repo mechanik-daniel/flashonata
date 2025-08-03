@@ -1,0 +1,4 @@
+InstanceOf: HumanName
+* given
+  * extension[data-absent-reason].value = 'unknown'
+* given = 'Michael'
