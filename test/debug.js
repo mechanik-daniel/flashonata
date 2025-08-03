@@ -252,12 +252,11 @@ void async function () {
 // * contained = {"invalid": "resource"}
 // 
 
-InstanceOf: Patient
-// $patientResource := {"resourceType": "Patient", "id": "from-variable"}
-* contained = ([
-  $patientResource,
-  {"resourceType": "Organization", "name": "Direct Org"}
-])
+InstanceOf: PatternSystemPatientIdentifier
+* identifier
+  * system = 'user-system'
+    * id = '123'
+  * value = '123456789'
 
 
 `;

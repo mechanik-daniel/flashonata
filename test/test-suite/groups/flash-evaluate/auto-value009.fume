@@ -1,0 +1,4 @@
+InstanceOf: PatternSystemPatientIdentifier
+* identifier
+  * system = 'http://example.com/identifier-system'
+  * value = '123456789'

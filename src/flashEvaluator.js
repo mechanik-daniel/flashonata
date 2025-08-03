@@ -570,7 +570,9 @@ function createFlashEvaluator(evaluate) {
             min: c.min,
             max: c.max,
             hasFixedValue: !!c.__fixedValue,
+            hasPatternValue: !!c.__patternValue,
             fixedValue: c.__fixedValue,
+            patternValue: c.__patternValue,
             type: c.type?.[0]?.code,
             kind: c.type?.[0]?.__kind,
             flashPathRefKey: c.__flashPathRefKey
@@ -591,6 +593,7 @@ function createFlashEvaluator(evaluate) {
           kind,
           defKeys: Object.keys(def || {}),
           hasFixedValue: !!def.__fixedValue,
+          hasPatternValue: !!def.__patternValue,
           fromDefinition: def.__fromDefinition,
           isVirtualRule: expr.isVirtualRule
         });
@@ -620,8 +623,7 @@ function createFlashEvaluator(evaluate) {
             value: def.__fixedValue
           }
         };
-      } else if (kind !== 'system' && !def.__fixedValue) {
-        // Use the original flashPathRefKey for children lookup; no special rewrite for virtual slices
+      } else if (kind !== 'system') {
         children = getFhirElementChildren(environment, expr.flashPathRefKey);
         if (verboseLogger) {
           verboseLogger.info('initializeFlashContext', 'Retrieved children for flash rule', {
@@ -632,12 +634,27 @@ function createFlashEvaluator(evaluate) {
               min: c.min,
               max: c.max,
               hasFixedValue: !!c.__fixedValue,
+              hasPatternValue: !!c.__patternValue,
               fixedValue: c.__fixedValue,
+              patternValue: c.__patternValue,
               type: c.type?.[0]?.code,
               kind: c.type?.[0]?.__kind,
               flashPathRefKey: c.__flashPathRefKey
             }))
           });
+        }
+        if (def.__patternValue) {
+          return {
+            kind,
+            children,
+            resourceType,
+            profileUrl,
+            patternValue: {
+              '@@__flashRuleResult': true,
+              key: def.__name[0],
+              value: def.__patternValue
+            }
+          };
         }
       }
     }
@@ -752,10 +769,10 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} subExpressionResults - Sub-expression results
    * @param {Object} expr - Original flash expression
    * @param {Object} environment - Environment
-   * @param {Object} virtualRuleErrors - Object to collect virtual rule errors
+   * @param {Object} parentPatternValue - Parent pattern value if applicable
    * @returns {Promise<Array>} Promise resolving to array of processed values
    */
-  async function processChildValues(child, inlineResult, subExpressionResults, expr, environment) {
+  async function processChildValues(child, inlineResult, subExpressionResults, expr, environment, parentPatternValue) {
     // we will first normalize the possible names of this element into an array of grouping keys
     const names = generateChildNames(child);
 
@@ -763,7 +780,7 @@ function createFlashEvaluator(evaluate) {
     const values = [];
     for (const name of names) {
       const valuesForName = await processValuesForName(
-        name, child, inlineResult, subExpressionResults
+        name, child, inlineResult, subExpressionResults, parentPatternValue
       );
 
       // if we have no values for this name, skip it
@@ -895,9 +912,14 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} child - Child element definition
    * @param {*} inlineResult - Inline expression result
    * @param {Object} subExpressionResults - Sub-expression results
+   * @param {Object} parentPatternValue - Parent pattern value if available
    * @returns {Promise<Array>} Promise resolving to array of values for this name
    */
-  async function processValuesForName(name, child, inlineResult, subExpressionResults) {
+  async function processValuesForName(name, child, inlineResult, subExpressionResults, parentPatternValue) {
+    // if the parent pattern has a value for this name, we will use it
+    if (parentPatternValue && parentPatternValue.value && parentPatternValue.value[name] && typeof parentPatternValue.value[name] !== undefined) {
+      return [parentPatternValue.value[name]]; // return the value from the parent pattern
+    }
     const valuesForName = []; // keep all values for this json element name
 
     // to determine the kind of this specific element name, and accounting for polymorphic elements,
@@ -1591,7 +1613,7 @@ function createFlashEvaluator(evaluate) {
         return context.fixedValue;
       }
 
-      const { kind, children, resourceType, profileUrl } = context;
+      const { kind, children, resourceType, profileUrl, patternValue } = context;
 
       // Process all expressions
       const { inlineResult: rawInlineResult, subExpressionResults } = await processFlashExpressions(expr, input, environment);
@@ -1674,7 +1696,7 @@ function createFlashEvaluator(evaluate) {
             });
           }
 
-          const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment);
+          const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
 
           // Collect any virtual rule errors
           if (childResult.virtualRuleError) {

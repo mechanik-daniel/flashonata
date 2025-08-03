@@ -1,0 +1,23 @@
+{
+  "skip": false,
+  "description": "Auto injection of pattern system identifier inside a Patient resource - pattern should override user value",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "meta": {
+      "profile": [
+        "http://test.fumifier.fume.health/fhir/StructureDefinition/PatternSystemPatientIdentifier"
+      ]
+    },
+    "identifier": [
+      {
+        "system": "http://example.org/pattern-system",
+        "_system": {
+          "id": "123"
+        },
+        "value": "123456789"
+      }
+    ]
+  },
+  "expr-file": "auto-value010.fume"
+}
