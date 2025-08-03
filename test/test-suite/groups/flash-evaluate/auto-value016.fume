@@ -1,0 +1,4 @@
+InstanceOf: FixedPatientIdentifierSystemWithChildren
+* identifier
+  * system = 'user-value'
+  * value = '123456789'

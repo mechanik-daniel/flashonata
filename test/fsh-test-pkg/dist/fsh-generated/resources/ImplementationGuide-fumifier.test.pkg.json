@@ -59,6 +59,14 @@
       },
       {
         "reference": {
+          "reference": "StructureDefinition/FixedPatientIdentifierSystemWithChildren"
+        },
+        "name": "FixedPatientIdentifierSystemWithChildren",
+        "description": "A test profile of the Patient resource with fixed identifier system including children in _fixed[x] sibling.",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
           "reference": "StructureDefinition/FixedPatientIdentifierWithChildren"
         },
         "name": "FixedPatientIdentifierWithChildren",

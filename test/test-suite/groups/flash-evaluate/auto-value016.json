@@ -1,0 +1,29 @@
+{
+  "skip": false,
+  "description": "Auto injection of fixed identifier system with children inside a Patient resource - system and _system should be injected and other user children of identifier respected",
+  "data": null,
+  "result": {
+    "resourceType": "Patient",
+    "meta": {
+      "profile": [
+        "http://test.fumifier.fume.health/fhir/StructureDefinition/FixedPatientIdentifierSystemWithChildren"
+      ]
+    },
+    "identifier": [
+      {
+        "system": "http://example.org/fixed-system",
+        "_system": {
+          "id": "123",
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "value": "123456789"
+      }
+    ]
+  },
+  "expr-file": "auto-value016.fume"
+}
