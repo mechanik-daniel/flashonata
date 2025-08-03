@@ -128,6 +128,14 @@
       },
       {
         "reference": {
+          "reference": "StructureDefinition/PatternPatientIdentifierWithChildren"
+        },
+        "name": "PatternPatientIdentifierWithChildren",
+        "description": "A test profile of the Patient resource with pattern identifier on all slices.",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
           "reference": "StructureDefinition/PatternSystemPatientIdentifier"
         },
         "name": "PatternSystemPatientIdentifier",

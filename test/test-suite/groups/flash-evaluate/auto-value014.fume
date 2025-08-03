@@ -1,0 +1,4 @@
+InstanceOf: PatternPatientIdentifierWithChildren
+* identifier
+  * system = 'user-value'
+  * value = '123456789'
