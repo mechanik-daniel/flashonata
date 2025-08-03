@@ -1,9 +1,0 @@
-{
-  "description": "Simple test to verify basic Patient creation works",
-  "data": null,
-  "result": {
-    "resourceType": "Patient",
-    "active": true
-  },
-  "expr-file": "debug-simple.fume"
-}
