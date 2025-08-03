@@ -316,10 +316,13 @@ function createFlashEvaluator(evaluate) {
       // input is always an array (could be singleton or empty)
       // need to return an array of evaluated values
       const evaluated = parseSystemPrimitive(expr, input.value, elementDefinition, environment);
-      result.value = evaluated ? {
-        ...input, // copy all properties from the input value
-        value: evaluated // assign the evaluated value to the 'value' key
-      } : undefined;
+
+      // For primitive types, we always create a result object even if there's no value
+      // This is necessary for elements that have extensions but no values
+      result.value = {
+        ...input, // copy all properties from the input value (includes extensions, etc.)
+        value: evaluated // assign the evaluated value to the 'value' key (can be undefined)
+      };
     }
 
     // TODO: handle complex types
@@ -1127,20 +1130,25 @@ function createFlashEvaluator(evaluate) {
     }
 
     // assign the primitive values and sibling properties to the result object
-    // if any of them is just an array of nulls, we will not assign it
-    if (
-      primitiveValues && (
-        !Array.isArray(primitiveValues) ||
-        (
-          primitiveValues.length > 0 &&
-          !primitiveValues.every(v => v === null)
-        )
-      )
-    ) {
+    // Check if we have actual primitive values (not just auto-generated nulls)
+    const hasActualPrimitiveValues = primitiveValues && (
+      !Array.isArray(primitiveValues) ||
+      (primitiveValues.length > 0 && !primitiveValues.every(v => v === null))
+    );
+
+    if (hasActualPrimitiveValues) {
       result[finalValue.name] = primitiveValues;
     }
 
-    // if properties is not empty, assign it as well
+    // Remove trailing nulls from properties array to avoid unnecessary sibling array entries
+    if (Array.isArray(properties)) {
+      while (properties.length > 0 && properties[properties.length - 1] === null) {
+        properties.pop();
+      }
+    }
+
+    // if properties exist, assign the sibling array
+    // NOTE: Only assign sibling array if there are actual properties (not all nulls)
     if (
       properties &&
       (
@@ -1152,6 +1160,13 @@ function createFlashEvaluator(evaluate) {
       )
     ) {
       result['_' + finalValue.name] = properties;
+
+      // When sibling array exists but no explicit primitive values exist,
+      // only create primitive array if we have mixed values (some nulls, some actual values)
+      if (!result[finalValue.name] && Array.isArray(properties) && hasActualPrimitiveValues) {
+        // Create primitive array with nulls to match sibling array length
+        result[finalValue.name] = new Array(properties.length).fill(null);
+      }
     }
   }
 

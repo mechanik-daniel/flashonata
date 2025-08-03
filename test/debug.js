@@ -252,12 +252,14 @@ void async function () {
 // * contained = {"invalid": "resource"}
 // 
 
-InstanceOf: PatternPatientIdentifier
-* identifier
-  * system = 'user-value'
-    * id = '123'
-    * extension[data-absent-reason].value = 'unknown'
-  * value = '123456789'
+
+InstanceOf: Address
+* line
+  * extension[data-absent-reason].value = 'unknown'
+* line
+  * extension[data-absent-reason].value = 'masked'
+* line
+  * extension[data-absent-reason].value = 'temp-unavailable'
 
 
 `;
