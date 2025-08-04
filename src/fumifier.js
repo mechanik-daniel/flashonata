@@ -18,7 +18,6 @@ import fn from './utils/functions.js';
 import utils from './utils/utils.js';
 import parser from './parser.js';
 import resolveDefinitions from './utils/resolveDefinitions.js';
-import logger from './utils/logger.js';
 
 // Import boolize directly since it's a simple utility function
 const { boolize } = fn;
@@ -55,11 +54,6 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluate(expr, input, environment) {
-    // Get logger from environment if available
-    const verboseLogger = environment.lookup('__verbose_logger');
-    if (verboseLogger) {
-      verboseLogger.enter('evaluate', expr, input, { type: expr.type });
-    }
 
     var result;
 
@@ -68,110 +62,99 @@ var fumifier = (function() {
       await entryCallback(expr, input, environment);
     }
 
-    try {
-      switch (expr.type) {
-        case 'path':
-          result = await evaluatePath(expr, input, environment);
-          break;
-        case 'binary':
-          result = await evaluateBinary(expr, input, environment);
-          break;
-        case 'unary': // <--- might be a flash block or rule since they are prefix operators (unary)
-          result = await evaluateUnary(expr, input, environment);
-          break;
-        case 'name':
-          result = evaluateName(expr, input, environment);
-          break;
-        case 'string':
-        case 'number':
-        case 'value':
-          result = evaluateLiteral(expr, input, environment);
-          break;
-        case 'wildcard':
-          result = evaluateWildcard(expr, input);
-          break;
-        case 'descendant':
-          result = evaluateDescendants(expr, input, environment);
-          break;
-        case 'parent':
-          result = environment.lookup(expr.slot.label);
-          break;
-        case 'condition':
-          result = await evaluateCondition(expr, input, environment);
-          break;
-        case 'coalesce':
-          result = await evaluateCoalesce(expr, input, environment);
-          break;
-        case 'elvis':
-          result = await evaluateElvis(expr, input, environment);
-          break;
-        case 'block':
-          result = await evaluateBlock(expr, input, environment);
-          break;
-        case 'bind':
-          result = await evaluateBindExpression(expr, input, environment);
-          break;
-        case 'regex':
-          result = evaluateRegex(expr, input, environment);
-          break;
-        case 'function':
-          result = await evaluateFunction(expr, input, environment);
-          break;
-        case 'variable':
-          result = evaluateVariable(expr, input, environment);
-          break;
-        case 'lambda':
-          result = evaluateLambda(expr, input, environment);
-          break;
-        case 'partial':
-          result = await evaluatePartialApplication(expr, input, environment);
-          break;
-        case 'apply':
-          result = await evaluateApplyExpression(expr, input, environment);
-          break;
-        case 'transform':
-          result = evaluateTransformExpression(expr, input, environment);
-          break;
-      }
 
-      if (Object.prototype.hasOwnProperty.call(expr, 'predicate')) {
-        for(var ii = 0; ii < expr.predicate.length; ii++) {
-          result = await evaluateFilter(expr.predicate[ii].expr, result, environment);
-        }
-      }
-
-      if (expr.type !== 'path' && Object.prototype.hasOwnProperty.call(expr, 'group')) {
-        result = await evaluateGroupExpression(expr.group, result, environment);
-      }
-
-      var exitCallback = environment.lookup(Symbol.for('fumifier.__evaluate_exit'));
-      if(exitCallback) {
-        await exitCallback(expr, input, environment, result);
-      }
-
-      if(result && isSequence(result) && !result.tupleStream) {
-        if(expr.keepArray) {
-          result.keepSingleton = true;
-        }
-        if(result.length === 0) {
-          result = undefined;
-        } else if(result.length === 1) {
-          result =  result.keepSingleton ? result : result[0];
-        }
-      }
-
-      if (verboseLogger) {
-        verboseLogger.exit('evaluate', result, { type: expr.type });
-      }
-
-      return result;
-    } catch (error) {
-      if (verboseLogger) {
-        verboseLogger.error('evaluate', 'Expression evaluation failed', error);
-        verboseLogger.exit('evaluate', undefined, { type: expr.type, error: true });
-      }
-      throw error;
+    switch (expr.type) {
+      case 'path':
+        result = await evaluatePath(expr, input, environment);
+        break;
+      case 'binary':
+        result = await evaluateBinary(expr, input, environment);
+        break;
+      case 'unary': // <--- might be a flash block or rule since they are prefix operators (unary)
+        result = await evaluateUnary(expr, input, environment);
+        break;
+      case 'name':
+        result = evaluateName(expr, input, environment);
+        break;
+      case 'string':
+      case 'number':
+      case 'value':
+        result = evaluateLiteral(expr, input, environment);
+        break;
+      case 'wildcard':
+        result = evaluateWildcard(expr, input);
+        break;
+      case 'descendant':
+        result = evaluateDescendants(expr, input, environment);
+        break;
+      case 'parent':
+        result = environment.lookup(expr.slot.label);
+        break;
+      case 'condition':
+        result = await evaluateCondition(expr, input, environment);
+        break;
+      case 'coalesce':
+        result = await evaluateCoalesce(expr, input, environment);
+        break;
+      case 'elvis':
+        result = await evaluateElvis(expr, input, environment);
+        break;
+      case 'block':
+        result = await evaluateBlock(expr, input, environment);
+        break;
+      case 'bind':
+        result = await evaluateBindExpression(expr, input, environment);
+        break;
+      case 'regex':
+        result = evaluateRegex(expr, input, environment);
+        break;
+      case 'function':
+        result = await evaluateFunction(expr, input, environment);
+        break;
+      case 'variable':
+        result = evaluateVariable(expr, input, environment);
+        break;
+      case 'lambda':
+        result = evaluateLambda(expr, input, environment);
+        break;
+      case 'partial':
+        result = await evaluatePartialApplication(expr, input, environment);
+        break;
+      case 'apply':
+        result = await evaluateApplyExpression(expr, input, environment);
+        break;
+      case 'transform':
+        result = evaluateTransformExpression(expr, input, environment);
+        break;
     }
+
+    if (Object.prototype.hasOwnProperty.call(expr, 'predicate')) {
+      for(var ii = 0; ii < expr.predicate.length; ii++) {
+        result = await evaluateFilter(expr.predicate[ii].expr, result, environment);
+      }
+    }
+
+    if (expr.type !== 'path' && Object.prototype.hasOwnProperty.call(expr, 'group')) {
+      result = await evaluateGroupExpression(expr.group, result, environment);
+    }
+
+    var exitCallback = environment.lookup(Symbol.for('fumifier.__evaluate_exit'));
+    if(exitCallback) {
+      await exitCallback(expr, input, environment, result);
+    }
+
+    if(result && isSequence(result) && !result.tupleStream) {
+      if(expr.keepArray) {
+        result.keepSingleton = true;
+      }
+      if(result.length === 0) {
+        result = undefined;
+      } else if(result.length === 1) {
+        result =  result.keepSingleton ? result : result[0];
+      }
+    }
+
+    return result;
   }
 
   // Initialize flash evaluator with dependencies
@@ -187,100 +170,71 @@ var fumifier = (function() {
      * @returns {Promise<any>} Evaluated input data
      */
   async function evaluateUnary(expr, input, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-    if (verboseLogger) {
-      verboseLogger.enter('evaluateUnary', expr, input, {
-        isFlash: expr.isFlashBlock || expr.isFlashRule,
-        value: expr.value
-      });
-    }
 
     var result;
 
-    try {
-      // if it's a flash block or rule, evaluate it and return the result
-      if (expr.isFlashBlock || expr.isFlashRule) {
-        if (verboseLogger) {
-          verboseLogger.info('evaluateUnary', 'Delegating to Flash evaluator', {
-            type: expr.isFlashBlock ? 'FlashBlock' : 'FlashRule',
-            instanceof: expr.instanceof,
-            flashPathRefKey: expr.flashPathRefKey
-          });
-        }
-        result = await flashEvaluator.evaluateFlash(expr, input, environment);
-        if (verboseLogger) {
-          verboseLogger.exit('evaluateUnary', result, { flashEvaluation: true });
-        }
-        return result;
-      }
 
-      // otherwise, it's a native JSONata unary operator, process normally
-      if (verboseLogger) {
-        verboseLogger.info('evaluateUnary', 'Processing native JSONata unary operator', { operator: expr.value });
-      }
+    // if it's a flash block or rule, evaluate it and return the result
+    if (expr.isFlashBlock || expr.isFlashRule) {
+      result = await flashEvaluator.evaluateFlash(expr, input, environment);
+      return result;
+    }
 
-      switch (expr.value) {
-        case '-':
-          result = await evaluate(expr.expression, input, environment);
-          if(typeof result === 'undefined') {
-            result = undefined;
-          } else if (isNumeric(result)) {
-            result = -result;
-          } else {
-            throw {
-              code: "D1002",
-              stack: (new Error()).stack,
-              position: expr.position,
-              start: expr.start,
-              token: expr.value,
-              value: result
-            };
-          }
-          break;
-        case '[':
+    // otherwise, it's a native JSONata unary operator, process normally
+
+    switch (expr.value) {
+      case '-':
+        result = await evaluate(expr.expression, input, environment);
+        if(typeof result === 'undefined') {
+          result = undefined;
+        } else if (isNumeric(result)) {
+          result = -result;
+        } else {
+          throw {
+            code: "D1002",
+            stack: (new Error()).stack,
+            position: expr.position,
+            start: expr.start,
+            token: expr.value,
+            value: result
+          };
+        }
+        break;
+      case '[':
         // array constructor - evaluate each item
-          result = [];
-          // eslint-disable-next-line no-case-declarations
-          let generators = await Promise.all(expr.expressions
-            .map(async (item, idx) => {
-              environment.isParallelCall = idx > 0;
-              return [item, await evaluate(item, input, environment)];
-            }));
-          for (let generator of generators) {
-            var [item, value] = generator;
-            if (typeof value !== 'undefined') {
-              if(item.value === '[') {
-                result.push(value);
-              } else {
-                result = fn.append(result, value);
-              }
+        result = [];
+        // eslint-disable-next-line no-case-declarations
+        let generators = await Promise.all(expr.expressions
+          .map(async (item, idx) => {
+            environment.isParallelCall = idx > 0;
+            return [item, await evaluate(item, input, environment)];
+          }));
+        for (let generator of generators) {
+          var [item, value] = generator;
+          if (typeof value !== 'undefined') {
+            if(item.value === '[') {
+              result.push(value);
+            } else {
+              result = fn.append(result, value);
             }
           }
-          if(expr.consarray) {
-            Object.defineProperty(result, 'cons', {
-              enumerable: false,
-              configurable: false,
-              value: true
-            });
-          }
-          break;
-        case '{':
+        }
+        if(expr.consarray) {
+          Object.defineProperty(result, 'cons', {
+            enumerable: false,
+            configurable: false,
+            value: true
+          });
+        }
+        break;
+      case '{':
         // object constructor - apply grouping
-          result = await evaluateGroupExpression(expr, input, environment);
-          break;
-      }
-
-      if (verboseLogger) {
-        verboseLogger.exit('evaluateUnary', result, { operator: expr.value });
-      }
-      return result;
-    } catch (error) {
-      if (verboseLogger) {
-        verboseLogger.error('evaluateUnary', 'Unary expression evaluation failed', error);
-        verboseLogger.exit('evaluateUnary', undefined, { error: true });
-      }
-      throw error;
+        result = await evaluateGroupExpression(expr, input, environment);
+        break;
     }
+
+    return result;
+
   }
 
   /**
@@ -1972,7 +1926,6 @@ var fumifier = (function() {
      * @param {FumifierOptions} options
      * @param {boolean} options.recover: attempt to recover on parse error
      * @param {FhirStructureNavigator} options.navigator: FHIR structure navigator
-     * @param {boolean} options.verbose: enable verbose logging
      * @returns {Promise<fumifier.Expression> | fumifier.Expression} Compiled expression object
      */
   async function fumifier(expr, options) {
@@ -1980,15 +1933,7 @@ var fumifier = (function() {
     var errors;
     var navigator = options && options.navigator;
     var recover = options && options.recover;
-    var verbose = options && options.verbose;
     var compiledFhirRegex = {};
-
-    // Initialize logger if verbose mode is enabled
-    if (verbose) {
-      logger.setEnabled(true);
-      logger.clear();
-      logger.info('fumifier', 'Starting expression compilation with verbose logging', { expr: expr.substring(0, 200) + (expr.length > 200 ? '...' : '') });
-    }
 
     try {
       // syntactic parsing only (sync) - may throw on syntax errors
@@ -2027,12 +1972,6 @@ var fumifier = (function() {
     }
 
     var environment = createFrame(staticFrame);
-
-    // Bind the logger to environment if verbose mode is enabled
-    if (verbose) {
-      environment.bind('__verbose_logger', logger);
-      logger.info('fumifier', 'Logger bound to environment');
-    }
 
     var timestamp = new Date(); // will be overridden on each call to evalute()
     environment.bind('now', defineFunction(function(picture, timezone) {
@@ -2127,26 +2066,6 @@ var fumifier = (function() {
       },
       errors: function() {
         return errors;
-      },
-      logs: function() {
-        // Return logs if verbose mode was enabled
-        if (verbose && logger) {
-          return logger.getLogs();
-        }
-        return [];
-      },
-      exportLogs: function() {
-        // Export formatted logs if verbose mode was enabled
-        if (verbose && logger) {
-          return logger.export();
-        }
-        return 'Verbose logging not enabled';
-      },
-      clearLogs: function() {
-        // Clear logs if verbose mode was enabled
-        if (verbose && logger) {
-          logger.clear();
-        }
       }
     };
 

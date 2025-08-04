@@ -136,25 +136,9 @@ function createFlashEvaluator(evaluate) {
    * @returns {*} Validated resource input
    */
   function validateResourceInput(input, expr, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-
-    if (verboseLogger) {
-      verboseLogger.info('validateResourceInput', 'Function called', {
-        inputType: typeof input,
-        input: input,
-        isArray: Array.isArray(input),
-        flashPathRefKey: expr.flashPathRefKey,
-        position: expr.position
-      });
-    }
 
     // Handle arrays of resources
     if (Array.isArray(input)) {
-      if (verboseLogger) {
-        verboseLogger.info('validateResourceInput', 'Validating array of resources', {
-          arrayLength: input.length
-        });
-      }
       return input.map(item => validateResourceInput(item, expr, environment));
     }
 
@@ -171,13 +155,6 @@ function createFlashEvaluator(evaluate) {
         message: `Resource datatype requires an object, got ${typeof input}`
       };
 
-      if (verboseLogger) {
-        verboseLogger.info('validateResourceInput', 'Resource validation failed - not an object', {
-          inputType: typeof input,
-          error: error.code
-        });
-      }
-
       throw error;
     }
 
@@ -193,23 +170,7 @@ function createFlashEvaluator(evaluate) {
         fhirElement: expr.flashPathRefKey.split('::')[1]
       };
 
-      if (verboseLogger) {
-        verboseLogger.info('validateResourceInput', 'Resource validation failed - missing or invalid resourceType', {
-          hasResourceType: 'resourceType' in input,
-          resourceType: input.resourceType,
-          resourceTypeType: typeof input.resourceType,
-          error: error.code
-        });
-      }
-
       throw error;
-    }
-
-    if (verboseLogger) {
-      verboseLogger.info('validateResourceInput', 'Resource validation passed', {
-        resourceType: input.resourceType,
-        hasKeys: Object.keys(input).length > 1
-      });
     }
 
     return input;
@@ -522,20 +483,10 @@ function createFlashEvaluator(evaluate) {
     let resourceType;
     let profileUrl;
 
-    const verboseLogger = environment.lookup('__verbose_logger');
-
     if (expr.isFlashBlock) {
       // flash block - use the instanceof to get the structure definition's meta data
       const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
       kind = typeMeta?.kind;
-
-      if (verboseLogger) {
-        verboseLogger.info('initializeFlashContext', 'Flash block context', {
-          instanceof: expr.instanceof,
-          kind,
-          typeMeta
-        });
-      }
 
       // kind can be a resource, complex-type, or primitive-type.
       // It cannot be a system primitive since those cannot be instantiated with InstanceOf
@@ -548,24 +499,6 @@ function createFlashEvaluator(evaluate) {
         }
       }
       children = getFhirTypeChildren(environment, expr.instanceof);
-      if (verboseLogger) {
-        verboseLogger.info('initializeFlashContext', 'Retrieved children for flash block', {
-          instanceof: expr.instanceof,
-          childrenCount: children?.length || 0,
-          childrenDetails: children?.map(c => ({
-            name: c.__name?.[0],
-            min: c.min,
-            max: c.max,
-            hasFixedValue: !!c.__fixedValue,
-            hasPatternValue: !!c.__patternValue,
-            fixedValue: c.__fixedValue,
-            patternValue: c.__patternValue,
-            type: c.type?.[0]?.code,
-            kind: c.type?.[0]?.__kind,
-            flashPathRefKey: c.__flashPathRefKey
-          }))
-        });
-      }
     } else {
       // flash rule - use the flashPathRefKey to get the element definition
       const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
@@ -573,18 +506,6 @@ function createFlashEvaluator(evaluate) {
       // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
-
-      if (verboseLogger) {
-        verboseLogger.info('initializeFlashContext', 'Flash rule context', {
-          flashPathRefKey: expr.flashPathRefKey,
-          kind,
-          defKeys: Object.keys(def || {}),
-          hasFixedValue: !!def.__fixedValue,
-          hasPatternValue: !!def.__patternValue,
-          fromDefinition: def.__fromDefinition,
-          isVirtualRule: expr.isVirtualRule
-        });
-      }
 
       if (def.max === '0') {
         // forbidden element
@@ -611,36 +532,8 @@ function createFlashEvaluator(evaluate) {
           }
         };
       } else if (kind !== 'system') {
-        children = getFhirElementChildren(environment, expr.flashPathRefKey);
-        if (verboseLogger) {
-          verboseLogger.info('initializeFlashContext', 'Retrieved children for flash rule', {
-            flashPathRefKey: expr.flashPathRefKey,
-            childrenCount: children?.length || 0,
-            childrenDetails: children?.map(c => ({
-              name: c.__name?.[0],
-              min: c.min,
-              max: c.max,
-              hasFixedValue: !!c.__fixedValue,
-              hasPatternValue: !!c.__patternValue,
-              fixedValue: c.__fixedValue,
-              patternValue: c.__patternValue,
-              type: c.type?.[0]?.code,
-              kind: c.type?.[0]?.__kind,
-              flashPathRefKey: c.__flashPathRefKey
-            }))
-          });
-        }
+        children = getFhirElementChildren(environment, expr);
         if (def.__patternValue) {
-          const verboseLogger = environment?.lookup('__verbose_logger');
-          if (verboseLogger) {
-            verboseLogger.info('initializeFlashContext', 'Found pattern value in definition', {
-              patternValue: def.__patternValue,
-              patternValueType: typeof def.__patternValue,
-              isArray: Array.isArray(def.__patternValue),
-              elementName: def.__name[0],
-              flashPathRefKey: def.__flashPathRefKey
-            });
-          }
           return {
             kind,
             children,
@@ -668,33 +561,16 @@ function createFlashEvaluator(evaluate) {
    * @returns {Promise<Object>} Promise resolving to object with inlineResult and subExpressionResults
    */
   async function processFlashExpressions(expr, input, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-    if (verboseLogger) {
-      verboseLogger.enter('processFlashExpressions', expr, input, {
-        expressionCount: expr.expressions.length
-      });
-    }
 
     const subExpressionResults = {};
     let inlineResult;
 
     // Evaluate all expressions and group results by key
     for (const node of expr.expressions) {
-      if (verboseLogger) {
-        verboseLogger.info('processFlashExpressions', 'Processing expression', {
-          nodeType: node.type,
-          isInlineExpression: node.isInlineExpression,
-          isFlashRule: node.isFlashRule,
-          position: node.position
-        });
-      }
 
       let res = await evaluate(node, input, environment);
 
       if (typeof res === 'undefined') {
-        if (verboseLogger) {
-          verboseLogger.info('processFlashExpressions', 'Expression result undefined - skipping');
-        }
         continue; // undefined results are ignored
       }
 
@@ -709,50 +585,21 @@ function createFlashEvaluator(evaluate) {
         // result is kept if it's truthy or explicitly false / 0
         if (boolize(res) !== false || res === false || res === 0) {
           inlineResult = res;
-          if (verboseLogger) {
-            verboseLogger.info('processFlashExpressions', 'Set inline result', { inlineResult });
-          }
-        } else if (verboseLogger) {
-          verboseLogger.info('processFlashExpressions', 'Inline expression result falsy - ignoring', { res });
         }
         // nothing more to do with this node, continue
         continue;
       } else if (node.type === 'bind') {
         // variable assignment inside a flash block or rule
         // we don't care about the result (the variale is assigned to the environment)
-        if (verboseLogger) {
-          verboseLogger.info('processFlashExpressions', 'Variable assignment processed');
-        }
         continue;
       }
 
       // flash rule or contextualized rule - a flashrule result object or an array of such
       const groupingKey = Array.isArray(res) ? res[0].key : res.key;
-      if (verboseLogger) {
-        verboseLogger.info('processFlashExpressions', 'Processing flash rule result', {
-          groupingKey,
-          isArray: Array.isArray(res),
-          resultType: res['@@__flashRuleResult'] ? 'FlashRuleResult' : 'Other'
-        });
-      }
 
       // we append to the gouping key in the subExpressionResults object
       const values = fn.append(subExpressionResults[groupingKey], res);
       subExpressionResults[groupingKey] = Array.isArray(values) ? values : [values];
-
-      if (verboseLogger) {
-        verboseLogger.info('processFlashExpressions', 'Added to sub-expression results', {
-          groupingKey,
-          totalValues: subExpressionResults[groupingKey].length
-        });
-      }
-    }
-
-    if (verboseLogger) {
-      verboseLogger.exit('processFlashExpressions', { inlineResult, subExpressionResults }, {
-        hasInlineResult: inlineResult !== undefined,
-        subExpressionKeys: Object.keys(subExpressionResults)
-      });
     }
 
     return { inlineResult, subExpressionResults };
@@ -813,16 +660,6 @@ function createFlashEvaluator(evaluate) {
 
       // try to evaluate the child as a virtual rule
       try {
-        const verboseLogger = environment.lookup('__verbose_logger');
-        if (verboseLogger) {
-          verboseLogger.info('processChildValues', 'Creating virtual rule for mandatory child', {
-            childName: child.__name[0],
-            childMin: child.min,
-            flashPathRefKey: child.__flashPathRefKey,
-            parentInstanceOf: expr.instanceof
-          });
-        }
-
         const autoValue = await evaluate({
           type: 'unary',
           value: '[',
@@ -838,28 +675,12 @@ function createFlashEvaluator(evaluate) {
 
         // if the autoValue is undefined, we skip this child element
         if (typeof autoValue !== 'undefined') {
-          if (verboseLogger) {
-            verboseLogger.info('processChildValues', 'Virtual rule succeeded', {
-              childName: child.__name[0],
-              autoValueKey: autoValue.key,
-              autoValueKind: autoValue.kind,
-              hasValue: typeof autoValue.value !== 'undefined',
-              valueEmpty: typeof autoValue.value === 'object' && Object.keys(autoValue.value).length === 0
-            });
-          }
           values.push({ name: autoValue.key, kind: autoValue.kind, value: [autoValue.value] });
-        } else if (verboseLogger) {
-          verboseLogger.info('processChildValues', 'Virtual rule returned undefined', {
-            childName: child.__name[0]
-          });
         }
       } catch (error) {
         // For virtual rule errors during explicit assignment processing, collect but don't throw yet
         // The parent will check if other flash rules provided values for this element
-        const verboseLogger = environment.lookup('__verbose_logger');
-        if (verboseLogger) {
-          verboseLogger.info('processChildValues', `Virtual rule evaluation failed for ${child.__flashPathRefKey}, will be handled by parent`, { error: error.code });
-        }
+
         // Return the error along with the values so parent can decide what to do
         return { values, virtualRuleError: error, childInfo: child };
       }
@@ -1203,16 +1024,6 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} environment - Environment
    */
   function processSlices(result, children, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-    const isFlashBlock = Object.keys(result).some(k => k === 'resourceType');
-    if (verboseLogger) {
-      verboseLogger.info('processSlices', 'called', {
-        isFlashBlock: isFlashBlock,
-        resultKeys: Object.keys(result),
-        childrenCount: children.length
-      });
-    }
-
     // append slices into their parent element
     // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
     // we will append it to the parent element with the same name (without the sliceName)
@@ -1262,7 +1073,6 @@ function createFlashEvaluator(evaluate) {
    * @param {Array} collectedVirtualRuleErrors - Array to collect virtual rule errors
    */
   async function validateAndGenerateMandatorySlices(result, children, expr, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
 
     // If result is null/undefined, no slice validation needed
     if (!result || typeof result !== 'object') {
@@ -1295,14 +1105,6 @@ function createFlashEvaluator(evaluate) {
       // Check for missing mandatory slices
       for (const sliceElement of allSliceElements) {
         if (sliceElement.min > 0 && !presentSlices.has(sliceElement.sliceName)) {
-          if (verboseLogger) {
-            verboseLogger.info('validateAndGenerateMandatorySlices', 'Auto-generating missing mandatory slice', {
-              parentKey,
-              sliceName: sliceElement.sliceName,
-              min: sliceElement.min,
-              flashPathRefKey: sliceElement.__flashPathRefKey
-            });
-          }
 
           // Try to auto-generate the missing mandatory slice using virtual rule
           try {
@@ -1320,25 +1122,11 @@ function createFlashEvaluator(evaluate) {
             }, undefined, environment);
 
             if (typeof autoValue !== 'undefined') {
-              if (verboseLogger) {
-                verboseLogger.info('validateAndGenerateMandatorySlices', 'Successfully auto-generated mandatory slice', {
-                  sliceName: sliceElement.sliceName,
-                  autoValueKey: autoValue.key
-                });
-              }
-
               // Add the auto-generated slice to the result
               result[autoValue.key] = autoValue.value;
             }
           } catch (error) {
-            // Ignore the error, but log it for debugging purposes
-            if (verboseLogger) {
-              verboseLogger.info('validateAndGenerateMandatorySlices', 'Failed to auto-generate mandatory slice', {
-                sliceName: sliceElement.sliceName,
-                error: error.code || error,
-                fhirElement: error.fhirElement
-              });
-            }
+            // Ignore the error
           }
           // if result is still missing the mandatory slice, throw an error
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
@@ -1450,240 +1238,132 @@ function createFlashEvaluator(evaluate) {
    * @returns {Promise<*>} Evaluated flash result
    */
   async function evaluateFlash(expr, input, environment) {
-    const verboseLogger = environment.lookup('__verbose_logger');
-    if (verboseLogger) {
-      verboseLogger.enter('evaluateFlash', expr, input, {
-        isFlashBlock: expr.isFlashBlock,
-        isFlashRule: expr.isFlashRule,
-        instanceof: expr.instanceof,
-        flashPathRefKey: expr.flashPathRefKey
-      });
+
+    // Initialize context and check for fixed values
+    const context = initializeFlashContext(expr, environment);
+
+    if (context.fixedValue) {
+      // when evaluating a rule with a fixed value, we just return the fixed value
+      // no processing of sub-expressions or inline expressions is relevant
+      // NOTE: at this stage, fhir primitives are still objects with a `value` key and possibly other properties
+      return context.fixedValue;
     }
 
-    try {
-      // Initialize context and check for fixed values
-      const context = initializeFlashContext(expr, environment);
-      if (verboseLogger) {
-        verboseLogger.info('evaluateFlash', 'Flash context initialized', context);
+    const { kind, children, resourceType, profileUrl, patternValue } = context;
+
+    // Process all expressions (inline + sub-rules)
+    const {
+      inlineResult: rawInlineResult, // we use rawInlineResult so we can declare inlineResult as var (not const)
+      subExpressionResults
+    } = await processFlashExpressions(expr, input, environment);
+
+    // declare inlineResult as a variable so we can override it if needed
+    let inlineResult = rawInlineResult;
+
+    // at this stage, result could be anything
+    let result;
+    if (kind === 'system') {
+      // system primitive - the result is just the inline expression.
+      // there could not be any child expressions (parsing would have failed if there were).
+      result = inlineResult;
+    } else {
+      // result is going to be an object (including fhir primitives - they are still objects at this stage).
+      result = {};
+
+      // if it's a fhir primitive, wrap the inline result in an object with a 'value' key.
+      // this is because unlike with complex-types (inline assignments are objects),
+      // we expect the user to assing the primitive value itself in an inline expression,
+      // not the intermediate object representation of a primitive (with the `value` as property).
+      if (kind === 'primitive-type' && inlineResult !== undefined) {
+        inlineResult = {
+          value: inlineResult
+        };
       }
 
-      if (context.fixedValue) {
-        // when evaluating a rule with a fixed value, we just return the fixed value
-        // no processing of sub-expressions or inline expressions is relevant
-        // NOTE: at this stage, fhir primitives are still objects with a `value` key and possibly other properties
-        if (verboseLogger) {
-          verboseLogger.info('evaluateFlash', 'Using fixed value', { fixedValue: context.fixedValue });
-          verboseLogger.exit('evaluateFlash', context.fixedValue, { fixedValue: true });
-        }
-        return context.fixedValue;
+      // Fix arrays within inline objects by checking FHIR definitions
+      // TODO: this looks strange. arrays are ignored?
+      if (inlineResult && typeof inlineResult === 'object' && !Array.isArray(inlineResult)) {
+        inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
       }
 
-      const { kind, children, resourceType, profileUrl, patternValue } = context;
-
-      // Process all expressions (inline + sub-rules)
-      const {
-        inlineResult: rawInlineResult, // we use rawInlineResult so we can declare inlineResult as var (not const)
-        subExpressionResults
-      } = await processFlashExpressions(expr, input, environment);
-      if (verboseLogger) {
-        verboseLogger.info('evaluateFlash', 'Flash expressions processed', {
-          hasInlineResult: rawInlineResult !== undefined,
-          subExpressionCount: Object.keys(subExpressionResults).length,
-          kind
-        });
+      // For Resource datatypes with inline results, use the inline result as the base
+      if (kind === 'resource' && inlineResult !== undefined) {
+        // Validate the Resource inline result first
+        const validatedResource = validateResourceInput(inlineResult, expr, environment);
+        result = validatedResource; // Use the validated resource directly (don't spread arrays)
       }
 
-      // declare inlineResult as a variable so we can override it if needed
-      let inlineResult = rawInlineResult;
-
-      // at this stage, result could be anything
-      let result;
-      if (kind === 'system') {
-        // system primitive - the result is just the inline expression.
-        // there could not be any child expressions (parsing would have failed if there were).
-        result = inlineResult;
-        if (verboseLogger) {
-          verboseLogger.info('evaluateFlash', 'System primitive result', { result });
-        }
-      } else {
-        // result is going to be an object (including fhir primitives - they are still objects at this stage).
-        result = {};
-
-        // if it's a fhir primitive, wrap the inline result in an object with a 'value' key.
-        // this is because unlike with complex-types (inline assignments are objects),
-        // we expect the user to assing the primitive value itself in an inline expression,
-        // not the intermediate object representation of a primitive (with the `value` as property).
-        if (kind === 'primitive-type' && inlineResult !== undefined) {
-          inlineResult = {
-            value: inlineResult
-          };
-          if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Wrapped primitive value', { inlineResult });
-          }
-        }
-
-        // Fix arrays within inline objects by checking FHIR definitions
-        // TODO: this looks strange. arrays are ignored?
-        if (inlineResult && typeof inlineResult === 'object' && !Array.isArray(inlineResult)) {
-          inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
-          if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Fixed arrays in inline object', { inlineResult });
-          }
-        }
-
-        // For Resource datatypes with inline results, use the inline result as the base
-        if (kind === 'resource' && inlineResult !== undefined) {
-          // Validate the Resource inline result first
-          const validatedResource = validateResourceInput(inlineResult, expr, environment);
-          result = validatedResource; // Use the validated resource directly (don't spread arrays)
-          if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Set Resource inline result as base', {
-              inlineResult: validatedResource
-            });
-          }
-        }
-
-        // if it's a resource, set the resourceType as the first key
-        if (resourceType) {
-          result.resourceType = resourceType;
-          if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Set resourceType', { resourceType });
-          }
-        }
-
-        // now we will loop through the children in-order and assign the result attributes
-        for (const child of children) {
-          // we skip elements that have max = 0 or no __name
-          if (child.max === '0' || !child.__name) {
-            continue;
-          }
-
-          if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Processing child element', {
-              childName: child.__name[0],
-              childMin: child.min,
-              childMax: child.max,
-              childKind: child.type?.[0]?.__kind,
-              flashPathRefKey: child.__flashPathRefKey,
-              isVirtualRule: expr.isVirtualRule
-            });
-          }
-
-          const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
-
-          if (verboseLogger && patternValue) {
-            verboseLogger.info('evaluateFlash', 'Passed pattern value to child', {
-              childName: child.__name[0],
-              patternValue: patternValue,
-              patternValueType: typeof patternValue?.value,
-              flashPathRefKey: child.__flashPathRefKey
-            });
-          }
-
-          if (childResult.values.length > 0) {
-            assignValuesToResult(result, child, childResult.values, children, environment);
-            if (verboseLogger) {
-              verboseLogger.info('evaluateFlash', 'Assigned child values', {
-                childName: child.__name[0],
-                valueCount: childResult.values.length,
-                isArray: child.max !== '1'
-              });
-            }
-          } else if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'No values found for child element', {
-              childName: child.__name[0],
-              childMin: child.min,
-              isMandatory: child.min > 0
-            });
-          }
-        }
+      // if it's a resource, set the resourceType as the first key
+      if (resourceType) {
+        result.resourceType = resourceType;
       }
 
-      // Track keys before auto-injection for reordering optimization
-      if (typeof result === 'object' && result !== null) {
-        environment.bind('__keys_before_auto_injection', Object.keys(result));
+      // now we will loop through the children in-order and assign the result attributes
+      for (const child of children) {
+        // we skip elements that have max = 0 or no __name
+        if (child.max === '0' || !child.__name) {
+          continue;
+        }
+
+        const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
+
+        if (childResult.values.length > 0) {
+          assignValuesToResult(result, child, childResult.values, children, environment);
+        }
       }
+    }
 
-      // After processing all children, check for missing mandatory slices
-      await validateAndGenerateMandatorySlices(result, children, expr, environment);
+    // Track keys before auto-injection for reordering optimization
+    if (typeof result === 'object' && result !== null) {
+      environment.bind('__keys_before_auto_injection', Object.keys(result));
+    }
 
-      // Post-process result
-      if (typeof result === 'undefined') {
-        result = {};
-      } else {
-        processSlices(result, children, environment);
-        result = injectMetaProfile(result, resourceType, profileUrl);
+    // After processing all children, check for missing mandatory slices
+    await validateAndGenerateMandatorySlices(result, children, expr, environment);
 
-        // Reorder result keys according to FHIR element definition order
-        // This ensures that auto-injected values appear in the correct order
-        // Only needed if new keys were added during auto-value injection (slices, meta.profile, etc.)
-        // Performance note: this can be disabled by setting __disable_reordering in environment
-        if (children && children.length > 0) {
-          const disableReordering = environment.lookup('__disable_reordering');
-          if (!disableReordering) {
-            // Check if we actually need reordering by comparing key count before/after auto-injection
-            const keysBeforeAutoInjection = environment.lookup('__keys_before_auto_injection');
-            const currentKeys = Object.keys(result);
+    // Post-process result
+    if (typeof result === 'undefined') {
+      result = {};
+    } else {
+      processSlices(result, children, environment);
+      result = injectMetaProfile(result, resourceType, profileUrl);
 
-            // Only reorder if new keys were added or if we don't have the before-state tracked
-            const needsReordering = !keysBeforeAutoInjection ||
+      // Reorder result keys according to FHIR element definition order
+      // This ensures that auto-injected values appear in the correct order
+      // Only needed if new keys were added during auto-value injection (slices, meta.profile, etc.)
+      // Performance note: this can be disabled by setting __disable_reordering in environment
+      if (children && children.length > 0) {
+        const disableReordering = environment.lookup('__disable_reordering');
+        if (!disableReordering) {
+          // Check if we actually need reordering by comparing key count before/after auto-injection
+          const keysBeforeAutoInjection = environment.lookup('__keys_before_auto_injection');
+          const currentKeys = Object.keys(result);
+
+          // Only reorder if new keys were added or if we don't have the before-state tracked
+          const needsReordering = !keysBeforeAutoInjection ||
                                   currentKeys.length !== keysBeforeAutoInjection.length ||
                                   !keysBeforeAutoInjection.every(key => currentKeys.includes(key));
 
-            if (needsReordering) {
-              result = reorderResultByFhirDefinition(result, children, environment);
-              if (verboseLogger) {
-                verboseLogger.info('evaluateFlash', 'Result reordered according to FHIR definition', {
-                  keysBeforeAutoInjection: keysBeforeAutoInjection || 'not tracked',
-                  currentKeys,
-                  finalKeys: Object.keys(result)
-                });
-              }
-            } else if (verboseLogger) {
-              verboseLogger.info('evaluateFlash', 'No reordering needed - no new keys added during auto-injection');
-            }
-          } else if (verboseLogger) {
-            verboseLogger.info('evaluateFlash', 'Result reordering skipped due to __disable_reordering flag');
+          if (needsReordering) {
+            result = reorderResultByFhirDefinition(result, children);
           }
         }
       }
-
-      validateMandatoryChildren(result, children, expr);
-
-      if (expr.isFlashRule) {
-        // if it's a flash rule, process and return the result as a flash rule
-        result = finalizeFlashRuleResult(expr, result, environment);
-        if (verboseLogger) {
-          verboseLogger.info('evaluateFlash', 'Flash rule result finalized', {
-            key: result.key,
-            kind: result.kind
-          });
-        }
-      }
-
-      // if it's a flashblock, if it has no children or only resourceType, we return undefined
-      if (Object.keys(result).length === 0 || (Object.keys(result).length === 1 && result.resourceType)) {
-        result = undefined;
-        if (verboseLogger) {
-          verboseLogger.info('evaluateFlash', 'Empty flash block result - returning undefined');
-        }
-      }
-
-      if (verboseLogger) {
-        verboseLogger.exit('evaluateFlash', result, {
-          type: expr.isFlashBlock ? 'FlashBlock' : 'FlashRule',
-          resultType: typeof result
-        });
-      }
-
-      return result;
-    } catch (error) {
-      if (verboseLogger) {
-        verboseLogger.error('evaluateFlash', 'Flash evaluation failed', error);
-        verboseLogger.exit('evaluateFlash', undefined, { error: true });
-      }
-      throw error;
     }
+
+    validateMandatoryChildren(result, children, expr);
+
+    if (expr.isFlashRule) {
+      // if it's a flash rule, process and return the result as a flash rule
+      result = finalizeFlashRuleResult(expr, result, environment);
+    }
+
+    // if it's a flashblock, if it has no children or only resourceType, we return undefined
+    if (Object.keys(result).length === 0 || (Object.keys(result).length === 1 && result.resourceType)) {
+      result = undefined;
+    }
+
+    return result;
   }
 
   // FHIR helper functions (these will be imported from the main module)
@@ -1760,33 +1440,22 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} environment - Environment
    * @returns {Object} Reordered result object
    */
-  function reorderResultByFhirDefinition(result, children, environment) {
+  function reorderResultByFhirDefinition(result, children) {
     if (!result || typeof result !== 'object' || Array.isArray(result) || !children || children.length === 0) {
       return result;
     }
 
     const existingKeys = Object.keys(result);
-    const verboseLogger = environment.lookup && environment.lookup('__verbose_logger');
 
     // Create a key-to-index map for faster lookups
     const existingKeySet = new Set(existingKeys);
     const orderedKeys = [];
     const processedKeys = new Set();
 
-    if (verboseLogger) {
-      verboseLogger.info('reorderResultByFhirDefinition', 'Starting reorder', {
-        existingKeys,
-        childrenCount: children.length
-      });
-    }
-
     // First, add resourceType if it exists (should always be first)
     if (existingKeySet.has('resourceType')) {
       orderedKeys.push('resourceType');
       processedKeys.add('resourceType');
-      if (verboseLogger) {
-        verboseLogger.info('reorderResultByFhirDefinition', 'Added resourceType first');
-      }
     }
 
     // Pre-compute slice keys for faster lookup
@@ -1814,13 +1483,6 @@ function createFlashEvaluator(evaluate) {
         if (existingKeySet.has(possibleName) && !processedKeys.has(possibleName)) {
           orderedKeys.push(possibleName);
           processedKeys.add(possibleName);
-
-          if (verboseLogger) {
-            verboseLogger.info('reorderResultByFhirDefinition', 'Added key from FHIR definition', {
-              key: possibleName,
-              childPath: child.path
-            });
-          }
         }
 
         // Slice keys for this element (pre-computed for performance)
@@ -1830,13 +1492,6 @@ function createFlashEvaluator(evaluate) {
             if (!processedKeys.has(sliceKey)) {
               orderedKeys.push(sliceKey);
               processedKeys.add(sliceKey);
-
-              if (verboseLogger) {
-                verboseLogger.info('reorderResultByFhirDefinition', 'Added slice key from FHIR definition', {
-                  key: sliceKey,
-                  parentElement: possibleName
-                });
-              }
             }
           }
         }
@@ -1846,13 +1501,6 @@ function createFlashEvaluator(evaluate) {
         if (existingKeySet.has(siblingKey) && !processedKeys.has(siblingKey)) {
           orderedKeys.push(siblingKey);
           processedKeys.add(siblingKey);
-
-          if (verboseLogger) {
-            verboseLogger.info('reorderResultByFhirDefinition', 'Added primitive sibling key', {
-              key: siblingKey,
-              parentElement: possibleName
-            });
-          }
         }
       }
     }
@@ -1861,11 +1509,6 @@ function createFlashEvaluator(evaluate) {
     for (const key of existingKeys) {
       if (!processedKeys.has(key)) {
         orderedKeys.push(key);
-        if (verboseLogger) {
-          verboseLogger.info('reorderResultByFhirDefinition', 'Added remaining key not in FHIR definition', {
-            key
-          });
-        }
       }
     }
 
@@ -1879,13 +1522,11 @@ function createFlashEvaluator(evaluate) {
         }
       }
     } else {
+      /* c8 ignore next 2 */
       orderChanged = true;
     }
 
     if (!orderChanged) {
-      if (verboseLogger) {
-        verboseLogger.info('reorderResultByFhirDefinition', 'No reordering needed - keys already in correct order');
-      }
       return result;
     }
 
@@ -1895,46 +1536,33 @@ function createFlashEvaluator(evaluate) {
       reorderedResult[key] = result[key];
     }
 
-    if (verboseLogger) {
-      verboseLogger.info('reorderResultByFhirDefinition', 'Completed reorder', {
-        originalOrder: existingKeys,
-        newOrder: orderedKeys,
-        changed: true
-      });
-    }
-
     return reorderedResult;
   }
 
   /**
    * Get FHIR element children definitions
    * @param {Object} environment - Environment with FHIR definitions
-   * @param {string} referenceKey - Reference key for element
+   * @param {string} expr - expression node, containing reference key for element
    * @returns {Array} Element children definitions
    */
-  function getFhirElementChildren(environment, referenceKey) {
+  function getFhirElementChildren(environment, expr) {
+    const flashPathRefKey = expr.flashPathRefKey;
     const definitions = getFhirDefinitionsDictinary(environment);
-    const verboseLogger = environment.lookup && environment.lookup('__verbose_logger');
     let children;
     if (definitions && definitions.elementChildren) {
-      children = definitions.elementChildren[referenceKey];
-      if (verboseLogger) {
-        verboseLogger.info('getFhirElementChildren', 'Lookup result', {
-          referenceKey,
-          childrenType: Array.isArray(children) ? 'array' : typeof children,
-          childrenLength: Array.isArray(children) ? children.length : undefined,
-          children: children
-        });
-      }
+      children = definitions.elementChildren[flashPathRefKey];
       return children;
     }
-    if (verboseLogger) {
-      verboseLogger.info('getFhirElementChildren', 'No elementChildren found in definitions', {
-        referenceKey,
-        definitionsKeys: Object.keys(definitions || {})
-      });
-    }
-    return undefined;
+    /* c8 ignore next 9 */
+    throw {
+      code: "F3013",
+      stack: (new Error()).stack,
+      position: expr.position,
+      start: expr.start,
+      line: expr.line,
+      instanceOf: expr.instanceof,
+      fhirElement: flashPathRefKey
+    };
   }
 
   return {
