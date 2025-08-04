@@ -377,6 +377,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
           }
         });
       } catch (e) {
+        /* c8 ignore next 7 */
         const baseError = {
           code: 'F2008',
           value: parentFlashpath,

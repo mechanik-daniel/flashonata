@@ -86,7 +86,7 @@ function createFlashEvaluator(evaluate) {
       // check if regex is defined for the element, and test it
       if (elementDefinition.__regexStr) {
         // need to fetch regex tester from the environment
-        var regexTester = getFhirRegexTester(environment, elementDefinition.__regexStr);
+        var regexTester = getRegexTester(environment, elementDefinition.__regexStr);
 
         if (regexTester && !regexTester.test(fn.string(input))) {
           throw {
@@ -187,9 +187,9 @@ function createFlashEvaluator(evaluate) {
   function finalizeFlashRuleResult(expr, input, environment) {
     // Ensure the expression refers to a valid FHIR element
 
-    const generateErrorObject = () => {
+    const generateErrorObject = (error) => {
       const baseErr = {
-        stack: (new Error()).stack,
+        stack: (error || new Error()).stack,
         position: expr.position,
         start: expr.start,
         line: expr.line
@@ -204,15 +204,15 @@ function createFlashEvaluator(evaluate) {
     };
 
     if (!expr.flashPathRefKey) {
-      throw { code: "F3000", ...generateErrorObject() };
+      throw { code: "F3000", ...generateErrorObject(new Error()) };
     }
     // lookup the definition of the element
-    const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
+    const elementDefinition = getElementDefinition(environment, expr);
 
     if (!elementDefinition) {
       throw {
         code: "F3003",
-        ...generateErrorObject()
+        ...generateErrorObject(new Error())
       };
     }
 
@@ -223,7 +223,7 @@ function createFlashEvaluator(evaluate) {
     ) {
       throw {
         code: "F3005",
-        ...generateErrorObject()
+        ...generateErrorObject(new Error())
       };
     }
 
@@ -232,7 +232,7 @@ function createFlashEvaluator(evaluate) {
     if (!kind) {
       throw {
         code: 'F3004',
-        ...generateErrorObject()
+        ...generateErrorObject(new Error())
       };
     }
 
@@ -357,7 +357,8 @@ function createFlashEvaluator(evaluate) {
             const typeCode = elementDef.type?.[0]?.code;
             if (typeCode) {
               try {
-                const typeChildren = getFhirTypeChildren(environment, typeCode);
+                // TODO: This is another mess done by copilot that is not needed
+                const typeChildren = getTypeChildren(environment, {instanceof: typeCode});
                 return flattenPrimitiveValues(item, typeChildren, environment);
               } catch (error) {
                 return flattenPrimitiveValues(item, children, environment);
@@ -371,7 +372,8 @@ function createFlashEvaluator(evaluate) {
         const typeCode = elementDef.type?.[0]?.code;
         if (typeCode) {
           try {
-            const typeChildren = getFhirTypeChildren(environment, typeCode);
+            // TODO: This is another mess done by copilot that is not needed
+            const typeChildren = getTypeChildren(environment, {instanceof:typeCode});
             result[key] = flattenPrimitiveValues(value, typeChildren, environment);
           } catch (error) {
             result[key] = flattenPrimitiveValues(value, children, environment);
@@ -421,61 +423,6 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Recursively fixes arrays within inline objects based on FHIR element definitions.
-   * If a property in the object corresponds to a FHIR element with max != '1' and the value is an array,
-   * the array items are spread rather than treated as a nested array.
-   * @param {Object} obj - Object to process
-   * @param {Array} children - FHIR element children definitions
-   * @param {Object} environment - Environment with FHIR definitions
-   * @param {string} parentPath - Path to parent element for debugging
-   * @returns {Object} Processed object
-   */
-  function fixArraysInInlineObject(obj, children, environment, parentPath = '') {
-    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-      return obj;
-    }
-
-    const result = { ...obj };
-
-    for (const [key, value] of Object.entries(result)) {
-      // Find the FHIR element definition for this key
-      const elementDef = children.find(child =>
-        child.__name && child.__name.includes(key)
-      );
-
-      // If this is an array field (max != '1') and we have an array value,
-      // the array should be used as-is, not wrapped in another array
-      if (elementDef && elementDef.max !== '1' && Array.isArray(value)) {
-        // For array fields, keep the array as-is - don't double-wrap
-        result[key] = value;
-      } else if (Array.isArray(value)) {
-        // For non-array fields, recursively process array elements
-        result[key] = value.map(item =>
-          (typeof item === 'object' && !Array.isArray(item)) ?
-            fixArraysInInlineObject(item, children, environment, `${parentPath}.${key}`) :
-            item
-        );
-      } else if (typeof value === 'object' && value !== null && elementDef) {
-        // For complex types, get the children of that type and recursively process
-        const typeCode = elementDef.type?.[0]?.code;
-        if (typeCode) {
-          try {
-            const typeChildren = getFhirTypeChildren(environment, typeCode);
-            result[key] = fixArraysInInlineObject(value, typeChildren, environment, `${parentPath}.${key}`);
-          } catch (error) {
-            // If we can't get type children, just process with current children
-            result[key] = fixArraysInInlineObject(value, children, environment, `${parentPath}.${key}`);
-          }
-        } else {
-          result[key] = fixArraysInInlineObject(value, children, environment, `${parentPath}.${key}`);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * Initialize FLASH context from expression metadata
    * @param {Object} expr - Flash expression
    * @param {Object} environment - Environment with FHIR definitions
@@ -489,7 +436,7 @@ function createFlashEvaluator(evaluate) {
 
     if (expr.isFlashBlock) {
       // flash block - use the instanceof to get the structure definition's meta data
-      const typeMeta = getFhirTypeMeta(environment, expr.instanceof);
+      const typeMeta = getTypeMetadata(environment, expr);
       kind = typeMeta?.kind;
 
       // kind can be a resource, complex-type, or primitive-type.
@@ -502,10 +449,10 @@ function createFlashEvaluator(evaluate) {
           profileUrl = typeMeta.url;
         }
       }
-      children = getFhirTypeChildren(environment, expr.instanceof);
+      children = getTypeChildren(environment, expr);
     } else {
       // flash rule - use the flashPathRefKey to get the element definition
-      const def = getFhirElementDefinition(environment, expr.flashPathRefKey);
+      const def = getElementDefinition(environment, expr);
       // kind will almost laways be a system primitive, primitive-type, or complex-type.
       // kind = "resource" is rare but should be supported (Bundle.entry.resource, DomainResource.contained)
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
@@ -536,7 +483,7 @@ function createFlashEvaluator(evaluate) {
           }
         };
       } else if (kind !== 'system') {
-        children = getFhirElementChildren(environment, expr);
+        children = getElementChildren(environment, expr);
         if (def.__patternValue) {
           return {
             kind,
@@ -677,16 +624,12 @@ function createFlashEvaluator(evaluate) {
           line: expr.line
         }, undefined, environment);
 
-        // if the autoValue is undefined, we skip this child element
+        // if the autoValue is not undefined, we add it to the values array
         if (typeof autoValue !== 'undefined') {
           values.push({ name: autoValue.key, kind: autoValue.kind, value: [autoValue.value] });
         }
       } catch (error) {
-        // For virtual rule errors during explicit assignment processing, collect but don't throw yet
-        // The parent will check if other flash rules provided values for this element
-
-        // Return the error along with the values so parent can decide what to do
-        return { values, virtualRuleError: error, childInfo: child };
+        // If the element failed to auto generate, we ignore the error and just don't add anything to the values array
       }
     }
 
@@ -695,6 +638,7 @@ function createFlashEvaluator(evaluate) {
 
   /**
    * Generate possible names for a child element (handles polymorphic and slice cases)
+   * The names at this stage are grouping keys - meaning *actual* slice names are included (element:sliceName).
    * @param {Object} child - Child element definition
    * @returns {Array} Array of possible names
    */
@@ -715,12 +659,15 @@ function createFlashEvaluator(evaluate) {
         }
       } else {
         // it's a polymorphic element, narrowed to a single type.
-        // we will use the single __name and ignore sliceName if it exists
+        // we will use the single __name and ignore sliceName if it exists,
+        // since the base name already includes the type, and sliceName (if there is one) is redundant
+        // NOTE: polymorphic elements can only be sliced by type,
+        //       so sliceName is actually identical to the JSON element name (e.g. valueString)
         names.push(child.__name[0]);
       }
     } else {
-      // it's a polymorphic element with multiple types (and hence, names).
-      // we will use the entire __name array as possible grouping keys, ignoring sliceName
+      // it's a polymorphic element with multiple types (and hence, names). it was not narrowed to a single type.
+      // we will use the entire __name array as possible grouping keys (ignoring sliceName)
       names.push(...child.__name);
     }
 
@@ -807,13 +754,12 @@ function createFlashEvaluator(evaluate) {
     } else {
       // if it's a fhir primitive, we convert it to an object
       const rawValue = inlineResult[name];
-
+      const siblingName = '_' + name;
       // If the value is an array and this element can have multiple values,
       // treat each array item as a separate primitive value
       if (Array.isArray(rawValue) && child.max !== '1') {
         for (const item of rawValue) {
           const primitiveValue = { value: item };
-          const siblingName = '_' + name;
           if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
             // if there's a sibling element with the same name prefixed with '_',
             // we will copy its properties to the value object
@@ -824,7 +770,6 @@ function createFlashEvaluator(evaluate) {
       } else {
         // Single value or array treated as single value
         const primitiveValue = { value: rawValue };
-        const siblingName = '_' + name;
         if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
           // if there's a sibling element with the same name prefixed with '_',
           // we will copy its properties to the value object
@@ -995,7 +940,7 @@ function createFlashEvaluator(evaluate) {
           const elementDef = children.find(c => c.__name && c.__name.includes(elementName));
           if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
             try {
-              const typeChildren = getFhirTypeChildren(environment, elementDef.type[0].code);
+              const typeChildren = getTypeChildren(environment, {instanceof:elementDef.type[0].code});
               return flattenPrimitiveValues(item, typeChildren, environment);
             } catch (error) {
               // Fallback to current children if type children can't be retrieved
@@ -1010,7 +955,7 @@ function createFlashEvaluator(evaluate) {
       const elementDef = children.find(c => c.__name && c.__name.includes(elementName));
       if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
         try {
-          const typeChildren = getFhirTypeChildren(environment, elementDef.type[0].code);
+          const typeChildren = getTypeChildren(environment, {instanceof:elementDef.type[0].code});
           return flattenPrimitiveValues(valueToAssign, typeChildren, environment);
         } catch (error) {
           // Fallback to current children if type children can't be retrieved
@@ -1022,61 +967,34 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Process slices by appending them to their parent elements
+   * Append slices into the base array
    * @param {Object} result - Result object to modify
-   * @param {Array} children - Children definitions
-   * @param {Object} environment - Environment
    */
-  function processSlices(result, children, environment) {
+  function appendSlices(result) {
     // append slices into their parent element
     // we will do this by looping through the keys of result, and if any of them has a ':' suffix,
     // we will append it to the parent element with the same name (without the sliceName)
+    // TODO: look for ways to optimize this, performance is critical here
     for (const key of Object.keys(result)) {
       const colonIndex = key.indexOf(':');
-      if (colonIndex !== -1) {
-        const parentKey = key.slice(0, colonIndex);
-        let sliceValue = result[key];
-
-        // Get the element definition for the parent to determine the type
-        const parentElementDef = children.find(c => c.__name && c.__name.includes(parentKey));
-        let typeChildren = children; // fallback
-
-        if (parentElementDef && parentElementDef.type && parentElementDef.type[0] && parentElementDef.type[0].code) {
-          try {
-            typeChildren = getFhirTypeChildren(environment, parentElementDef.type[0].code);
-          } catch (error) {
-            // Use fallback children
-          }
-        }
-
-        // Flatten primitive values in slice results before appending
-        if (sliceValue && typeof sliceValue === 'object' && !Array.isArray(sliceValue)) {
-          sliceValue = flattenPrimitiveValues(sliceValue, typeChildren, environment);
-        } else if (Array.isArray(sliceValue)) {
-          sliceValue = sliceValue.map(item => {
-            if (item && typeof item === 'object' && !Array.isArray(item)) {
-              return flattenPrimitiveValues(item, typeChildren, environment);
-            }
-            return item;
-          });
-        }
-
-        result[parentKey] = fn.append(result[parentKey], sliceValue);
-        // delete the slice key from the result
-        delete result[key];
-      }
+      if (colonIndex === -1) continue; // not a slice, skip
+      const baseKey = key.slice(0, colonIndex);
+      let sliceValue = result[key];
+      result[baseKey] = fn.append(result[baseKey], sliceValue);
+      // delete the slice key from the result
+      delete result[key];
     }
   }
 
   /**
-   * Validate that all mandatory slices are present and auto-generate missing ones
+   * Ensure that all mandatory slices are present and auto-generate missing ones
    * @param {Object} result - Result object
    * @param {Array} children - Children definitions
    * @param {Object} expr - Original expression
    * @param {Object} environment - Environment
    * @param {Array} collectedVirtualRuleErrors - Array to collect virtual rule errors
    */
-  async function validateAndGenerateMandatorySlices(result, children, expr, environment) {
+  async function ensureMandatorySlices(result, children, expr, environment) {
 
     // If result is null/undefined, no slice validation needed
     if (!result || typeof result !== 'object') {
@@ -1160,22 +1078,25 @@ function createFlashEvaluator(evaluate) {
    */
   function injectMetaProfile(result, resourceType, profileUrl) {
     // inject meta.profile if this is a profiled resource and it isn't already set
-    if (profileUrl) {
-      // if meta is missing entirely, create it
-      if (!result.meta) {
-        // if it was missing, we need to put it right after the id, before all other properties
-        const hasId = Object.prototype.hasOwnProperty.call(result, 'id');
-        if (hasId) {
-          result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
-        } else {
-          result = { resourceType, meta: { profile: [profileUrl] }, ...result };
-        }
-      } else if (!result.meta.profile || !Array.isArray(result.meta.profile)) {
-        result.meta.profile = [profileUrl];
-      } else if (!result.meta.profile.includes(profileUrl)) {
-        result.meta.profile.push(profileUrl);
-      }
+    if (typeof profileUrl !== 'string') {
+      // if profileUrl is not a string, do nothing
+      return result;
     }
+    // if meta is missing entirely, create it
+    if (!result.meta) {
+      // if it was missing, we need to put it right after the id, before all other properties
+      const hasId = Object.prototype.hasOwnProperty.call(result, 'id');
+      if (hasId) {
+        result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
+      } else {
+        result = { resourceType, meta: { profile: [profileUrl] }, ...result };
+      }
+    } else if (!result.meta.profile || !Array.isArray(result.meta.profile)) {
+      result.meta.profile = [profileUrl];
+    } else if (!result.meta.profile.includes(profileUrl)) {
+      result.meta.profile.push(profileUrl);
+    }
+
     return result;
   }
 
@@ -1284,25 +1205,20 @@ function createFlashEvaluator(evaluate) {
         };
       }
 
-      // Fix arrays within inline objects by checking FHIR definitions
-      // TODO: this looks strange. arrays are ignored?
-      if (inlineResult && typeof inlineResult === 'object' && !Array.isArray(inlineResult)) {
-        inlineResult = fixArraysInInlineObject(inlineResult, children, environment);
-      }
-
-      // For Resource datatypes with inline results, use the inline result as the base
-      if (kind === 'resource' && inlineResult !== undefined) {
-        // Validate the Resource inline result first
-        const validatedResource = assertResourceInput(inlineResult, expr, environment);
-        result = validatedResource; // Use the validated resource directly (don't spread arrays)
-      }
-
-      // if it's a resource, set the resourceType as the first key
-      if (resourceType) {
+      // Handle resourceType attribute for flash rules and blocks
+      if (expr.isFlashRule && kind === 'resource' && inlineResult !== undefined) {
+        // For inline Resources with inline values, use the inline object as the base and ensure there is a resourceType
+        result = assertResourceInput(inlineResult, expr, environment);
+      } else if (expr.isFlashBlock && resourceType) {
+        // if it's a standalone resource instance, set the resourceType as the first key
         result.resourceType = resourceType;
       }
 
       // now we will loop through the children in-order and assign the result attributes
+      // NOTE: inline resources will only allow the id and meta elements to be set directly as sub-rules,
+      //       since they are the only elements common to ALL resource types.
+      //       Usually, the user will assign a complete flash block as the inline value,
+      //       which will then be processed as a specific resource type or profile with all its children.
       for (const child of children) {
         // we skip elements that have max = 0 or no __name
         if (child.max === '0' || !child.__name) {
@@ -1317,41 +1233,23 @@ function createFlashEvaluator(evaluate) {
       }
     }
 
-    // Track keys before auto-injection for reordering optimization
-    if (typeof result === 'object' && result !== null) {
-      environment.bind('__keys_before_auto_injection', Object.keys(result));
-    }
-
-    // After processing all children, check for missing mandatory slices
-    await validateAndGenerateMandatorySlices(result, children, expr, environment);
+    // After processing all children, ensure mandatory slices exist or auto-generate them
+    await ensureMandatorySlices(result, children, expr, environment);
 
     // Post-process result
     if (typeof result === 'undefined') {
       result = {};
     } else {
-      processSlices(result, children, environment);
-      result = injectMetaProfile(result, resourceType, profileUrl);
+      appendSlices(result);
+      if (resourceType && profileUrl) {
+        // If this is a profiled resource, inject meta.profile
+        result = injectMetaProfile(result, resourceType, profileUrl);
+      }
 
       // Reorder result keys according to FHIR element definition order
-      // This ensures that auto-injected values appear in the correct order
-      // Only needed if new keys were added during auto-value injection (slices, meta.profile, etc.)
-      // Performance note: this can be disabled by setting __disable_reordering in environment
+      // This ensures that auto-injected values appear in the correct place and not at the end
       if (children && children.length > 0) {
-        const disableReordering = environment.lookup('__disable_reordering');
-        if (!disableReordering) {
-          // Check if we actually need reordering by comparing key count before/after auto-injection
-          const keysBeforeAutoInjection = environment.lookup('__keys_before_auto_injection');
-          const currentKeys = Object.keys(result);
-
-          // Only reorder if new keys were added or if we don't have the before-state tracked
-          const needsReordering = !keysBeforeAutoInjection ||
-                                  currentKeys.length !== keysBeforeAutoInjection.length ||
-                                  !keysBeforeAutoInjection.every(key => currentKeys.includes(key));
-
-          if (needsReordering) {
-            result = reorderResultByFhirDefinition(result, children);
-          }
-        }
+        result = reorderResultByFhirDefinition(result, children);
       }
     }
 
@@ -1368,73 +1266,6 @@ function createFlashEvaluator(evaluate) {
     }
 
     return result;
-  }
-
-  // FHIR helper functions (these will be imported from the main module)
-  /**
-   * Get FHIR definitions dictionary from environment
-   * @param {Object} environment - Environment with FHIR definitions
-   * @returns {Object} FHIR definitions dictionary
-   */
-  function getFhirDefinitionsDictinary(environment) {
-    return environment.lookup(Symbol.for('fumifier.__resolvedDefinitions'));
-  }
-
-  /**
-   * Get compiled FHIR regex tester from environment
-   * @param {Object} environment - Environment with compiled regexes
-   * @param {string} regexStr - Regex string to compile
-   * @returns {RegExp} Compiled regex
-   */
-  function getFhirRegexTester(environment, regexStr) {
-    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
-    if (compiled) {
-      return compiled;
-    }
-    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
-    return compiled;
-  }
-
-  /**
-   * Get FHIR element definition by reference key
-   * @param {Object} environment - Environment with FHIR definitions
-   * @param {string} referenceKey - Reference key for element
-   * @returns {Object} Element definition
-   */
-  function getFhirElementDefinition(environment, referenceKey) {
-    const definitions = getFhirDefinitionsDictinary(environment);
-    if (definitions && definitions.elementDefinitions) {
-      return definitions.elementDefinitions[referenceKey];
-    }
-    return undefined;
-  }
-
-  /**
-   * Get FHIR type metadata
-   * @param {Object} environment - Environment with FHIR definitions
-   * @param {string} instanceOf - Type identifier
-   * @returns {Object} Type metadata
-   */
-  function getFhirTypeMeta(environment, instanceOf) {
-    const definitions = getFhirDefinitionsDictinary(environment);
-    if (definitions && definitions.typeMeta) {
-      return definitions.typeMeta[instanceOf];
-    }
-    return undefined;
-  }
-
-  /**
-   * Get FHIR type children definitions
-   * @param {Object} environment - Environment with FHIR definitions
-   * @param {string} instanceOf - Type identifier
-   * @returns {Array} Type children definitions
-   */
-  function getFhirTypeChildren(environment, instanceOf) {
-    const definitions = getFhirDefinitionsDictinary(environment);
-    if (definitions && definitions.typeChildren) {
-      return definitions.typeChildren[instanceOf];
-    }
-    return undefined;
   }
 
   /**
@@ -1462,22 +1293,10 @@ function createFlashEvaluator(evaluate) {
       processedKeys.add('resourceType');
     }
 
-    // Pre-compute slice keys for faster lookup
-    const sliceKeyMap = new Map(); // parentName -> [sliceKey1, sliceKey2, ...]
-    for (const key of existingKeys) {
-      const colonIndex = key.indexOf(':');
-      if (colonIndex !== -1) {
-        const parentKey = key.slice(0, colonIndex);
-        if (!sliceKeyMap.has(parentKey)) {
-          sliceKeyMap.set(parentKey, []);
-        }
-        sliceKeyMap.get(parentKey).push(key);
-      }
-    }
-
     // Then, add keys in the order defined by FHIR children definitions
     for (const child of children) {
-      if (!child.__name || child.max === '0') {
+      if (!child.__name || child.max === '0' || child.sliceName) {
+        // Skip elements with no name, max = 0, or slices (slices are gone by now - appended into their base array)
         continue;
       }
 
@@ -1487,17 +1306,6 @@ function createFlashEvaluator(evaluate) {
         if (existingKeySet.has(possibleName) && !processedKeys.has(possibleName)) {
           orderedKeys.push(possibleName);
           processedKeys.add(possibleName);
-        }
-
-        // Slice keys for this element (pre-computed for performance)
-        const sliceKeys = sliceKeyMap.get(possibleName);
-        if (sliceKeys) {
-          for (const sliceKey of sliceKeys) {
-            if (!processedKeys.has(sliceKey)) {
-              orderedKeys.push(sliceKey);
-              processedKeys.add(sliceKey);
-            }
-          }
         }
 
         // Primitive sibling keys (e.g., "_elementName")
@@ -1516,24 +1324,6 @@ function createFlashEvaluator(evaluate) {
       }
     }
 
-    // Performance optimization: only recreate object if order actually changed
-    let orderChanged = false;
-    if (existingKeys.length === orderedKeys.length) {
-      for (let i = 0; i < existingKeys.length; i++) {
-        if (existingKeys[i] !== orderedKeys[i]) {
-          orderChanged = true;
-          break;
-        }
-      }
-    } else {
-      /* c8 ignore next 2 */
-      orderChanged = true;
-    }
-
-    if (!orderChanged) {
-      return result;
-    }
-
     // Create new object with reordered keys
     const reorderedResult = {};
     for (const key of orderedKeys) {
@@ -1544,12 +1334,78 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
+   * Get FHIR definitions dictionary from environment
+   * @param {Object} environment - Environment with FHIR definitions
+   * @returns {Object} FHIR definitions dictionary
+   */
+  function getFhirDefinitionsDictinary(environment) {
+    return environment.lookup(Symbol.for('fumifier.__resolvedDefinitions'));
+  }
+
+  /**
+   * Get compiled FHIR regex tester from environment
+   * @param {Object} environment - Environment with compiled regexes
+   * @param {string} regexStr - Regex string to compile
+   * @returns {RegExp} Compiled regex
+   */
+  function getRegexTester(environment, regexStr) {
+    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
+    if (compiled) {
+      return compiled;
+    }
+    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
+    return compiled;
+  }
+
+  /**
+   * Get FHIR element definition by reference key
+   * @param {Object} environment - Environment with FHIR definitions
+   * @param {Object} expr - Expression node, containing reference key for element
+   * @returns {Object} Element definition
+   */
+  function getElementDefinition(environment, expr) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    if (definitions && definitions.elementDefinitions && expr && expr.flashPathRefKey) {
+      return definitions.elementDefinitions[expr.flashPathRefKey];
+    }
+    return undefined;
+  }
+
+  /**
+   * Get FHIR type metadata
+   * @param {Object} environment - Environment with FHIR definitions
+   * @param {Object} expr - Expression node, containing type information in `instanceof`
+   * @returns {Object} Type metadata
+   */
+  function getTypeMetadata(environment, expr) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    if (definitions && definitions.typeMeta && expr && expr.instanceof) {
+      return definitions.typeMeta[expr.instanceof];
+    }
+    return undefined;
+  }
+
+  /**
+   * Get FHIR type children definitions
+   * @param {Object} environment - Environment with FHIR definitions
+   * @param {Object} expr - Expression node, containing type information in `instanceof`
+   * @returns {Array} Type children definitions
+   */
+  function getTypeChildren(environment, expr) {
+    const definitions = getFhirDefinitionsDictinary(environment);
+    if (definitions && definitions.typeChildren && expr && expr.instanceof) {
+      return definitions.typeChildren[expr.instanceof];
+    }
+    return undefined;
+  }
+
+  /**
    * Get FHIR element children definitions
    * @param {Object} environment - Environment with FHIR definitions
    * @param {string} expr - expression node, containing reference key for element
    * @returns {Array} Element children definitions
    */
-  function getFhirElementChildren(environment, expr) {
+  function getElementChildren(environment, expr) {
     const flashPathRefKey = expr.flashPathRefKey;
     const definitions = getFhirDefinitionsDictinary(environment);
     let children;
@@ -1569,14 +1425,7 @@ function createFlashEvaluator(evaluate) {
     };
   }
 
-  return {
-    evaluateFlash,
-    parseSystemPrimitive,
-    finalizeFlashRuleResult,
-    flattenPrimitiveValues,
-    fixArraysInInlineObject,
-    reorderResultByFhirDefinition
-  };
+  return evaluateFlash;
 }
 
 export default createFlashEvaluator;

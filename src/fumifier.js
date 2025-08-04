@@ -42,6 +42,9 @@ var fumifier = (function() {
     isDeepEqual
   } = utils;
 
+  // Initialize flash evaluator function
+  const evaluateFlash = createFlashEvaluator(evaluate);
+
   // Start of Evaluator code
 
   var staticFrame = createFrame(null);
@@ -157,9 +160,6 @@ var fumifier = (function() {
     return result;
   }
 
-  // Initialize flash evaluator with dependencies
-  const flashEvaluator = createFlashEvaluator(evaluate);
-
   /**
      * Evaluate unary expression against input data
      * This includes specialized '[' unary operator for flash blocks and rules that were converted
@@ -176,7 +176,7 @@ var fumifier = (function() {
 
     // if it's a flash block or rule, evaluate it and return the result
     if (expr.isFlashBlock || expr.isFlashRule) {
-      result = await flashEvaluator.evaluateFlash(expr, input, environment);
+      result = await evaluateFlash(expr, input, environment);
       return result;
     }
 

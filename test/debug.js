@@ -261,11 +261,9 @@ void async function () {
 //   * extension[official].value = true
 
 InstanceOf: Patient
-* extension[ext-administrative-parent-name]
-  * extension[given].value = 'John'
-    * id = 'parent-name-id'
-  * extension[role].value = 'FTH'
-  * extension[official].value = true
+* contained = {'resourceType': 'Patient'}
+  * id = 'p1'
+  * meta.profile = 'http://example.com/extension-url'
 
 `;
 
