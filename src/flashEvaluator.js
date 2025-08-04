@@ -16,7 +16,8 @@ const { initCap, boolize } = fn;
 function createFlashEvaluator(evaluate) {
 
   /**
-   * Parse and validate system primitive values according to FHIR specifications
+   * Parse and validate system primitive values according to FHIR specifications.
+   * This function also handles the actual primitive `value` of a FHIR primitive type, which is itself a system primitive.
    * @param {Object} expr - Expression with FHIR context
    * @param {*} input - Input value to parse
    * @param {Object} elementDefinition - FHIR element definition
@@ -129,17 +130,16 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Validate Resource datatype input - ensures object has resourceType attribute
+   * Ensure a Resource input is an object with a valid resourceType
    * @param {*} input - Input value to validate
    * @param {Object} expr - Expression with position info for errors
-   * @param {Object} environment - Environment with logger
    * @returns {*} Validated resource input
    */
-  function validateResourceInput(input, expr, environment) {
+  function assertResourceInput(input, expr) {
 
     // Handle arrays of resources
     if (Array.isArray(input)) {
-      return input.map(item => validateResourceInput(item, expr, environment));
+      return input.map(item => assertResourceInput(item, expr));
     }
 
     // Input must be an object
@@ -150,9 +150,9 @@ function createFlashEvaluator(evaluate) {
         position: expr.position,
         start: expr.start,
         line: expr.line,
-        fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
-        fhirElement: expr.flashPathRefKey ? expr.flashPathRefKey.split('::')[1] : 'Resource',
-        message: `Resource datatype requires an object, got ${typeof input}`
+        fhirParent: expr.instanceof,
+        fhirElement: expr.flashPathRefKey.split('::')[1],
+        valueType: typeof input
       };
 
       throw error;
@@ -186,18 +186,25 @@ function createFlashEvaluator(evaluate) {
    */
   function finalizeFlashRuleResult(expr, input, environment) {
     // Ensure the expression refers to a valid FHIR element
-    const rootFhirTypeId = expr.instanceof;
-    const elementFlashPath = expr.flashPathRefKey?.slice(rootFhirTypeId.length + 2); // For error reporting
 
-    const baseError = {
-      stack: (new Error()).stack,
-      position: expr.position,
-      start: expr.start,
-      line: expr.line
+    const generateErrorObject = () => {
+      const baseErr = {
+        stack: (new Error()).stack,
+        position: expr.position,
+        start: expr.start,
+        line: expr.line
+      };
+      if (expr.instanceof) {
+        baseErr.instanceOf = expr.instanceof;
+        if (expr.flashPathRefKey) {
+          baseErr.fhirElement = expr.flashPathRefKey.slice(expr.instanceof.length + 2);
+        }
+      }
+      return baseErr;
     };
 
     if (!expr.flashPathRefKey) {
-      throw { code: "F3000", ...baseError };
+      throw { code: "F3000", ...generateErrorObject() };
     }
     // lookup the definition of the element
     const elementDefinition = getFhirElementDefinition(environment, expr.flashPathRefKey);
@@ -205,22 +212,18 @@ function createFlashEvaluator(evaluate) {
     if (!elementDefinition) {
       throw {
         code: "F3003",
-        instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath,
-        ...baseError
+        ...generateErrorObject()
       };
     }
 
     if (
-      !(elementDefinition?.__name) || // should have been set on the enriched definition
+      !(elementDefinition?.__name) || // should have a name array set on the enriched definition
       !Array.isArray(elementDefinition.__name) || // should be an array
       elementDefinition.__name.length > 1 // no more than one option
     ) {
       throw {
         code: "F3005",
-        instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath,
-        ...baseError
+        ...generateErrorObject()
       };
     }
 
@@ -229,18 +232,17 @@ function createFlashEvaluator(evaluate) {
     if (!kind) {
       throw {
         code: 'F3004',
-        instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath,
-        ...baseError
+        ...generateErrorObject()
       };
     }
 
-    // get the json element name
+    // get the json element name. there can only be one name at this stage, otherwise we would have thrown earlier
     const jsonElementName = elementDefinition.__name[0];
-    const isBasePoly = elementDefinition.base?.path?.endsWith('[x]'); // is it a base poly element?
+    // is it a base poly element (reduced to a single type by profile or flash path disambiguation)?
+    const isBasePoly = elementDefinition.base?.path?.endsWith('[x]');
     // if there's a slice name in the element definition,
     // it is an "official" slice and must be used in the grouping key.
-    // UNLESS this is polymorphic element...
+    // UNLESS this is a polymorphic element at the base...
     // in which case slices can only correspond to a type, and the type is already represented in the jsonElementName.
     const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
     // generate the grouping key for the element
@@ -250,11 +252,11 @@ function createFlashEvaluator(evaluate) {
     const result = {
       '@@__flashRuleResult': true,
       key: groupingKey,
-      value: undefined,
+      value: undefined, // initiate with undefined value
       kind
     };
 
-    // if element has a fixed value, use it
+    // if element has a fixed value, use it and return (short circuit)
     if (elementDefinition.__fixedValue) {
       result.value = elementDefinition.__fixedValue;
       return result;
@@ -263,11 +265,16 @@ function createFlashEvaluator(evaluate) {
     // handle system primitive's inline value
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
-      result.value = parseSystemPrimitive(expr, input, elementDefinition, environment);
-      // if the result.value is an array, take only last one
-      if (Array.isArray(result.value)) {
-        result.value = result.value[result.value.length - 1];
+      const resultValue = parseSystemPrimitive(expr, input, elementDefinition, environment);
+      // if the result value is an array, take only last one
+      // (system primitives are assumed to never be arrays in the definition)
+      // TODO: confirm this hypothesis
+      if (Array.isArray(resultValue)) {
+        result.value = resultValue[resultValue.length - 1];
+      } else {
+        result.value = resultValue;
       }
+      return result;
     }
 
     // handle FHIR primitives' inline value
@@ -281,26 +288,23 @@ function createFlashEvaluator(evaluate) {
         environment
       );
 
-      // For primitive types, we always create a result object even if there's no value
+      // For primitive types, result.value is always an object even if there's no value
       // This is necessary for elements that have children (extension or id) but no value
       result.value = {
         ...input, // copy all properties from the input value (includes extension, id)
         value: evaluated // assign the evaluated value to the 'value' key (can be undefined)
       };
+      return result;
     }
 
-    if (kind === 'complex-type') {
+    // Handle complex types and Resource datatype.
+    // For arrays, we need to create multiple FlashRuleResults.
+    if (Array.isArray(input)) {
+      // Return an array where each object becomes a separate FlashRuleResult
+      return input.map(obj => ({...result, value: obj}));
+    } else {
+      // Single object
       result.value = input;
-    } else if (kind === 'resource') {
-      // Handle Resource datatype - validation already done earlier in evaluateFlash
-      // For arrays of resources, we need to create multiple FlashRuleResults
-      if (Array.isArray(input)) {
-        // Return an array where each resource becomes a separate FlashRuleResult
-        return input.map(resource => ({...result, value: resource}));
-      } else {
-        // Single resource
-        result.value = input;
-      }
     }
 
     return result;
@@ -1289,7 +1293,7 @@ function createFlashEvaluator(evaluate) {
       // For Resource datatypes with inline results, use the inline result as the base
       if (kind === 'resource' && inlineResult !== undefined) {
         // Validate the Resource inline result first
-        const validatedResource = validateResourceInput(inlineResult, expr, environment);
+        const validatedResource = assertResourceInput(inlineResult, expr, environment);
         result = validatedResource; // Use the validated resource directly (don't spread arrays)
       }
 

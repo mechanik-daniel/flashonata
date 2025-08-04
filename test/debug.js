@@ -275,19 +275,16 @@ InstanceOf: Patient
   try {
     console.log('Compiling expression...');
     expr = await fumifier(expression, {
-      navigator,
-      verbose: true  // Enable verbose logging
+      navigator
     });
     console.log('Expression compiled successfully');
   } catch (e) {
     console.error('Error compiling expression:', e);
     return;
   }
-  // console.log('Expression compiled:', expr.toString());
 
   console.log('Evaluating expression...');
   var res;
-  var evaluationError = null;
 
   try {
     res = await expr.evaluate({
@@ -296,17 +293,6 @@ InstanceOf: Patient
     console.log('Expression evaluated successfully');
   } catch (e) {
     console.error('Error evaluating expression:', e);
-    evaluationError = e;
-  }
-
-  // Always export logs, regardless of success or failure
-  console.log('\n=== VERBOSE LOGS ===');
-  console.log(expr.exportLogs());
-
-  // Always save logs to file for analysis
-  if (expr.logs().length > 0) {
-    fs.writeFileSync('debug-logs.txt', expr.exportLogs());
-    console.log('\nVerbose logs written to debug-logs.txt');
   }
 
   // Write AST to file if available
@@ -317,30 +303,11 @@ InstanceOf: Patient
     console.warn('Could not write AST:', e.message);
   }
 
-  // Write results to file for analysis (including errors)
-  const output = {
-    expression: expression.trim(),
-    result: evaluationError ? undefined : res,
-    error: evaluationError ? {
-      message: evaluationError.message,
-      code: evaluationError.code,
-      stack: evaluationError.stack,
-      position: evaluationError.position,
-      start: evaluationError.start
-    } : undefined,
-    timestamp: new Date().toISOString()
-  };
-  fs.writeFileSync('debug-result.json', JSON.stringify(output, null, 2));
+  // Write results to file for analysis
+  fs.writeFileSync('debug-result.json', JSON.stringify(res, null, 2));
   console.log('Results written to debug-result.json');
 
   if (res) {
     console.log('Result', JSON.stringify(res, null, 2));
   }
-
-  if (evaluationError) {
-    console.error('\nEvaluation failed with error:', evaluationError);
-    return; // Exit the function but logs are already saved
-  }
-
-//   console.log(JSON.stringify(await navigator.getElement('string', 'value'), null, 2));
 }();
