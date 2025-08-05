@@ -16,8 +16,10 @@ const { initCap, boolize } = fn;
 function createFlashEvaluator(evaluate) {
 
   /**
-   * Parse and validate system primitive values according to FHIR specifications.
-   * This function also handles the actual primitive `value` of a FHIR primitive type, which is itself a system primitive.
+   * Parse and validate system primitive values according to the type's constraints.
+   * A system primitive is a type that is referred with a "code" that is a URI starting with `http://hl7.org/fhirpath/System.`.
+   * For example, `http://hl7.org/fhirpath/System.String` is the system primitive for strings, found in Resource.id, Extension.url, etc.
+   * This function also handles the actual primitive `value` of a FHIR primitive type (e.g. `string.value`, `boolean.value`), which is itself a system primitive.
    * @param {Object} expr - Expression with FHIR context
    * @param {*} input - Input value to parse
    * @param {Object} elementDefinition - FHIR element definition
@@ -292,7 +294,8 @@ function createFlashEvaluator(evaluate) {
       // This is necessary for elements that have children (extension or id) but no value
       result.value = {
         ...input, // copy all properties from the input value (includes extension, id)
-        value: evaluated // assign the evaluated value to the 'value' key (can be undefined)
+        value: evaluated, // assign the evaluated value to the 'value' key (can be undefined)
+        '@@__fhirPrimitive': true // mark as FHIR primitive
       };
       return result;
     }
@@ -311,114 +314,106 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Recursively flattens FHIR primitive values in an object.
-   * Converts {"value": "primitive"} to "primitive" while preserving sibling properties.
+   * Flatten FHIR primitive values in an object.
+   * Converts intermediate FHIR primitive representation object to actual primitive and sibling.
+   * e.g {
+   *    "value": "primitive",
+   *    "id": "123",
+   *    "@@__fhirPrimitive": true
+   * } ---> "primitive" with sibling "_key": {"id": "123"}
    * @param {Object} obj - Object to flatten
-   * @param {Array} children - FHIR element children definitions
-   * @param {Object} environment - Environment with FHIR definitions
    * @returns {Object} Flattened object
    */
-  function flattenPrimitiveValues(obj, children, environment) {
+  function flattenPrimitiveValues(obj) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
       return obj;
     }
 
-    if (!children || !Array.isArray(children)) {
-      return flattenPrimitiveValuesHeuristic(obj, children, environment);
-    }
-
     const result = { ...obj };
 
     for (const [key, value] of Object.entries(result)) {
-      // Find the FHIR element definition for this key
-      const elementDef = children.find(child =>
-        child.__name && child.__name.includes(key)
-      );
+      // Skip keys that already start with underscore to avoid double processing
+      if (key.startsWith('_')) {
+        continue;
+      }
 
-      if (elementDef && elementDef.__kind === 'primitive-type' &&
-          value && typeof value === 'object' && !Array.isArray(value) &&
-          value.value !== undefined) {
-        // This is a FHIR primitive object, flatten it
-        result[key] = value.value;
+      if (Array.isArray(value)) {
+        // Check first entry to determine if array contains primitives
+        if (value.length > 0 && value[0] && typeof value[0] === 'object' && value[0]['@@__fhirPrimitive'] === true) {
+          const primitiveValues = [];
+          const siblingProperties = [];
 
-        // Handle sibling properties (those starting with _)
-        const props = Object.keys(value).filter(k => k !== 'value');
-        if (props.length > 0) {
-          const siblingKey = '_' + key;
-          result[siblingKey] = props.reduce((acc, k) => {
-            acc[k] = value[k];
-            return acc;
-          }, {});
-        }
-      } else if (Array.isArray(value)) {
-        // Recursively process array elements
-        result[key] = value.map(item => {
-          if (typeof item === 'object' && !Array.isArray(item) && elementDef) {
-            const typeCode = elementDef.type?.[0]?.code;
-            if (typeCode) {
-              try {
-                // TODO: This is another mess done by copilot that is not needed
-                const typeChildren = getTypeChildren(environment, {instanceof: typeCode});
-                return flattenPrimitiveValues(item, typeChildren, environment);
-              } catch (error) {
-                return flattenPrimitiveValues(item, children, environment);
+          for (const item of value) {
+            if (item && typeof item === 'object' && item['@@__fhirPrimitive'] === true) {
+              // Only add primitive value if it's not undefined
+              if (item.value !== undefined) {
+                primitiveValues.push(item.value);
+              } else {
+                primitiveValues.push(null);
               }
+
+              // Extract sibling properties (everything except 'value' and the flag)
+              const props = Object.keys(item).filter(k => k !== 'value' && k !== '@@__fhirPrimitive');
+              if (props.length > 0) {
+                const propObj = {};
+                for (const prop of props) {
+                  propObj[prop] = item[prop];
+                }
+                siblingProperties.push(propObj);
+              } else {
+                siblingProperties.push(null);
+              }
+            } else {
+              primitiveValues.push(item);
+              siblingProperties.push(null);
             }
           }
-          return item;
-        });
-      } else if (typeof value === 'object' && value !== null && elementDef) {
-        // Recursively process nested objects
-        const typeCode = elementDef.type?.[0]?.code;
-        if (typeCode) {
-          try {
-            // TODO: This is another mess done by copilot that is not needed
-            const typeChildren = getTypeChildren(environment, {instanceof:typeCode});
-            result[key] = flattenPrimitiveValues(value, typeChildren, environment);
-          } catch (error) {
-            result[key] = flattenPrimitiveValues(value, children, environment);
+
+          // Remove trailing nulls from primitive values
+          while (primitiveValues.length > 0 && primitiveValues[primitiveValues.length - 1] === null) {
+            primitiveValues.pop();
+            siblingProperties.pop();
+          }
+
+          // Remove trailing nulls from sibling properties
+          while (siblingProperties.length > 0 && siblingProperties[siblingProperties.length - 1] === null) {
+            siblingProperties.pop();
+          }
+
+          // Only assign primitive array if there are actual values (not all null/undefined)
+          if (primitiveValues.length > 0 && primitiveValues.some(v => v !== null && v !== undefined)) {
+            result[key] = primitiveValues;
+          } else {
+            delete result[key];
+          }
+
+          // Only assign sibling array if there are actual properties (not all null)
+          if (siblingProperties.length > 0 && siblingProperties.some(p => p !== null)) {
+            result['_' + key] = siblingProperties;
           }
         }
-      }
-    }
+      } else if (value && typeof value === 'object' && value['@@__fhirPrimitive'] === true) {
+        // Single primitive object
 
-    return result;
-  }
-
-  /**
-   * Heuristic approach to flatten primitive values when children definitions are not available
-   * @param {Object} obj - Object to flatten
-   * @param {Array} children - FHIR element children definitions
-   * @param {Object} environment - Environment with FHIR definitions
-   * @returns {Object} Flattened object
-   */
-  function flattenPrimitiveValuesHeuristic(obj, children, environment) {
-    // If we don't have children, try a simple heuristic approach
-    // Look for objects with a 'value' property that might be FHIR primitives
-    const result = { ...obj };
-    for (const [key, value] of Object.entries(result)) {
-      if (value && typeof value === 'object' && !Array.isArray(value) &&
-          value.value !== undefined && Object.keys(value).length >= 1) {
-        // This looks like a FHIR primitive, flatten it
-        result[key] = value.value;
-
-        // Handle sibling properties
-        const props = Object.keys(value).filter(k => k !== 'value');
-        if (props.length > 0) {
-          const siblingKey = '_' + key;
-          result[siblingKey] = props.reduce((acc, k) => {
-            acc[k] = value[k];
-            return acc;
-          }, {});
+        // Only assign actual value to the key if it's not undefined
+        if (value.value !== undefined) {
+          result[key] = value.value;
+        } else {
+          delete result[key]; // remove key if no value
         }
-      } else if (Array.isArray(value)) {
-        // Recursively process array elements
-        result[key] = value.map(item => flattenPrimitiveValues(item, children, environment));
-      } else if (value && typeof value === 'object') {
-        // Recursively process nested objects
-        result[key] = flattenPrimitiveValues(value, children, environment);
+
+        // Extract sibling properties
+        const props = Object.keys(value).filter(k => k !== 'value' && k !== '@@__fhirPrimitive');
+        if (props.length > 0) {
+          const siblingObj = {};
+          for (const prop of props) {
+            siblingObj[prop] = value[prop];
+          }
+          result['_' + key] = siblingObj;
+        }
       }
     }
+
     return result;
   }
 
@@ -471,6 +466,10 @@ function createFlashEvaluator(evaluate) {
         };
       } else if (def.__fixedValue) {
         // short circuit if the element has a fixed value
+        const fixed = def.__fixedValue;
+        if (kind === 'primitive-type') {
+          fixed['@@__fhirPrimitive'] = true;
+        }
         return {
           kind,
           children,
@@ -479,12 +478,14 @@ function createFlashEvaluator(evaluate) {
           fixedValue: {
             '@@__flashRuleResult': true,
             key: def.__name[0],
-            value: def.__fixedValue
+            value: fixed
           }
         };
       } else if (kind !== 'system') {
         children = getElementChildren(environment, expr);
         if (def.__patternValue) {
+          const pattern = def.__patternValue;
+          pattern['@@__fhirPrimitive'] = true;
           return {
             kind,
             children,
@@ -493,7 +494,7 @@ function createFlashEvaluator(evaluate) {
             patternValue: {
               '@@__flashRuleResult': true,
               key: def.__name[0],
-              value: def.__patternValue
+              value: pattern
             }
           };
         }
@@ -699,11 +700,11 @@ function createFlashEvaluator(evaluate) {
         // if there are sibling attributes, merge them into the value object
         const siblingName = '_' + name;
         if (typeof parentPatternValue.value[siblingName] === 'object' && Object.keys(parentPatternValue.value[siblingName]).length > 0) {
-          const primitiveValue = { value: patternValue };
+          const primitiveValue = { value: patternValue, '@@__fhirPrimitive': true };
           Object.assign(primitiveValue, parentPatternValue.value[siblingName]);
-          return [{ value: primitiveValue }]; // wrap in proper FHIR primitive structure
+          return [{ value: primitiveValue, '@@__fhirPrimitive': true }]; // wrap in proper FHIR primitive structure
         }
-        return [{ value: patternValue }]; // wrap in proper FHIR primitive structure
+        return [{ value: patternValue, '@@__fhirPrimitive': true }]; // wrap in proper FHIR primitive structure
       }
 
       return [patternValue]; // return the value from the parent pattern as-is for other types
@@ -759,7 +760,7 @@ function createFlashEvaluator(evaluate) {
       // treat each array item as a separate primitive value
       if (Array.isArray(rawValue) && child.max !== '1') {
         for (const item of rawValue) {
-          const primitiveValue = { value: item };
+          const primitiveValue = { value: item, '@@__fhirPrimitive': true };
           if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
             // if there's a sibling element with the same name prefixed with '_',
             // we will copy its properties to the value object
@@ -769,7 +770,7 @@ function createFlashEvaluator(evaluate) {
         }
       } else {
         // Single value or array treated as single value
-        const primitiveValue = { value: rawValue };
+        const primitiveValue = { value: rawValue, '@@__fhirPrimitive': true };
         if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
           // if there's a sibling element with the same name prefixed with '_',
           // we will copy its properties to the value object
@@ -785,10 +786,8 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} result - Result object to modify
    * @param {Object} child - Child element definition
    * @param {Array} values - Processed values
-   * @param {Array} children - All children definitions
-   * @param {Object} environment - Environment
    */
-  function assignValuesToResult(result, child, values, children, environment) {
+  function assignValuesToResult(result, child, values) {
     // values now contain all collected values for this child element, each wrapped in an object containing the json element name.
     // since arrays and polymorphics are mutually exclusive, we can safely take the last value if it's polymorphic,
     // and all values if it's an array.
@@ -805,7 +804,7 @@ function createFlashEvaluator(evaluate) {
     // assign the value to the result object
     if (finalValue.value) {
       if (finalValue.kind !== 'primitive-type') {
-        assignNonPrimitiveValue(result, finalValue, child, children, environment);
+        assignNonPrimitiveValue(result, finalValue, child);
       } else {
         assignPrimitiveValue(result, finalValue, child);
       }
@@ -817,10 +816,8 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} result - Result object
    * @param {Object} finalValue - Final processed value
    * @param {Object} child - Child element definition
-   * @param {Array} children - All children definitions
-   * @param {Object} environment - Environment
    */
-  function assignNonPrimitiveValue(result, finalValue, child, children, environment) {
+  function assignNonPrimitiveValue(result, finalValue, child) {
     // if it's not a fhir primitive, we can assign the value directly to the key
     // if the element has max 1, take last value only
     if (child.max === '1' && !child.__isArray) {
@@ -830,12 +827,7 @@ function createFlashEvaluator(evaluate) {
     }
 
     if (typeof finalValue.value !== 'undefined' && (typeof finalValue.value === 'boolean' || boolize(finalValue.value))) {
-      // Flatten any FHIR primitive values within complex type objects before assignment
-      let valueToAssign = finalValue.value;
-      if (finalValue.kind === 'complex-type' || finalValue.kind === 'resource') {
-        valueToAssign = flattenComplexTypeValue(valueToAssign, finalValue.name, children, environment);
-      }
-      result[finalValue.name] = valueToAssign;
+      result[finalValue.name] = finalValue.value;
     }
   }
 
@@ -862,8 +854,8 @@ function createFlashEvaluator(evaluate) {
         primitiveValues.push(null);
       }
 
-      // copy all properties to the properties array
-      const props = Object.keys(value).filter(key => key !== 'value');
+      // copy all properties to the properties array (excluding the special flags)
+      const props = Object.keys(value).filter(key => key !== 'value' && key !== '@@__fhirPrimitive');
       if (props.length > 0) {
         properties.push(props.reduce((acc, key) => {
           acc[key] = value[key];
@@ -883,17 +875,6 @@ function createFlashEvaluator(evaluate) {
       properties = [properties[properties.length - 1]];
     }
 
-    // assign the primitive values and sibling properties to the result object
-    // Check if we have actual primitive values (not just auto-generated nulls)
-    const hasActualPrimitiveValues = primitiveValues && (
-      !Array.isArray(primitiveValues) ||
-      (primitiveValues.length > 0 && !primitiveValues.every(v => v === null))
-    );
-
-    if (hasActualPrimitiveValues) {
-      result[finalValue.name] = primitiveValues;
-    }
-
     // Remove trailing nulls from properties array to avoid unnecessary sibling array entries
     if (Array.isArray(properties)) {
       while (properties.length > 0 && properties[properties.length - 1] === null) {
@@ -901,69 +882,26 @@ function createFlashEvaluator(evaluate) {
       }
     }
 
-    // if properties exist, assign the sibling array
-    // NOTE: Only assign sibling array if there are actual properties (not all nulls)
-    if (
-      properties &&
-      (
-        !Array.isArray(properties) ||
-        (
-          properties.length > 0 &&
-          !properties.every(p => p === null)
-        )
-      )
-    ) {
+    // Check if we have actual primitive values (not just auto-generated nulls)
+    const hasActualPrimitiveValues = primitiveValues !== undefined && primitiveValues !== null && (
+      !Array.isArray(primitiveValues) ? true :
+        (primitiveValues.length > 0 && primitiveValues.some(v => v !== null && v !== undefined))
+    );
+
+    // Only assign primitive values if they exist and aren't all null/undefined
+    if (hasActualPrimitiveValues) {
+      result[finalValue.name] = primitiveValues;
+    }
+
+    // Only assign sibling array if there are actual properties (not all nulls)
+    const hasActualProperties = properties && (
+      !Array.isArray(properties) ? Object.keys(properties).length > 0 :
+        (properties.length > 0 && properties.some(p => p !== null && p !== undefined && Object.keys(p || {}).length > 0))
+    );
+
+    if (hasActualProperties) {
       result['_' + finalValue.name] = properties;
-
-      // When sibling array exists but no explicit primitive values exist,
-      // only create primitive array if we have mixed values (some nulls, some actual values)
-      if (!result[finalValue.name] && Array.isArray(properties) && hasActualPrimitiveValues) {
-        // Create primitive array with nulls to match sibling array length
-        result[finalValue.name] = new Array(properties.length).fill(null);
-      }
     }
-  }
-
-  /**
-   * Flatten complex type values
-   * @param {*} valueToAssign - Value to flatten
-   * @param {string} elementName - Element name
-   * @param {Array} children - Children definitions
-   * @param {Object} environment - Environment
-   * @returns {*} Flattened value
-   */
-  function flattenComplexTypeValue(valueToAssign, elementName, children, environment) {
-    if (Array.isArray(valueToAssign)) {
-      return valueToAssign.map(item => {
-        if (item && typeof item === 'object' && !Array.isArray(item)) {
-          // Get the children for this specific complex type
-          const elementDef = children.find(c => c.__name && c.__name.includes(elementName));
-          if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
-            try {
-              const typeChildren = getTypeChildren(environment, {instanceof:elementDef.type[0].code});
-              return flattenPrimitiveValues(item, typeChildren, environment);
-            } catch (error) {
-              // Fallback to current children if type children can't be retrieved
-              return flattenPrimitiveValues(item, children, environment);
-            }
-          }
-        }
-        return item;
-      });
-    } else if (valueToAssign && typeof valueToAssign === 'object') {
-      // Get the children for this specific complex type
-      const elementDef = children.find(c => c.__name && c.__name.includes(elementName));
-      if (elementDef && elementDef.type && elementDef.type[0] && elementDef.type[0].code) {
-        try {
-          const typeChildren = getTypeChildren(environment, {instanceof:elementDef.type[0].code});
-          return flattenPrimitiveValues(valueToAssign, typeChildren, environment);
-        } catch (error) {
-          // Fallback to current children if type children can't be retrieved
-          return flattenPrimitiveValues(valueToAssign, children, environment);
-        }
-      }
-    }
-    return valueToAssign;
   }
 
   /**
@@ -1201,7 +1139,8 @@ function createFlashEvaluator(evaluate) {
       // not the intermediate object representation of a primitive (with the `value` as property).
       if (kind === 'primitive-type' && inlineResult !== undefined) {
         inlineResult = {
-          value: inlineResult
+          value: inlineResult,
+          '@@__fhirPrimitive': true // mark it as a FHIR primitive
         };
       }
 
@@ -1228,7 +1167,7 @@ function createFlashEvaluator(evaluate) {
         const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
 
         if (childResult.values.length > 0) {
-          assignValuesToResult(result, child, childResult.values, children, environment);
+          assignValuesToResult(result, child, childResult.values);
         }
       }
     }
@@ -1254,6 +1193,11 @@ function createFlashEvaluator(evaluate) {
     }
 
     validateMandatoryChildren(result, children, expr);
+
+    // Flatten FHIR primitive values in the final result JUST BEFORE returning
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+      result = flattenPrimitiveValues(result);
+    }
 
     if (expr.isFlashRule) {
       // if it's a flash rule, process and return the result as a flash rule
@@ -1317,10 +1261,15 @@ function createFlashEvaluator(evaluate) {
       }
     }
 
-    // Finally, add any remaining keys that weren't in the FHIR definition (shouldn't happen normally)
-    for (const key of existingKeys) {
-      if (!processedKeys.has(key)) {
-        orderedKeys.push(key);
+    // Finally, add any remaining keys that weren't in the FHIR definition's children array.
+    // This happens with inline resources, since the resource datatype only defines id and meta,
+    // but the inline resource has properties of a specific resource type.
+    // If it is not a resource, we should ignore any extra keys.
+    if (result.resourceType) {
+      for (const key of existingKeys) {
+        if (!processedKeys.has(key)) {
+          orderedKeys.push(key);
+        }
       }
     }
 
