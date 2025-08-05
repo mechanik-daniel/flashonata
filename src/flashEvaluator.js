@@ -9,6 +9,51 @@ import fn from './utils/functions.js';
 const { initCap, boolize } = fn;
 
 /**
+ * Base FHIR primitive prototype
+ */
+const base_fhir_primitive = {};
+
+// Define the non-enumerable flag on prototype
+Object.defineProperty(base_fhir_primitive, '@@__fhirPrimitive', {
+  value: true,
+  writable: false,
+  enumerable: false,
+  configurable: false
+});
+
+/**
+ * Create a FHIR primitive object
+ * @param {Object|*} obj - Object with value and properties, or primitive value directly
+ * @returns {Object} FHIR primitive object
+ */
+function createFhirPrimitive(obj) {
+  var primitive = Object.create(base_fhir_primitive);
+
+  if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+    // Object with value and properties
+    for (var key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        primitive[key] = obj[key];
+      }
+    }
+  } else {
+    // Primitive value directly
+    primitive.value = obj;
+  }
+
+  return primitive;
+}
+
+/**
+ * Check if an object is a FHIR primitive
+ * @param {*} obj - Object to check
+ * @returns {boolean} True if object is a FHIR primitive
+ */
+function isFhirPrimitive(obj) {
+  return obj && typeof obj === 'object' && obj['@@__fhirPrimitive'] === true;
+}
+
+/**
  * Flash evaluation module that contains all FLASH-specific evaluation logic
  * @param {Function} evaluate - Main evaluate function from fumifier (jsonata)
  * @returns {Object} Flash evaluation functions
@@ -292,11 +337,10 @@ function createFlashEvaluator(evaluate) {
 
       // For primitive types, result.value is always an object even if there's no value
       // This is necessary for elements that have children (extension or id) but no value
-      result.value = {
-        ...input, // copy all properties from the input value (includes extension, id)
-        value: evaluated, // assign the evaluated value to the 'value' key (can be undefined)
-        '@@__fhirPrimitive': true // mark as FHIR primitive
-      };
+      result.value = createFhirPrimitive({
+        ...input,
+        value: evaluated // Assign the evaluated value to the 'value' key (can be undefined)
+      });
       return result;
     }
 
@@ -339,12 +383,12 @@ function createFlashEvaluator(evaluate) {
 
       if (Array.isArray(value)) {
         // Check first entry to determine if array contains primitives
-        if (value.length > 0 && value[0] && typeof value[0] === 'object' && value[0]['@@__fhirPrimitive'] === true) {
+        if (value.length > 0 && isFhirPrimitive(value[0])) {
           const primitiveValues = [];
           const siblingProperties = [];
 
           for (const item of value) {
-            if (item && typeof item === 'object' && item['@@__fhirPrimitive'] === true) {
+            if (isFhirPrimitive(item)) {
               // Only add primitive value if it's not undefined
               if (item.value !== undefined) {
                 primitiveValues.push(item.value);
@@ -352,8 +396,8 @@ function createFlashEvaluator(evaluate) {
                 primitiveValues.push(null);
               }
 
-              // Extract sibling properties (everything except 'value' and the flag)
-              const props = Object.keys(item).filter(k => k !== 'value' && k !== '@@__fhirPrimitive');
+              // Extract sibling properties (everything except 'value')
+              const props = Object.keys(item).filter(k => k !== 'value');
               if (props.length > 0) {
                 const propObj = {};
                 for (const prop of props) {
@@ -392,7 +436,7 @@ function createFlashEvaluator(evaluate) {
             result['_' + key] = siblingProperties;
           }
         }
-      } else if (value && typeof value === 'object' && value['@@__fhirPrimitive'] === true) {
+      } else if (isFhirPrimitive(value)) {
         // Single primitive object
 
         // Only assign actual value to the key if it's not undefined
@@ -403,7 +447,7 @@ function createFlashEvaluator(evaluate) {
         }
 
         // Extract sibling properties
-        const props = Object.keys(value).filter(k => k !== 'value' && k !== '@@__fhirPrimitive');
+        const props = Object.keys(value).filter(k => k !== 'value');
         if (props.length > 0) {
           const siblingObj = {};
           for (const prop of props) {
@@ -466,9 +510,11 @@ function createFlashEvaluator(evaluate) {
         };
       } else if (def.__fixedValue) {
         // short circuit if the element has a fixed value
-        const fixed = def.__fixedValue;
+        let fixed = def.__fixedValue;
         if (kind === 'primitive-type') {
-          fixed['@@__fhirPrimitive'] = true;
+          if (!isFhirPrimitive(fixed)) {
+            fixed = createFhirPrimitive(fixed);
+          }
         }
         return {
           kind,
@@ -484,8 +530,10 @@ function createFlashEvaluator(evaluate) {
       } else if (kind !== 'system') {
         children = getElementChildren(environment, expr);
         if (def.__patternValue) {
-          const pattern = def.__patternValue;
-          pattern['@@__fhirPrimitive'] = true;
+          let pattern = def.__patternValue;
+          if (!isFhirPrimitive(pattern)) {
+            pattern = createFhirPrimitive(pattern);
+          }
           return {
             kind,
             children,
@@ -700,11 +748,9 @@ function createFlashEvaluator(evaluate) {
         // if there are sibling attributes, merge them into the value object
         const siblingName = '_' + name;
         if (typeof parentPatternValue.value[siblingName] === 'object' && Object.keys(parentPatternValue.value[siblingName]).length > 0) {
-          const primitiveValue = { value: patternValue, '@@__fhirPrimitive': true };
-          Object.assign(primitiveValue, parentPatternValue.value[siblingName]);
-          return [{ value: primitiveValue, '@@__fhirPrimitive': true }]; // wrap in proper FHIR primitive structure
+          return [createFhirPrimitive({ value: patternValue, ...parentPatternValue.value[siblingName] })];
         }
-        return [{ value: patternValue, '@@__fhirPrimitive': true }]; // wrap in proper FHIR primitive structure
+        return [createFhirPrimitive({ value: patternValue })];
       }
 
       return [patternValue]; // return the value from the parent pattern as-is for other types
@@ -760,7 +806,7 @@ function createFlashEvaluator(evaluate) {
       // treat each array item as a separate primitive value
       if (Array.isArray(rawValue) && child.max !== '1') {
         for (const item of rawValue) {
-          const primitiveValue = { value: item, '@@__fhirPrimitive': true };
+          const primitiveValue = createFhirPrimitive({ value: item });
           if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
             // if there's a sibling element with the same name prefixed with '_',
             // we will copy its properties to the value object
@@ -770,7 +816,7 @@ function createFlashEvaluator(evaluate) {
         }
       } else {
         // Single value or array treated as single value
-        const primitiveValue = { value: rawValue, '@@__fhirPrimitive': true };
+        const primitiveValue = createFhirPrimitive({ value: rawValue });
         if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
           // if there's a sibling element with the same name prefixed with '_',
           // we will copy its properties to the value object
@@ -855,7 +901,7 @@ function createFlashEvaluator(evaluate) {
       }
 
       // copy all properties to the properties array (excluding the special flags)
-      const props = Object.keys(value).filter(key => key !== 'value' && key !== '@@__fhirPrimitive');
+      const props = Object.keys(value).filter(key => key !== 'value');
       if (props.length > 0) {
         properties.push(props.reduce((acc, key) => {
           acc[key] = value[key];
@@ -1138,10 +1184,7 @@ function createFlashEvaluator(evaluate) {
       // we expect the user to assing the primitive value itself in an inline expression,
       // not the intermediate object representation of a primitive (with the `value` as property).
       if (kind === 'primitive-type' && inlineResult !== undefined) {
-        inlineResult = {
-          value: inlineResult,
-          '@@__fhirPrimitive': true // mark it as a FHIR primitive
-        };
+        inlineResult = createFhirPrimitive(inlineResult);
       }
 
       // Handle resourceType attribute for flash rules and blocks
