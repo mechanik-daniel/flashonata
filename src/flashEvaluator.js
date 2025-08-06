@@ -9,6 +9,394 @@ import fn from './utils/functions.js';
 const { initCap, boolize } = fn;
 
 /**
+ * Generate standardized error objects with consistent structure
+ */
+class FlashErrorGenerator {
+  /**
+   * Create a standardized error object
+   * @param {string} code - Error code
+   * @param {Object} expr - Expression with position info
+   * @param {Object} additionalData - Additional error data
+   * @returns {Object} Standardized error object
+   */
+  static createError(code, expr, additionalData = {}) {
+    const baseError = {
+      code,
+      stack: (new Error()).stack,
+      position: expr.position,
+      start: expr.start,
+      line: expr.line,
+      ...additionalData
+    };
+
+    if (expr.instanceof) {
+      baseError.instanceOf = expr.instanceof;
+      if (expr.flashPathRefKey) {
+        baseError.fhirElement = expr.flashPathRefKey.slice(expr.instanceof.length + 2);
+      }
+    }
+
+    return baseError;
+  }
+
+  /**
+   * Create a validation error with value type information
+   * @param {string} code - Error code
+   * @param {Object} expr - Expression with position info
+   * @param {*} value - Value that failed validation
+   * @param {Object} additionalData - Additional error data
+   * @returns {Object} Validation error object
+   */
+  static createValidationError(code, expr, value, additionalData = {}) {
+    return this.createError(code, expr, {
+      value,
+      valueType: fn.type(value),
+      ...additionalData
+    });
+  }
+}
+
+/**
+ * Validation logic for system primitives
+ */
+class SystemPrimitiveValidator {
+  /**
+   * Validate input value for processing
+   * @param {*} input - Input value to validate
+   * @returns {Object} Validation result with isValid flag and processed value
+   */
+  static validateInput(input) {
+    const boolized = boolize(input);
+    if (input === undefined || (boolized === false && input !== false && input !== 0)) {
+      return { isValid: false, shouldSkip: true };
+    }
+    return { isValid: true, value: input };
+  }
+
+  /**
+   * Validate that input is a primitive type
+   * @param {*} input - Input value to validate
+   * @param {Object} expr - Expression for error reporting
+   * @param {string} elementFlashPath - FHIR element path for error reporting
+   * @returns {string} Value type if valid
+   */
+  static validateType(input, expr, elementFlashPath) {
+    const valueType = fn.type(input);
+    if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean') {
+      throw FlashErrorGenerator.createValidationError("F3006", expr, fn.string(input), {
+        valueType,
+        fhirElement: elementFlashPath
+      });
+    }
+    return valueType;
+  }
+
+  /**
+   * Validate input against regex constraint
+   * @param {*} input - Input value to validate
+   * @param {Object} elementDefinition - FHIR element definition
+   * @param {Object} expr - Expression for error reporting
+   * @param {string} elementFlashPath - FHIR element path for error reporting
+   * @param {Object} environment - Environment with regex testers
+   */
+  static validateRegex(input, elementDefinition, expr, elementFlashPath, environment) {
+    if (elementDefinition.__regexStr) {
+      const regexTester = this.getRegexTester(environment, elementDefinition.__regexStr);
+      if (regexTester && !regexTester.test(fn.string(input))) {
+        throw FlashErrorGenerator.createError("F3001", expr, {
+          value: input,
+          regex: elementDefinition.__regexStr,
+          fhirElement: elementFlashPath
+        });
+      }
+    }
+  }
+
+  /**
+   * Get compiled FHIR regex tester from environment
+   * @param {Object} environment - Environment with compiled regexes
+   * @param {string} regexStr - Regex string to compile
+   * @returns {RegExp} Compiled regex
+   */
+  static getRegexTester(environment, regexStr) {
+    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
+    if (compiled) {
+      return compiled;
+    }
+    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
+    return compiled;
+  }
+
+  /**
+   * Convert value to appropriate JSON type based on FHIR type code
+   * @param {*} input - Input value to convert
+   * @param {string} fhirTypeCode - FHIR type code
+   * @param {string} valueType - JavaScript type of input
+   * @returns {*} Converted value
+   */
+  static convertValue(input, fhirTypeCode, valueType) {
+    // Handle boolean elements
+    if (fhirTypeCode === 'boolean') {
+      return boolize(input);
+    }
+
+    // Handle numeric types
+    if (['decimal', 'integer', 'positiveInt', 'integer64', 'unsignedInt'].includes(fhirTypeCode)) {
+      return this.convertToNumber(input, valueType);
+    }
+
+    // All other types as strings
+    return fn.string(input);
+  }
+
+  /**
+   * Convert input to number type
+   * @param {*} input - Input value to convert
+   * @param {string} valueType - JavaScript type of input
+   * @returns {number} Converted number
+   */
+  static convertToNumber(input, valueType) {
+    if (valueType === 'number') return input;
+    if (valueType === 'string') return Number(input);
+    if (valueType === 'boolean') return input ? 1 : 0;
+    return input;
+  }
+}
+
+/**
+ * Handles child value processing within flash evaluation
+ */
+class ChildValueProcessor {
+  /**
+   * Constructor for ChildValueProcessor
+   * @param {Object} environment - Environment with FHIR definitions
+   * @param {Function} evaluate - Evaluate function from fumifier
+   */
+  constructor(environment, evaluate) {
+    this.environment = environment;
+    this.evaluate = evaluate;
+  }
+
+  /**
+   * Generate possible names for a child element (handles polymorphic and slice cases)
+   * @param {Object} child - Child element definition
+   * @returns {Array} Array of possible names
+   */
+  generateChildNames(child) {
+    const names = [];
+
+    if (child.__name.length === 1) {
+      // single name - check if poly
+      const isPoly = child.base?.path?.endsWith('[x]'); // is it a base poly element?
+      if (!isPoly) {
+        // single type element from the base.
+        // if there's a sliceName, we will use it to create the grouping key
+        if (child.sliceName) {
+          names.push(`${child.__name[0]}:${child.sliceName}`);
+        } else {
+          // no sliceName, just use the __name as the grouping key
+          names.push(child.__name[0]);
+        }
+      } else {
+        // it's a polymorphic element, narrowed to a single type.
+        // we will use the single __name and ignore sliceName if it exists,
+        // since the base name already includes the type, and sliceName (if there is one) is redundant
+        // NOTE: polymorphic elements can only be sliced by type,
+        //       so sliceName is actually identical to the JSON element name (e.g. valueString)
+        names.push(child.__name[0]);
+      }
+    } else {
+      // it's a polymorphic element with multiple types (and hence, names). it was not narrowed to a single type.
+      // we will use the entire __name array as possible grouping keys (ignoring sliceName)
+      names.push(...child.__name);
+    }
+
+    return names;
+  }
+
+  /**
+   * Process all values for a specific child element
+   * @param {Object} child - Child element definition
+   * @param {*} inlineResult - Inline expression result
+   * @param {Object} subExpressionResults - Sub-expression results
+   * @param {Object} expr - Original flash expression
+   * @param {Object} parentPatternValue - Parent pattern value if applicable
+   * @returns {Promise<Object>} Promise resolving to processed child values
+   */
+  async processChild(child, inlineResult, subExpressionResults, expr, parentPatternValue) {
+    // we will first normalize the possible names of this element into an array of grouping keys
+    const names = this.generateChildNames(child);
+
+    // start by keeping all the matching values for this element in an array
+    const values = [];
+    for (const name of names) {
+      const valuesForName = this.processValuesForName(
+        name, child, inlineResult, subExpressionResults, parentPatternValue
+      );
+
+      // if we have no values for this name, skip it
+      if (valuesForName.length === 0) {
+        continue;
+      }
+
+      const kindForName = child.type.length === 1 ?
+        child.type[0].__kind :
+        child.type.find(type => name.endsWith(initCap(type.code))).__kind;
+
+      if (child.max !== '1') {
+        // if it's an array, we take all of the values and push them to the values array
+        values.push({ name, kind: kindForName, value: valuesForName });
+      } else if (kindForName === 'system') {
+        // system primitive - just take the last value
+        if (valuesForName.length > 0) {
+          values.push({ name, kind: kindForName, value: [valuesForName[valuesForName.length - 1]] });
+        }
+      } else {
+        // complex type or primitive type - merge all objects into one
+        const mergedValue = fn.merge(valuesForName);
+        if (Object.keys(mergedValue).length > 0) {
+          values.push({ name, kind: kindForName, value: [mergedValue] });
+        }
+      }
+    }
+
+    // at this point, if we have no collected values for this element but it is mandatory,
+    // we will try to evaluate it as a virtual rule.
+    if (values.length === 0) {
+      if (child.min === 0 || child.type.length > 1) return { values }; // skip if not mandatory, or if polymorphic
+
+      // try to evaluate the child as a virtual rule
+      try {
+        const autoValue = await this.evaluate({
+          type: 'unary',
+          value: '[',
+          isFlashRule: true,
+          isVirtualRule: true,
+          expressions: [],
+          instanceof: expr.instanceof, // use the same instanceof as the parent flash block or rule
+          flashPathRefKey: child.__flashPathRefKey,
+          position: expr.position,
+          start: expr.start,
+          line: expr.line
+        }, undefined, this.environment);
+
+        // if the autoValue is not undefined, we add it to the values array
+        if (typeof autoValue !== 'undefined') {
+          values.push({ name: autoValue.key, kind: autoValue.kind, value: [autoValue.value] });
+        }
+      } catch (error) {
+        // If the element failed to auto generate, we ignore the error and just don't add anything to the values array
+      }
+    }
+
+    return { values };
+  }
+
+  /**
+   * Process values for a specific name within child processing
+   * @param {string} name - Element name
+   * @param {Object} child - Child element definition
+   * @param {*} inlineResult - Inline expression result
+   * @param {Object} subExpressionResults - Sub-expression results
+   * @param {Object} parentPatternValue - Parent pattern value if available
+   * @returns {Array} Array of values for this name
+   */
+  processValuesForName(name, child, inlineResult, subExpressionResults, parentPatternValue) {
+    // Determine the kind of this specific element name, accounting for polymorphic elements
+    const kindForName = child.type.length === 1 ?
+      child.type[0].__kind :
+      child.type.find(type => name.endsWith(initCap(type.code))).__kind;
+
+    // if the parent pattern has a value for this name, we will use it
+    if (parentPatternValue && parentPatternValue.value && parentPatternValue.value[name] && typeof parentPatternValue.value[name] !== undefined) {
+      const patternValue = parentPatternValue.value[name];
+
+      // For primitive types, if the pattern value is a raw string, wrap it in proper FHIR primitive structure
+      if (kindForName === 'primitive-type') {
+        // if there are sibling attributes, merge them into the value object
+        const siblingName = '_' + name;
+        if (typeof parentPatternValue.value[siblingName] === 'object' && Object.keys(parentPatternValue.value[siblingName]).length > 0) {
+          return [createFhirPrimitive({ value: patternValue, ...parentPatternValue.value[siblingName] })];
+        }
+        return [createFhirPrimitive({ value: patternValue })];
+      }
+
+      return [patternValue]; // return the value from the parent pattern as-is for other types
+    }
+    const valuesForName = []; // keep all values for this json element name    // check if the inline expression has a value for this name
+    if (
+      inlineResult &&
+      !child.sliceName && // we skip this child if it's a slice since slices are not directly represented in the json
+      (
+        Object.prototype.hasOwnProperty.call(inlineResult, name) || // check if inlineResult has this name
+        (
+          kindForName === 'primitive-type' && // or if it's a primitive type check for sibling element
+          Object.prototype.hasOwnProperty.call(inlineResult, '_' + name)
+        )
+      )
+    ) {
+      this.processInlineValues(name, kindForName, child, inlineResult, valuesForName);
+    }
+
+    // now check if the subExpressionResults has a value for this name
+    if (Object.prototype.hasOwnProperty.call(subExpressionResults, name)) {
+      valuesForName.push(...(subExpressionResults[name].map(item => item.value)));
+    }
+
+    return valuesForName;
+  }
+
+  /**
+   * Process inline values for a specific name
+   * @param {string} name - Element name
+   * @param {string} kindForName - Element kind
+   * @param {Object} child - Child element definition
+   * @param {*} inlineResult - Inline expression result
+   * @param {Array} valuesForName - Array to push values to
+   */
+  processInlineValues(name, kindForName, child, inlineResult, valuesForName) {
+    let value;
+    // if it's not a fhir primitive, we just take the value
+    if (kindForName !== 'primitive-type') {
+      value = inlineResult[name];
+      // If the value is an array and this element can have multiple values,
+      // spread the array items instead of treating the whole array as one value
+      if (Array.isArray(value) && child.max !== '1') {
+        valuesForName.push(...value);
+      } else {
+        valuesForName.push(value);
+      }
+    } else {
+      // if it's a fhir primitive, we convert it to an object
+      const rawValue = inlineResult[name];
+      const siblingName = '_' + name;
+      // If the value is an array and this element can have multiple values,
+      // treat each array item as a separate primitive value
+      if (Array.isArray(rawValue) && child.max !== '1') {
+        for (const item of rawValue) {
+          const primitiveValue = createFhirPrimitive({ value: item });
+          if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
+            // if there's a sibling element with the same name prefixed with '_',
+            // we will copy its properties to the value object
+            Object.assign(primitiveValue, inlineResult[siblingName]);
+          }
+          valuesForName.push(primitiveValue);
+        }
+      } else {
+        // Single value or array treated as single value
+        const primitiveValue = createFhirPrimitive({ value: rawValue });
+        if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
+          // if there's a sibling element with the same name prefixed with '_',
+          // we will copy its properties to the value object
+          Object.assign(primitiveValue, inlineResult[siblingName]);
+        }
+        valuesForName.push(primitiveValue);
+      }
+    }
+  }
+}
+
+/**
  * Base FHIR primitive prototype
  */
 const base_fhir_primitive = {};
@@ -75,105 +463,50 @@ function createFlashEvaluator(evaluate) {
     if (Array.isArray(input)) {
       // input is an array, parse each entry and return an array
       return input.map(item => parseSystemPrimitive(expr, item, elementDefinition, environment));
-    } else {
-      // input is a single value
-
-      // if it's undefined or a falsy value (but not an explicit boolean false), return undefined
-      const boolized = boolize(input);
-      if (input === undefined || (boolized === false && input !== false && input !== 0)) {
-        return undefined;
-      }
-
-      const rootFhirTypeId = expr.instanceof;
-      const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
-
-      // get the fhir type code for the element
-      const fhirTypeCode = elementDefinition.__fhirTypeCode;
-
-      if (!fhirTypeCode) {
-        throw {
-          code: "F3007",
-          stack: (new Error()).stack,
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
-          instanceOf: rootFhirTypeId,
-          fhirElement: elementFlashPath
-        };
-      }
-
-      // handle boolean elements. the value should be boolized and returned
-      if (fhirTypeCode === 'boolean') {
-        return boolized;
-      }
-
-      // check that input is a primitive value
-      const valueType = fn.type(input);
-      if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean') {
-        throw {
-          code: "F3006",
-          stack: (new Error()).stack,
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
-          value: fn.string(input),
-          valueType,
-          instanceOf: rootFhirTypeId,
-          fhirElement: elementFlashPath
-        };
-      }
-
-      // if type is date and input is a string, truncate it to 10 characters (YYYY-MM-DD)
-      if (fhirTypeCode === 'date' && valueType === 'string') {
-        if (input.length > 10) {
-          input = input.slice(0, 10);
-        }
-      }
-
-      // check if regex is defined for the element, and test it
-      if (elementDefinition.__regexStr) {
-        // need to fetch regex tester from the environment
-        var regexTester = getRegexTester(environment, elementDefinition.__regexStr);
-
-        if (regexTester && !regexTester.test(fn.string(input))) {
-          throw {
-            code: "F3001",
-            stack: (new Error()).stack,
-            position: expr.position,
-            start: expr.start,
-            line: expr.line,
-            value: input,
-            regex: elementDefinition.__regexStr,
-            instanceOf: rootFhirTypeId,
-            fhirElement: elementFlashPath
-          };
-        }
-      }
-
-      // passed validation of the input.
-      // we now need to convert to the appropriate JSON type
-
-      // handle numeric fhir types
-      if (['decimal', 'integer', 'positiveInt', 'integer64', 'unsignedInt'].includes(fhirTypeCode)) {
-        // numeric primitive - cast as number.
-        // TODO: FHIR spec requires preserving decimal precision for presentation purposes (e.g., 1.00 vs 1)
-        // JavaScript natively supports only floating point numbers, causing loss of precision for trailing zeros.
-        // FHIR JSON spec suggests using custom parsers and big number libraries (e.g. javascript-bignum) to meet this requirement.
-        // Most JavaScript-based FHIR implementations face this same limitation due to JSON.parse() behavior.
-        // Alternative approach: Define an extension to preserve original string representation alongside the numeric value.
-        // This would be standards-compliant and solve the interoperability issue without breaking JSON compatibility.
-        if (valueType === 'number') {
-          return input; // already a number (precision already lost if input came from JSON.parse)
-        } else if (valueType === 'string') {
-          return Number(input); // convert string to number (precision lost here)
-        } else if (valueType === 'boolean') {
-          return input ? 1 : 0; // convert boolean to number
-        }
-      }
-
-      // all other fhir primitive types are reperesented as strings in the JSON
-      return fn.string(input); // converts to string if needed
     }
+
+    // Validate input - skip processing if invalid
+    const validation = SystemPrimitiveValidator.validateInput(input);
+    if (!validation.isValid) {
+      return undefined;
+    }
+
+    const rootFhirTypeId = expr.instanceof;
+    const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
+
+    // get the fhir type code for the element
+    const fhirTypeCode = elementDefinition.__fhirTypeCode;
+
+    if (!fhirTypeCode) {
+      throw FlashErrorGenerator.createError("F3007", expr, {
+        instanceOf: rootFhirTypeId,
+        fhirElement: elementFlashPath
+      });
+    }
+
+    // Validate that input is a primitive type
+    const valueType = SystemPrimitiveValidator.validateType(input, expr, elementFlashPath);
+
+    // Handle date truncation BEFORE regex validation to ensure we validate the correct format
+    let processedInput = input;
+    if (fhirTypeCode === 'date' && valueType === 'string' && input.length > 10) {
+      processedInput = input.slice(0, 10);
+    }
+
+    // Validate against regex constraints if present (using the processed input)
+    if (elementDefinition.__regexStr) {
+      const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
+      if (regexTester && !regexTester.test(fn.string(processedInput))) {
+        throw FlashErrorGenerator.createError("F3001", expr, {
+          value: processedInput,
+          regex: elementDefinition.__regexStr,
+          fhirElement: elementFlashPath
+        });
+      }
+    }
+
+    // Convert to appropriate JSON type (using the processed input)
+    return SystemPrimitiveValidator.convertValue(processedInput, fhirTypeCode, valueType);
   }
 
   /**
@@ -606,228 +939,6 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Process values for a specific child element within flash evaluation
-   * @async
-   * @param {Object} child - Child element definition
-   * @param {*} inlineResult - Inline expression result
-   * @param {Object} subExpressionResults - Sub-expression results
-   * @param {Object} expr - Original flash expression
-   * @param {Object} environment - Environment
-   * @param {Object} parentPatternValue - Parent pattern value if applicable
-   * @returns {Promise<Array>} Promise resolving to array of processed values
-   */
-  async function processChildValues(child, inlineResult, subExpressionResults, expr, environment, parentPatternValue) {
-    // we will first normalize the possible names of this element into an array of grouping keys
-    const names = generateChildNames(child);
-
-    // start by keeping all the matching values for this element in an array
-    const values = [];
-    for (const name of names) {
-      const valuesForName = await processValuesForName(
-        name, child, inlineResult, subExpressionResults, parentPatternValue
-      );
-
-      // if we have no values for this name, skip it
-      if (valuesForName.length === 0) {
-        continue;
-      }
-
-      const kindForName = child.type.length === 1 ?
-        child.type[0].__kind :
-        child.type.find(type => name.endsWith(initCap(type.code))).__kind;
-
-      if (child.max !== '1') {
-        // if it's an array, we take all of the values and push them to the values array
-        values.push({ name, kind: kindForName, value: valuesForName });
-      } else if (kindForName === 'system') {
-        // system primitive - just take the last value
-        if (valuesForName.length > 0) {
-          values.push({ name, kind: kindForName, value: [valuesForName[valuesForName.length - 1]] });
-        }
-      } else {
-        // complex type or primitive type - merge all objects into one
-        const mergedValue = fn.merge(valuesForName);
-        if (Object.keys(mergedValue).length > 0) {
-          values.push({ name, kind: kindForName, value: [mergedValue] });
-        }
-      }
-    }
-
-    // at this point, if we have no collected values for this element but it is mandatory,
-    // we will try to evaluate it as a virtual rule.
-    if (values.length === 0) {
-      if (child.min === 0 || child.type.length > 1) return { values }; // skip if not mandatory, or if polymorphic
-
-      // try to evaluate the child as a virtual rule
-      try {
-        const autoValue = await evaluate({
-          type: 'unary',
-          value: '[',
-          isFlashRule: true,
-          isVirtualRule: true,
-          expressions: [],
-          instanceof: expr.instanceof, // use the same instanceof as the parent flash block or rule
-          flashPathRefKey: child.__flashPathRefKey,
-          position: expr.position,
-          start: expr.start,
-          line: expr.line
-        }, undefined, environment);
-
-        // if the autoValue is not undefined, we add it to the values array
-        if (typeof autoValue !== 'undefined') {
-          values.push({ name: autoValue.key, kind: autoValue.kind, value: [autoValue.value] });
-        }
-      } catch (error) {
-        // If the element failed to auto generate, we ignore the error and just don't add anything to the values array
-      }
-    }
-
-    return { values };
-  }
-
-  /**
-   * Generate possible names for a child element (handles polymorphic and slice cases)
-   * The names at this stage are grouping keys - meaning *actual* slice names are included (element:sliceName).
-   * @param {Object} child - Child element definition
-   * @returns {Array} Array of possible names
-   */
-  function generateChildNames(child) {
-    const names = [];
-
-    if (child.__name.length === 1) {
-      // single name - check if poly
-      const isPoly = child.base?.path?.endsWith('[x]'); // is it a base poly element?
-      if (!isPoly) {
-        // single type element from the base.
-        // if there's a sliceName, we will use it to create the grouping key
-        if (child.sliceName) {
-          names.push(`${child.__name[0]}:${child.sliceName}`);
-        } else {
-          // no sliceName, just use the __name as the grouping key
-          names.push(child.__name[0]);
-        }
-      } else {
-        // it's a polymorphic element, narrowed to a single type.
-        // we will use the single __name and ignore sliceName if it exists,
-        // since the base name already includes the type, and sliceName (if there is one) is redundant
-        // NOTE: polymorphic elements can only be sliced by type,
-        //       so sliceName is actually identical to the JSON element name (e.g. valueString)
-        names.push(child.__name[0]);
-      }
-    } else {
-      // it's a polymorphic element with multiple types (and hence, names). it was not narrowed to a single type.
-      // we will use the entire __name array as possible grouping keys (ignoring sliceName)
-      names.push(...child.__name);
-    }
-
-    return names;
-  }
-
-  /**
-   * Process values for a specific name within child processing
-   * @async
-   * @param {string} name - Element name
-   * @param {Object} child - Child element definition
-   * @param {*} inlineResult - Inline expression result
-   * @param {Object} subExpressionResults - Sub-expression results
-   * @param {Object} parentPatternValue - Parent pattern value if available
-   * @returns {Promise<Array>} Promise resolving to array of values for this name
-   */
-  async function processValuesForName(name, child, inlineResult, subExpressionResults, parentPatternValue) {
-    // Determine the kind of this specific element name, accounting for polymorphic elements
-    const kindForName = child.type.length === 1 ?
-      child.type[0].__kind :
-      child.type.find(type => name.endsWith(initCap(type.code))).__kind;
-
-    // if the parent pattern has a value for this name, we will use it
-    if (parentPatternValue && parentPatternValue.value && parentPatternValue.value[name] && typeof parentPatternValue.value[name] !== undefined) {
-      const patternValue = parentPatternValue.value[name];
-
-      // For primitive types, if the pattern value is a raw string, wrap it in proper FHIR primitive structure
-      if (kindForName === 'primitive-type') {
-        // if there are sibling attributes, merge them into the value object
-        const siblingName = '_' + name;
-        if (typeof parentPatternValue.value[siblingName] === 'object' && Object.keys(parentPatternValue.value[siblingName]).length > 0) {
-          return [createFhirPrimitive({ value: patternValue, ...parentPatternValue.value[siblingName] })];
-        }
-        return [createFhirPrimitive({ value: patternValue })];
-      }
-
-      return [patternValue]; // return the value from the parent pattern as-is for other types
-    }
-    const valuesForName = []; // keep all values for this json element name    // check if the inline expression has a value for this name
-    if (
-      inlineResult &&
-      !child.sliceName && // we skip this child if it's a slice since slices are not directly represented in the json
-      (
-        Object.prototype.hasOwnProperty.call(inlineResult, name) || // check if inlineResult has this name
-        (
-          kindForName === 'primitive-type' && // or if it's a primitive type check for sibling element
-          Object.prototype.hasOwnProperty.call(inlineResult, '_' + name)
-        )
-      )
-    ) {
-      processInlineValues(name, kindForName, child, inlineResult, valuesForName);
-    }
-
-    // now check if the subExpressionResults has a value for this name
-    if (Object.prototype.hasOwnProperty.call(subExpressionResults, name)) {
-      valuesForName.push(...(subExpressionResults[name].map(item => item.value)));
-    }
-
-    return valuesForName;
-  }
-
-  /**
-   * Process inline values for a specific name
-   * @param {string} name - Element name
-   * @param {string} kindForName - Element kind
-   * @param {Object} child - Child element definition
-   * @param {*} inlineResult - Inline expression result
-   * @param {Array} valuesForName - Array to push values to
-   */
-  function processInlineValues(name, kindForName, child, inlineResult, valuesForName) {
-    let value;
-    // if it's not a fhir primitive, we just take the value
-    if (kindForName !== 'primitive-type') {
-      value = inlineResult[name];
-      // If the value is an array and this element can have multiple values,
-      // spread the array items instead of treating the whole array as one value
-      if (Array.isArray(value) && child.max !== '1') {
-        valuesForName.push(...value);
-      } else {
-        valuesForName.push(value);
-      }
-    } else {
-      // if it's a fhir primitive, we convert it to an object
-      const rawValue = inlineResult[name];
-      const siblingName = '_' + name;
-      // If the value is an array and this element can have multiple values,
-      // treat each array item as a separate primitive value
-      if (Array.isArray(rawValue) && child.max !== '1') {
-        for (const item of rawValue) {
-          const primitiveValue = createFhirPrimitive({ value: item });
-          if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
-            // if there's a sibling element with the same name prefixed with '_',
-            // we will copy its properties to the value object
-            Object.assign(primitiveValue, inlineResult[siblingName]);
-          }
-          valuesForName.push(primitiveValue);
-        }
-      } else {
-        // Single value or array treated as single value
-        const primitiveValue = createFhirPrimitive({ value: rawValue });
-        if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
-          // if there's a sibling element with the same name prefixed with '_',
-          // we will copy its properties to the value object
-          Object.assign(primitiveValue, inlineResult[siblingName]);
-        }
-        valuesForName.push(primitiveValue);
-      }
-    }
-  }
-
-  /**
    * Assign processed values to the result object
    * @param {Object} result - Result object to modify
    * @param {Object} child - Child element definition
@@ -1160,9 +1271,9 @@ function createFlashEvaluator(evaluate) {
 
     const { kind, children, resourceType, profileUrl, patternValue } = context;
 
-    // Process all expressions (inline + sub-rules)
+    // Process all expressions (inline + sub-rules) - MUST remain sequential for variable binding
     const {
-      inlineResult: rawInlineResult, // we use rawInlineResult so we can declare inlineResult as var (not const)
+      inlineResult: rawInlineResult,
       subExpressionResults
     } = await processFlashExpressions(expr, input, environment);
 
@@ -1196,18 +1307,21 @@ function createFlashEvaluator(evaluate) {
         result.resourceType = resourceType;
       }
 
-      // now we will loop through the children in-order and assign the result attributes
-      // NOTE: inline resources will only allow the id and meta elements to be set directly as sub-rules,
-      //       since they are the only elements common to ALL resource types.
-      //       Usually, the user will assign a complete flash block as the inline value,
-      //       which will then be processed as a specific resource type or profile with all its children.
-      for (const child of children) {
-        // we skip elements that have max = 0 or no __name
-        if (child.max === '0' || !child.__name) {
-          continue;
-        }
+      // OPTIMIZATION: Process all children in parallel since they are independent
+      // Each child processes its own values without dependencies on other children
+      const childProcessor = new ChildValueProcessor(environment, evaluate);
+      const validChildren = children.filter(child => child.max !== '0' && child.__name);
 
-        const childResult = await processChildValues(child, inlineResult, subExpressionResults, expr, environment, patternValue);
+      const childProcessingPromises = validChildren.map(child =>
+        childProcessor.processChild(child, inlineResult, subExpressionResults, expr, patternValue)
+      );
+
+      const allChildResults = await Promise.all(childProcessingPromises);
+
+      // Apply results in the original order to maintain FHIR definition ordering
+      for (let i = 0; i < validChildren.length; i++) {
+        const child = validChildren[i];
+        const childResult = allChildResults[i];
 
         if (childResult.values.length > 0) {
           assignValuesToResult(result, child, childResult.values);
@@ -1332,21 +1446,6 @@ function createFlashEvaluator(evaluate) {
    */
   function getFhirDefinitionsDictinary(environment) {
     return environment.lookup(Symbol.for('fumifier.__resolvedDefinitions'));
-  }
-
-  /**
-   * Get compiled FHIR regex tester from environment
-   * @param {Object} environment - Environment with compiled regexes
-   * @param {string} regexStr - Regex string to compile
-   * @returns {RegExp} Compiled regex
-   */
-  function getRegexTester(environment, regexStr) {
-    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
-    if (compiled) {
-      return compiled;
-    }
-    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
-    return compiled;
   }
 
   /**
