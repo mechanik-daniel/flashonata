@@ -1,0 +1,27 @@
+[
+  {
+    "description": "Transaction Bundle with auto-generated fullUrl",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "transaction",
+      "entry": [
+        {
+          "fullUrl": "urn:uuid:ea81e63f-342e-5f80-9c83-bc695f971f1b",
+          "resource": {
+            "resourceType": "Patient",
+            "id": "patient-001",
+            "name": [
+              {
+                "family": "Doe",
+                "given": ["John"]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "expr-file": "fullUrl001.fume"
+  }
+]

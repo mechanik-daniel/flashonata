@@ -1,0 +1,7 @@
+InstanceOf: Bundle
+* type = "transaction"
+* entry.resource = {
+    "resourceType": "Patient",
+    "id": "patient-001",
+    "name": [{"family": "Doe", "given": ["John"]}]
+  }

@@ -1,0 +1,37 @@
+[
+  {
+    "description": "Transaction Bundle with multiple entries should get fullUrl for each",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "transaction",
+      "entry": [
+        {
+          "fullUrl": "urn:uuid:87df76c3-d336-5fba-ab9e-817d768223af",
+          "resource": {
+            "resourceType": "Patient",
+            "id": "patient-004a"
+          }
+        },
+        {
+          "fullUrl": "urn:uuid:824f1a81-fb0f-50ce-b410-06ed80cf9045",
+          "resource": {
+            "resourceType": "Observation",
+            "id": "obs-004b",
+            "status": "final",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "15074-8"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "expr-file": "fullUrl004.fume"
+  }
+]

@@ -1,0 +1,6 @@
+InstanceOf: Bundle
+* type = "collection"
+* entry.resource = {
+    "resourceType": "Patient", 
+    "id": "patient-003"
+  }

@@ -1,0 +1,8 @@
+InstanceOf: Bundle
+* type = "transaction"
+* entry
+  * fullUrl = "https://example.com/Patient/existing"
+  * resource = {
+      "resourceType": "Patient",
+      "id": "patient-002"
+    }

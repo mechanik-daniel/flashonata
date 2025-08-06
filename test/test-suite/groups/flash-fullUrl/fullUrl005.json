@@ -1,0 +1,24 @@
+[
+  {
+    "description": "Transaction Bundle with mixed entries - only resource entries get fullUrl",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "transaction",
+      "entry": [
+        {
+          "fullUrl": "http://example.com/no-resource"
+        },
+        {
+          "fullUrl": "urn:uuid:433194fe-2799-58ee-bd9c-66030f0fc1aa",
+          "resource": {
+            "resourceType": "Patient",
+            "id": "patient-005"
+          }
+        }
+      ]
+    },
+    "expr-file": "fullUrl005.fume"
+  }
+]

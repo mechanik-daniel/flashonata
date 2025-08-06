@@ -1,0 +1,20 @@
+[
+  {
+    "description": "Collection Bundle should not get fullUrl injection",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "collection",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Patient",
+            "id": "patient-003"
+          }
+        }
+      ]
+    },
+    "expr-file": "fullUrl003.fume"
+  }
+]
