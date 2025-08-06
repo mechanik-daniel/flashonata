@@ -7,6 +7,7 @@ import fn from './utils/functions.js';
 import FlashErrorGenerator from './flashEvaluator/FlashErrorGenerator.js';
 import SystemPrimitiveValidator from './flashEvaluator/SystemPrimitiveValidator.js';
 import ChildValueProcessor from './flashEvaluator/ChildValueProcessor.js';
+import VirtualRuleEvaluator from './flashEvaluator/VirtualRuleEvaluator.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
 
 // Import utility functions directly since they are simple utilities
@@ -665,27 +666,18 @@ function createFlashEvaluator(evaluate) {
         if (sliceElement.min > 0 && !presentSlices.has(sliceElement.sliceName)) {
 
           // Try to auto-generate the missing mandatory slice using virtual rule
-          try {
-            const autoValue = await evaluate({
-              type: 'unary',
-              value: '[',
-              isFlashRule: true,
-              isVirtualRule: true,
-              expressions: [],
-              instanceof: expr.instanceof,
-              flashPathRefKey: sliceElement.__flashPathRefKey,
-              position: expr.position,
-              start: expr.start,
-              line: expr.line
-            }, undefined, environment);
+          const autoValue = await VirtualRuleEvaluator.evaluateVirtualRule(
+            evaluate,
+            expr,
+            sliceElement.__flashPathRefKey,
+            environment
+          );
 
-            if (typeof autoValue !== 'undefined') {
-              // Add the auto-generated slice to the result
-              result[autoValue.key] = autoValue.value;
-            }
-          } catch (error) {
-            // Ignore the error
+          if (typeof autoValue !== 'undefined') {
+            // Add the auto-generated slice to the result
+            result[autoValue.key] = autoValue.value;
           }
+
           // if result is still missing the mandatory slice, throw an error
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
             // throw F3012 with sliceName and fhir parent
