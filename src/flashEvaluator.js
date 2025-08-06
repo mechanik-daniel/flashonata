@@ -615,7 +615,7 @@ function createFlashEvaluator(evaluate) {
         result = undefined;
       } else if (result && typeof result === 'object' && result.resourceType === 'Bundle' && result.type === 'transaction') {
         // if the result is a Bundle resource with type === 'transaction', inject fullUrl to each entry
-        result = ResultProcessor.injectBundleFullUrls(result, environment);
+        result = ResultProcessor.injectBundleFullUrls(result);
       }
     }
 

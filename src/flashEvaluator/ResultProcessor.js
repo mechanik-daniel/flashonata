@@ -333,11 +333,10 @@ class ResultProcessor {
   /**
    * Inject fullUrl fields for Bundle entries that need them
    * @param {Object} bundle - Bundle resource with type 'transaction'
-   * @param {Object} environment - Environment (unused but kept for consistency)
    * @returns {Object} Bundle with injected fullUrl fields
    */
   /* eslint-disable-next-line require-jsdoc, no-unused-vars */
-  static injectBundleFullUrls(bundle, environment) {
+  static injectBundleFullUrls(bundle) {
     // Create a deep copy to avoid mutating the original
     const result = { ...bundle };
 
