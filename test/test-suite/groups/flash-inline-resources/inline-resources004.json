@@ -1,18 +1,39 @@
-{
-  "description": "Inline resource in Bundle.entry.resource element",
-  "data": null,
-  "bindings": {},
-  "result": {
-    "resourceType": "Bundle",
-    "type": "transaction",
-    "entry": [
-      {
-        "resource": {
-          "resourceType": "Patient",
-          "id": "example-patient"
+[
+  {
+    "description": "Inline resource in Bundle.entry.resource element",
+    "data": "collection",
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "collection",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Patient",
+            "id": "example-patient"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "expr-file": "inline-resources004.fume"
   },
-  "expr-file": "inline-resources004.fume"
-}
+  {
+    "description": "Inline resource in transaction Bundle.entry.resource element",
+    "data": "transaction",
+    "bindings": {},
+    "result": {
+      "resourceType": "Bundle",
+      "type": "transaction",
+      "entry": [
+        {
+          "fullUrl": "urn:uuid:4cdf83dd-8de5-5d53-862b-b335e9d05368",
+          "resource": {
+            "resourceType": "Patient",
+            "id": "example-patient"
+          }
+        }
+      ]
+    },
+    "expr-file": "inline-resources004.fume"
+  }
+]

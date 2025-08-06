@@ -253,16 +253,25 @@ void async function () {
 // 
 
 
-InstanceOf: ext-administrative-parent-name
-* extension[given].value = 'John'
-  * id = 'parent-name-id'
-* extension[role].value = 'FTH'
-* extension[official].value = true
+// InstanceOf: ext-administrative-parent-name
+// * extension[given].value = 'John'
+//   * id = 'parent-name-id'
+// * extension[role].value = 'FTH'
+// * extension[official].value = true
 
 // InstanceOf: Patient
 // * contained = {'resourceType': 'Patient'}
 //   * id = 'p1'
 //   * meta.profile = 'http://example.com/extension-url'
+
+InstanceOf: Bundle
+* entry.resource = {
+    "resourceType": "Patient",
+    "gender": "male",
+    "id": "example-patient"
+  }
+* type = 'transaction'
+  * id = 'bundle-type-id'
 
 `;
 

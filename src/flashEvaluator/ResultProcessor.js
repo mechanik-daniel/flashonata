@@ -4,6 +4,7 @@
  */
 
 import fn from '../utils/functions.js';
+import utils from '../utils/utils.js';
 import { isFhirPrimitive } from './FhirPrimitive.js';
 
 const { boolize } = fn;
@@ -327,6 +328,54 @@ class ResultProcessor {
     }
 
     return reorderedResult;
+  }
+
+  /**
+   * Inject fullUrl fields for Bundle entries that need them
+   * @param {Object} bundle - Bundle resource with type 'transaction'
+   * @param {Object} environment - Environment (unused but kept for consistency)
+   * @returns {Object} Bundle with injected fullUrl fields
+   */
+  /* eslint-disable-next-line require-jsdoc, no-unused-vars */
+  static injectBundleFullUrls(bundle, environment) {
+    // Create a deep copy to avoid mutating the original
+    const result = { ...bundle };
+
+    // Check if bundle has entry array
+    if (!result.entry || !Array.isArray(result.entry)) {
+      return result;
+    }
+
+    // Process each entry
+    result.entry = result.entry.map(entry => {
+      // Skip if entry has no resource
+      if (!entry.resource || typeof entry.resource !== 'object') {
+        return entry;
+      }
+
+      // Skip if entry already has a non-empty fullUrl
+      if (entry.fullUrl && typeof entry.fullUrl === 'string' && entry.fullUrl.trim() !== '') {
+        return entry;
+      }
+
+      // Generate fullUrl using the same logic as $reference()
+      try {
+        const fullUrl = utils.generateReference(entry.resource);
+        // now we need to make sure the url is in the correct place regarding element ordering.
+        // according to the spec, it is the second element - after `link`. So if there is a link,
+        // we inject the fullUrl between it and the rest of the elements.
+        // If there isn't a link, we put the fullUrl as first key and then all other elements.
+        if (entry.link) {
+          // If there is `link`, insert fullUrl after it
+          return { link: entry.link, fullUrl, ...entry };
+        } else return { fullUrl, ...entry };
+      } catch (error) {
+        // If reference generation fails (invalid resource), skip this entry
+        return entry;
+      }
+    });
+
+    return result;
   }
 }
 

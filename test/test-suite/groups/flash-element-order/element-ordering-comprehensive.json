@@ -165,5 +165,12 @@
       "display"
     ],
     "expr-file": "element-ordering-comprehensive-15.fume"
+  },
+  {
+    "description": "Element ordering: strinct string comparison of Bundle with auto-injected fullUrl",
+    "data": null,
+    "bindings": {},
+    "result": "{\"resourceType\":\"Bundle\",\"type\":\"transaction\",\"_type\":{\"id\":\"bundle-type-id\"},\"entry\":[{\"fullUrl\":\"urn:uuid:bdc1be8b-8eaf-5b99-8db8-04deff133a69\",\"resource\":{\"resourceType\":\"Patient\",\"id\":\"example-patient\",\"gender\":\"male\"}}]}",
+    "expr-file": "element-ordering-comprehensive-16.fume"
   }
 ]

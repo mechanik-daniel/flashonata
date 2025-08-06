@@ -1,0 +1,10 @@
+(
+  InstanceOf: Bundle
+  * entry.resource = {
+      "resourceType": "Patient",
+      "gender": "male",
+      "id": "example-patient"
+    }
+  * type = 'transaction'
+    * id = 'bundle-type-id'
+) ~> $string()

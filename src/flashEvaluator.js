@@ -608,9 +608,15 @@ function createFlashEvaluator(evaluate) {
       result = finalizeFlashRuleResult(expr, result, environment);
     }
 
-    // if it's a flashblock, if it has no children or only resourceType, we return undefined
-    if (Object.keys(result).length === 0 || (Object.keys(result).length === 1 && result.resourceType)) {
-      result = undefined;
+    // flashblock result finalization
+    if (expr.isFlashBlock) {
+      if (Object.keys(result).length === 0 || (Object.keys(result).length === 1 && result.resourceType)) {
+        // if the result is empty or has only resourceType, return undefined
+        result = undefined;
+      } else if (result && typeof result === 'object' && result.resourceType === 'Bundle' && result.type === 'transaction') {
+        // if the result is a Bundle resource with type === 'transaction', inject fullUrl to each entry
+        result = ResultProcessor.injectBundleFullUrls(result, environment);
+      }
     }
 
     return result;

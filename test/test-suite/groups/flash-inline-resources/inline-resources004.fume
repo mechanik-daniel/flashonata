@@ -1,5 +1,5 @@
 InstanceOf: Bundle
-* type = "transaction"
+* type = $
 * entry.resource = {
     "resourceType": "Patient",
     "id": "example-patient"
