@@ -1,0 +1,6 @@
+{
+    "expr": "$uuid(42)",
+    "data": null,
+    "bindings": {},
+    "result": "92cfceb3-9d57-5914-ad8b-14d0e37643de"
+}

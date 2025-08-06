@@ -1,0 +1,6 @@
+{
+    "expr": "{'resourceType': 'Patient', 'id': '123'}.$reference()",
+    "data": null,
+    "bindings": {},
+    "result": "urn:uuid:1a354dc9-64fa-54fa-8e1b-79e506d08c67"
+}

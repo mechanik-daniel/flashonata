@@ -19,6 +19,8 @@ const functions = (() => {
   var getFunctionArity = utils.getFunctionArity;
   var deepEquals = utils.isDeepEqual;
   var stringToArray = utils.stringToArray;
+  var generateUuid = utils.generateUuid;
+  var generateReference = utils.generateReference;
 
   /**
      * Sum function
@@ -2172,6 +2174,42 @@ const functions = (() => {
     return str.split(' ').map(initCapOnce).join(' ');
   }
 
+  /**
+   * Generate a UUID - random if no seed provided, deterministic if seed provided
+   * @param {*} [seed] - optional seed value
+   * @returns {string} UUID string
+   */
+  function uuid(seed) {
+    try {
+      return generateUuid(seed);
+    } catch (error) {
+      throw {
+        code: "F3014",
+        stack: (new Error()).stack,
+        errorMessage: error.message || 'Unknown error generating UUID',
+        value: seed
+      };
+    }
+  }
+
+  /**
+   * Generate a FHIR reference with urn:uuid: prefix from a FHIR resource
+   * @param {Object} resource - FHIR resource object
+   * @returns {string} FHIR reference string
+   */
+  function reference(resource) {
+    try {
+      return generateReference(resource);
+    } catch (error) {
+      throw {
+        code: "F3014",
+        stack: (new Error()).stack,
+        errorMessage: error.message || 'Unknown error generating reference',
+        value: resource
+      };
+    }
+  }
+
   return {
     sum, count, max, min, average,
     string, substring, substringBefore, substringAfter, lowercase, uppercase, length, trim, pad,
@@ -2181,7 +2219,7 @@ const functions = (() => {
     map, zip, filter, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
-    wait, rightNow, initCapOnce, initCap
+    wait, rightNow, initCapOnce, initCap, uuid, reference
   };
 })();
 

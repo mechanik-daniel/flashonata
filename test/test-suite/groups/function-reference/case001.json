@@ -1,0 +1,6 @@
+{
+    "expr": "$reference({'resourceType': 'Observation', 'subject': {'reference': 'Patient/123'}})",
+    "data": null,
+    "bindings": {},
+    "result": "urn:uuid:f522e64c-dcd5-59fe-8d16-0cb3769d11ca"
+}

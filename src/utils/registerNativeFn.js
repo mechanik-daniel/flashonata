@@ -91,6 +91,8 @@ function registerNativeFn(staticFrame, functionEval) {
   staticFrame.bind('rightNow', defineFunction(fn.rightNow), '<:n>');
   staticFrame.bind('initCapOnce', defineFunction(fn.initCapOnce, '<s-:s>'));
   staticFrame.bind('initCap', defineFunction(fn.initCap, '<s-:s>'));
+  staticFrame.bind('uuid', defineFunction(fn.uuid, '<j?:s>'));
+  staticFrame.bind('reference', defineFunction(fn.reference, '<o-:s>'));
 }
 
 export default registerNativeFn;

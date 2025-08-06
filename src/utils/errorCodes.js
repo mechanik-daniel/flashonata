@@ -174,7 +174,9 @@ const errorCodes = {
   "F3010": "Value for {{fhirElement}} in {{fhirParent}} must be a Resource object, received type: {{valueType}}.",
   "F3011": "Element {{fhirElement}} in {{fhirParent}} must be a Resource, but no \"resourceType\" attribute was found in the assigned object.",
   "F3012": "Missing required slice {{sliceName}} under {{fhirElement}} in {{fhirParent}}.",
-  "F3013": "Failed to determine the children of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again."
+  "F3013": "Failed to determine the children of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
+  "F3014": "Error generating UUID: {{{errorMessage}}}",
+  "F3015": "Internal UUID generation requires a seed value that is a FHIR resource object with a resourceType field"
 };
 
 /**

@@ -1,0 +1,6 @@
+{
+    "expr": "$reference('not an object')",
+    "data": null,
+    "bindings": {},
+    "code": "T0410"
+}

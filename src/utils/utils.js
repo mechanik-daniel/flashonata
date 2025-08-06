@@ -4,6 +4,9 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
+import { randomUUID } from 'crypto';
+import uuid from 'uuid-by-string';
+
 const utils = (() => {
 
   /**
@@ -201,6 +204,54 @@ const utils = (() => {
 
   var chainAST = {"type":"lambda","arguments":[{"value":"f","type":"variable","position":11,"line":1},{"value":"g","type":"variable","position":15,"line":1}],"position":9,"line":1,"body":{"type":"lambda","arguments":[{"value":"x","type":"variable","position":30,"line":1}],"position":28,"line":1,"body":{"type":"lambda","thunk":true,"arguments":[],"position":36,"line":1,"body":{"type":"function","value":"(","position":36,"line":1,"arguments":[{"type":"function","value":"(","position":39,"line":1,"arguments":[{"value":"x","type":"variable","position":41,"line":1}],"procedure":{"value":"f","type":"variable","position":38,"line":1}}],"procedure":{"value":"g","type":"variable","position":35,"line":1}}}}};
 
+  /**
+   * Generates a UUID based on a seed or random if no seed provided
+   * @param {*} [seed] - optional seed value (will be stringified if not a string)
+   * @returns {string} - UUID string
+   */
+  function generateUuid(seed) {
+    if (typeof seed === 'undefined') {
+      return randomUUID();
+    }
+
+    // Stringify the seed if it's not already a string
+    const seedString = typeof seed === 'string' ? seed : JSON.stringify(seed);
+    return uuid(seedString);
+  }
+
+  /**
+   * Internal UUID generation for Flash evaluator - always requires a seed
+   * @param {*} seed - seed value (must be a FHIR resource object with resourceType)
+   * @returns {string} - UUID string
+   */
+  function generateSeededUuid(seed) {
+    if (typeof seed === 'undefined' || seed === null) {
+      throw {
+        code: "F3015",
+        stack: (new Error()).stack
+      };
+    }
+
+    // Must be an object (not array) with resourceType field
+    if (typeof seed !== 'object' || Array.isArray(seed) || typeof seed.resourceType !== 'string') {
+      throw {
+        code: "F3015",
+        stack: (new Error()).stack
+      };
+    }
+
+    return generateUuid(seed);
+  }
+
+  /**
+   * Generates a FHIR reference with urn:uuid: prefix
+   * @param {Object} resource - FHIR resource object with resourceType
+   * @returns {string} - FHIR reference string with urn:uuid: prefix
+   */
+  function generateReference(resource) {
+    return 'urn:uuid:' + generateSeededUuid(resource);
+  }
+
   return {
     isNumeric,
     isArrayOfStrings,
@@ -214,7 +265,10 @@ const utils = (() => {
     isDeepEqual,
     stringToArray,
     isPromise,
-    chainAST
+    chainAST,
+    generateUuid,
+    generateSeededUuid,
+    generateReference
   };
 })();
 

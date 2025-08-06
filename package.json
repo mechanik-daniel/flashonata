@@ -74,5 +74,8 @@
   },
   "engines": {
     "node": ">= 20"
+  },
+  "dependencies": {
+    "uuid-by-string": "^4.0.0"
   }
 }

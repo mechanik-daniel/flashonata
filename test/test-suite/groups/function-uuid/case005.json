@@ -1,0 +1,6 @@
+{
+    "expr": "$uuid() != $uuid()",
+    "data": null,
+    "bindings": {},
+    "result": true
+}

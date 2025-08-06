@@ -253,17 +253,16 @@ void async function () {
 // 
 
 
-// InstanceOf: Patient
-// * extension[ext-administrative-parent-name]
-//   * extension[given].value = 'John'
-//     * id = 'parent-name-id'
-//   * extension[role].value = 'FTH'
-//   * extension[official].value = true
+InstanceOf: ext-administrative-parent-name
+* extension[given].value = 'John'
+  * id = 'parent-name-id'
+* extension[role].value = 'FTH'
+* extension[official].value = true
 
-InstanceOf: Patient
-* contained = {'resourceType': 'Patient'}
-  * id = 'p1'
-  * meta.profile = 'http://example.com/extension-url'
+// InstanceOf: Patient
+// * contained = {'resourceType': 'Patient'}
+//   * id = 'p1'
+//   * meta.profile = 'http://example.com/extension-url'
 
 `;
 

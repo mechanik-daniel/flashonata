@@ -1,0 +1,6 @@
+{
+    "expr": "$uuid($string)",
+    "data": null,
+    "bindings": {},
+    "code": "T0410"
+}
