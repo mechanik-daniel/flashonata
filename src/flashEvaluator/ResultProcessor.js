@@ -268,7 +268,7 @@ class ResultProcessor {
    * @returns {Object} Reordered result object
    */
   static reorderResultByFhirDefinition(result, children) {
-    if (!result || typeof result !== 'object' || Array.isArray(result) || !children || children.length === 0) {
+    if (!result || typeof result !== 'object' || Array.isArray(result) || Object.keys(result).length === 0 || !children || children.length === 0) {
       return result;
     }
 
