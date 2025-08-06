@@ -8,6 +8,7 @@ import FlashErrorGenerator from './flashEvaluator/FlashErrorGenerator.js';
 import SystemPrimitiveValidator from './flashEvaluator/SystemPrimitiveValidator.js';
 import ChildValueProcessor from './flashEvaluator/ChildValueProcessor.js';
 import VirtualRuleEvaluator from './flashEvaluator/VirtualRuleEvaluator.js';
+import MetaProfileInjector from './flashEvaluator/MetaProfileInjector.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
 
 // Import utility functions directly since they are simple utilities
@@ -693,37 +694,6 @@ function createFlashEvaluator(evaluate) {
   }
 
   /**
-   * Inject meta.profile for profiled resources
-   * @param {Object} result - Result object to modify
-   * @param {string} resourceType - Resource type
-   * @param {string} profileUrl - Profile URL
-   * @returns {Object} Modified result object
-   */
-  function injectMetaProfile(result, resourceType, profileUrl) {
-    // inject meta.profile if this is a profiled resource and it isn't already set
-    if (typeof profileUrl !== 'string') {
-      // if profileUrl is not a string, do nothing
-      return result;
-    }
-    // if meta is missing entirely, create it
-    if (!result.meta) {
-      // if it was missing, we need to put it right after the id, before all other properties
-      const hasId = Object.prototype.hasOwnProperty.call(result, 'id');
-      if (hasId) {
-        result = { resourceType, id: result.id, meta: { profile: [profileUrl] }, ...result };
-      } else {
-        result = { resourceType, meta: { profile: [profileUrl] }, ...result };
-      }
-    } else if (!result.meta.profile || !Array.isArray(result.meta.profile)) {
-      result.meta.profile = [profileUrl];
-    } else if (!result.meta.profile.includes(profileUrl)) {
-      result.meta.profile.push(profileUrl);
-    }
-
-    return result;
-  }
-
-  /**
    * Validate mandatory children in flash result
    * @param {Object} result - Result object
    * @param {Array} children - Children definitions
@@ -862,7 +832,7 @@ function createFlashEvaluator(evaluate) {
       appendSlices(result);
       if (resourceType && profileUrl) {
         // If this is a profiled resource, inject meta.profile
-        result = injectMetaProfile(result, resourceType, profileUrl);
+        result = MetaProfileInjector.injectMetaProfile(result, resourceType, profileUrl);
       }
 
       // Reorder result keys according to FHIR element definition order
