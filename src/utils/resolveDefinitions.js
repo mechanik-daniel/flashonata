@@ -169,8 +169,14 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
 
       if (!ed.type || ed.type.length === 0) {
         // no type defined
-        baseError.code = 'F2007';
-        return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element has no type defined'));
+        // if also no contentRef, then it's an error
+        if (ed.contentReference) {
+          // there's a content reference, so we can just assume the type is BackboneElement
+          ed.type = [{ __kind: 'complex-type', code: 'BackboneElement' }];
+        } else {
+          baseError.code = 'F2007';
+          return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element has no type defined'));
+        }
       }
 
       if (ed.type?.length > 1) {
