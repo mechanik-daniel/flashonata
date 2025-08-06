@@ -138,33 +138,14 @@ function createFlashEvaluator(evaluate) {
   function finalizeFlashRuleResult(expr, input, environment) {
     // Ensure the expression refers to a valid FHIR element
 
-    const generateErrorObject = (error) => {
-      const baseErr = {
-        stack: (error || new Error()).stack,
-        position: expr.position,
-        start: expr.start,
-        line: expr.line
-      };
-      if (expr.instanceof) {
-        baseErr.instanceOf = expr.instanceof;
-        if (expr.flashPathRefKey) {
-          baseErr.fhirElement = expr.flashPathRefKey.slice(expr.instanceof.length + 2);
-        }
-      }
-      return baseErr;
-    };
-
     if (!expr.flashPathRefKey) {
-      throw { code: "F3000", ...generateErrorObject(new Error()) };
+      throw FlashErrorGenerator.createSimpleError("F3000", expr);
     }
     // lookup the definition of the element
     const elementDefinition = getElementDefinition(environment, expr);
 
     if (!elementDefinition) {
-      throw {
-        code: "F3003",
-        ...generateErrorObject(new Error())
-      };
+      throw FlashErrorGenerator.createSimpleError("F3003", expr);
     }
 
     if (
@@ -172,19 +153,13 @@ function createFlashEvaluator(evaluate) {
       !Array.isArray(elementDefinition.__name) || // should be an array
       elementDefinition.__name.length > 1 // no more than one option
     ) {
-      throw {
-        code: "F3005",
-        ...generateErrorObject(new Error())
-      };
+      throw FlashErrorGenerator.createSimpleError("F3005", expr);
     }
 
     // get the kind of the element
     const kind = elementDefinition.__kind;
     if (!kind) {
-      throw {
-        code: 'F3004',
-        ...generateErrorObject(new Error())
-      };
+      throw FlashErrorGenerator.createSimpleError("F3004", expr);
     }
 
     // get the json element name. there can only be one name at this stage, otherwise we would have thrown earlier
@@ -403,15 +378,10 @@ function createFlashEvaluator(evaluate) {
 
       if (def.max === '0') {
         // forbidden element
-        throw {
-          code: "F3008",
-          stack: (new Error()).stack,
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
+        throw FlashErrorGenerator.createError("F3008", expr, {
           value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
           fhirType: def.__fromDefinition
-        };
+        });
       } else if (def.__fixedValue) {
         // short circuit if the element has a fixed value
         let fixed = def.__fixedValue;
@@ -719,16 +689,11 @@ function createFlashEvaluator(evaluate) {
           // if result is still missing the mandatory slice, throw an error
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
             // throw F3012 with sliceName and fhir parent
-            throw {
-              code: "F3012",
-              stack: (new Error()).stack,
-              position: expr.position,
-              start: expr.start,
-              line: expr.line,
+            throw FlashErrorGenerator.createFhirContextError("F3012", expr, {
               fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
               fhirElement: parentKey,
               sliceName: sliceElement.sliceName
-            };
+            });
           }
         }
       }
@@ -802,15 +767,10 @@ function createFlashEvaluator(evaluate) {
             continue; // skip this child, slices satisfy the requirement
           }
         }
-        throw {
-          code: "F3002",
-          stack: (new Error()).stack,
-          position: expr.position,
-          start: expr.start,
-          line: expr.line,
+        throw FlashErrorGenerator.createFhirContextError("F3002", expr, {
           fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
-          fhirElement: child.__flashPathRefKey.split('::')[1],
-        };
+          fhirElement: child.__flashPathRefKey.split('::')[1]
+        });
       }
     }
   }
@@ -1075,16 +1035,11 @@ function createFlashEvaluator(evaluate) {
       children = definitions.elementChildren[flashPathRefKey];
       return children;
     }
-    /* c8 ignore next 9 */
-    throw {
-      code: "F3013",
-      stack: (new Error()).stack,
-      position: expr.position,
-      start: expr.start,
-      line: expr.line,
+    /* c8 ignore next 3 */
+    throw FlashErrorGenerator.createError("F3013", expr, {
       instanceOf: expr.instanceof,
       fhirElement: flashPathRefKey
-    };
+    });
   }
 
   return evaluateFlash;
