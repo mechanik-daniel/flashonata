@@ -1,0 +1,13 @@
+InstanceOf: Bundle
+* type = 'collection'
+* entry
+  * fullUrl = 'http://example.com/Patient/p1'
+  * resource = { "resourceType" : 'Patient',
+    "id": 'p1',
+    "active": true}
+  * link
+    * relation = 'related'
+    * url = 'http://example.com/Patient/p1/history'
+  * link
+    * relation = 'edit'
+    * url = 'http://example.com/Patient/p1/_history/2'

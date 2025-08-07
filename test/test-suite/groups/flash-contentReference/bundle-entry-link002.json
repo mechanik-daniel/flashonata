@@ -1,0 +1,31 @@
+{
+  "skip": false,
+  "description": "Bundle.entry.link with complex structure - tests contentReference BackboneElement type injection",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle", 
+    "type": "collection",
+    "entry": [
+      {
+        "fullUrl": "http://example.com/Patient/p1",
+        "resource": {
+          "resourceType": "Patient",
+          "id": "p1",
+          "active": true
+        },
+        "link": [
+          {
+            "relation": "related",
+            "url": "http://example.com/Patient/p1/history"
+          },
+          {
+            "relation": "edit",
+            "url": "http://example.com/Patient/p1/_history/2"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "bundle-entry-link002.fume"
+}

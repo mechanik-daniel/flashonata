@@ -1,0 +1,25 @@
+{
+  "skip": false,
+  "description": "Bundle.entry.link contentReference - should properly inject BackboneElement type",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle",
+    "type": "searchset",
+    "entry": [
+      {
+        "resource": {
+          "resourceType": "Patient",
+          "id": "test-patient"
+        },
+        "link": [
+          {
+            "relation": "self",
+            "url": "http://example.com/Patient/test-patient"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "bundle-entry-link001.fume"
+}

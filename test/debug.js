@@ -264,17 +264,35 @@ void async function () {
 //   * id = 'p1'
 //   * meta.profile = 'http://example.com/extension-url'
 
-InstanceOf: Bundle
-* type = 'collection'
-* entry
-  * fullUrl = 'http://example.com/entry-fullUrl'
-  * link
-    * relation = 'self'
-    * url = 'http://example.com/entry-link'
-* link
-  * relation = 'self'
-  * url = 'http://example.com/bundle-link'
+// InstanceOf: Bundle
+// * type = 'collection'
+// * entry
+//   * fullUrl = 'http://example.com/entry-fullUrl'
+//   * link
+//     * relation = 'self'
+//     * url = 'http://example.com/entry-link'
+// * link
+//   * relation = 'self'
+//   * url = 'http://example.com/bundle-link'
 
+
+InstanceOf: Questionnaire
+* status = 'draft'
+* item
+  * linkId = 'q1'
+  * type = 'string'
+  * item
+    * linkId = 'q1.1'
+    * type = 'string'
+    * item
+      * linkId = 'q1.1.1'
+      * type = 'string'
+      * item
+        * linkId = 'q1.1.1.1'
+        * type = 'string'
+      * item
+        * linkId = 'q1.1.1.2'
+        * type = 'string'
 `;
 
   console.log('Starting debug script...');

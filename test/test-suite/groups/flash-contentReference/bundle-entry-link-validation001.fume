@@ -1,0 +1,13 @@
+InstanceOf: Bundle
+* type = 'searchset'
+* total = 1
+* entry
+  * resource = {
+    "resourceType": 'Patient',
+    "id": 'debug-patient',
+    "active": true
+  }
+  * search.mode = 'match'
+  * link
+    * relation = 'self'
+    * url = 'http://test.example.com/Patient/debug-patient'

@@ -1,0 +1,10 @@
+InstanceOf: Bundle
+* type = 'searchset'
+* entry
+  * resource = {
+    "resourceType": "Patient",
+    "id": "test-patient"
+  }
+  * link
+    * relation = 'self'
+    * url = 'http://example.com/Patient/test-patient'

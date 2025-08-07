@@ -1,0 +1,30 @@
+{
+  "skip": false,
+  "description": "Bundle.entry.link type validation - ensures contentReference elements have proper BackboneElement type",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Bundle",
+    "type": "searchset",
+    "total": 1,
+    "entry": [
+      {
+        "resource": {
+          "resourceType": "Patient",
+          "id": "debug-patient",
+          "active": true
+        },
+        "search": {
+          "mode": "match"
+        },
+        "link": [
+          {
+            "relation": "self",
+            "url": "http://test.example.com/Patient/debug-patient"
+          }
+        ]
+      }
+    ]
+  },
+  "expr-file": "bundle-entry-link-validation001.fume"
+}
