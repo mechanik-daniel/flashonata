@@ -265,13 +265,15 @@ void async function () {
 //   * meta.profile = 'http://example.com/extension-url'
 
 InstanceOf: Bundle
-* entry.resource = {
-    "resourceType": "Patient",
-    "gender": "male",
-    "id": "example-patient"
-  }
-* type = 'transaction'
-  * id = 'bundle-type-id'
+* type = 'collection'
+* entry
+  * fullUrl = 'http://example.com/entry-fullUrl'
+  * link
+    * relation = 'self'
+    * url = 'http://example.com/entry-link'
+* link
+  * relation = 'self'
+  * url = 'http://example.com/bundle-link'
 
 `;
 
