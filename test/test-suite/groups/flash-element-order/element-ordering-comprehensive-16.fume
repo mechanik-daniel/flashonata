@@ -1,10 +1,14 @@
 (
   InstanceOf: Bundle
-  * entry.resource = {
-      "resourceType": "Patient",
-      "gender": "male",
-      "id": "example-patient"
-    }
+  * entry
+    * resource = {
+        "resourceType": "Patient",
+        "gender": "male",
+        "id": "example-patient"
+      }
+    * link
+      * relation = 'self'
+      * url = 'http://example.com/123'
   * type = 'transaction'
     * id = 'bundle-type-id'
 ) ~> $string()
