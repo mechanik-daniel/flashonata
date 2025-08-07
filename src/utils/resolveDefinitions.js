@@ -118,6 +118,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
       // for each child, assign __isArray and if it has a single type, also the __kind, __fhirTypeCode and __fixedValue properties
       const enriched = children.map(child => {
         assignIsArray(child);
+        handleContentReference(child);
         if (child.type && child.type.length === 1) {
           child.__kind = child.type[0].__kind;
           assignFhirTypeCode(child);
@@ -209,6 +210,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
             // Enrich children with __flashPathRefKey for element children
             elementChildren = elementChildren.map(child => {
               assignIsArray(child);
+              handleContentReference(child);
               if (child.type && child.type.length === 1) {
                 child.__kind = child.type[0].__kind;
                 assignFhirTypeCode(child);
@@ -350,6 +352,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
 
         const enriched = children.map(child => {
           assignIsArray(child);
+          handleContentReference(child);
           if (child.type && child.type.length === 1) {
             child.__kind = child.type[0].__kind;
             assignFhirTypeCode(child);
@@ -454,6 +457,21 @@ function assignFhirTypeCode(ed) {
 
   // Assign the FHIR type code to the element definition
   ed.__fhirTypeCode = fhirTypeCode;
+}
+
+/**
+ * Handle contentReference elements by injecting BackboneElement type if missing
+ * @param {Object} child - Child element definition
+ */
+function handleContentReference(child) {
+  if (!child.type || child.type.length === 0) {
+    // no type defined
+    // if also no contentRef, then it's an error (but we can't handle it here)
+    if (child.contentReference) {
+      // there's a content reference, so we can just assume the type is BackboneElement
+      child.type = [{ __kind: 'complex-type', code: 'BackboneElement' }];
+    }
+  }
 }
 
 /**
