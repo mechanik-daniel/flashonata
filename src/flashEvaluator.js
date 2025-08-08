@@ -11,6 +11,7 @@ import VirtualRuleEvaluator from './flashEvaluator/VirtualRuleEvaluator.js';
 import MetaProfileInjector from './flashEvaluator/MetaProfileInjector.js';
 import ResultProcessor from './flashEvaluator/ResultProcessor.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
+import { createFlashRuleResult, createFlashRuleResultArray } from './flashEvaluator/FlashRuleResult.js';
 
 // Import utility functions directly since they are simple utilities
 const { boolize } = fn;
@@ -178,12 +179,7 @@ function createFlashEvaluator(evaluate) {
     const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
 
     // create a container object for the evaluated flash rule
-    const result = {
-      '@@__flashRuleResult': true,
-      key: groupingKey,
-      value: undefined, // initiate with undefined value
-      kind
-    };
+    const result = createFlashRuleResult(groupingKey, kind);
 
     // if element has a fixed value, use it and return (short circuit)
     if (elementDefinition.__fixedValue) {
@@ -230,7 +226,7 @@ function createFlashEvaluator(evaluate) {
     // For arrays, we need to create multiple FlashRuleResults.
     if (Array.isArray(input)) {
       // Return an array where each object becomes a separate FlashRuleResult
-      return input.map(obj => ({...result, value: obj}));
+      return createFlashRuleResultArray(groupingKey, kind, input);
     } else {
       // Single object
       result.value = input;
@@ -294,11 +290,7 @@ function createFlashEvaluator(evaluate) {
           children,
           resourceType,
           profileUrl,
-          fixedValue: {
-            '@@__flashRuleResult': true,
-            key: def.__name[0],
-            value: fixed
-          }
+          fixedValue: createFlashRuleResult(def.__name[0], kind, fixed)
         };
       } else if (kind !== 'system') {
         children = getElementChildren(environment, expr);
@@ -312,11 +304,7 @@ function createFlashEvaluator(evaluate) {
             children,
             resourceType,
             profileUrl,
-            patternValue: {
-              '@@__flashRuleResult': true,
-              key: def.__name[0],
-              value: pattern
-            }
+            patternValue: createFlashRuleResult(def.__name[0], kind, pattern)
           };
         }
       }
