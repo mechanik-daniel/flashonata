@@ -72,7 +72,7 @@ function createFlashEvaluator(evaluate) {
     if (elementDefinition.__regexStr) {
       const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(processedInput))) {
-        throw FlashErrorGenerator.createError("F3001", expr, {
+        throw FlashErrorGenerator.createError("F5110", expr, {
           value: processedInput,
           regex: elementDefinition.__regexStr,
           fhirElement: elementFlashPath
@@ -100,7 +100,7 @@ function createFlashEvaluator(evaluate) {
     // Input must be an object
     if (!input || typeof input !== 'object') {
       const error = {
-        code: "F3010",
+        code: "F5102",
         stack: (new Error()).stack,
         position: expr.position,
         start: expr.start,
@@ -116,7 +116,7 @@ function createFlashEvaluator(evaluate) {
     // Object must have resourceType attribute
     if (!input.resourceType || typeof input.resourceType !== 'string' || input.resourceType.trim() === '') {
       const error = {
-        code: "F3011",
+        code: "F5103",
         stack: (new Error()).stack,
         position: expr.position,
         start: expr.start,
@@ -273,7 +273,7 @@ function createFlashEvaluator(evaluate) {
 
       if (def.max === '0') {
         // forbidden element
-        throw FlashErrorGenerator.createError("F3008", expr, {
+        throw FlashErrorGenerator.createError("F5131", expr, {
           value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
           fhirType: def.__fromDefinition
         });
@@ -423,8 +423,8 @@ function createFlashEvaluator(evaluate) {
 
           // if result is still missing the mandatory slice, throw an error
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
-            // throw F3012 with sliceName and fhir parent
-            throw FlashErrorGenerator.createFhirContextError("F3012", expr, {
+            // throw F5140 with sliceName and fhir parent
+            throw FlashErrorGenerator.createFhirContextError("F5140", expr, {
               fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
               fhirElement: parentKey,
               sliceName: sliceElement.sliceName
@@ -471,7 +471,7 @@ function createFlashEvaluator(evaluate) {
             continue; // skip this child, slices satisfy the requirement
           }
         }
-        throw FlashErrorGenerator.createFhirContextError("F3002", expr, {
+        throw FlashErrorGenerator.createFhirContextError("F5130", expr, {
           fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
           fhirElement: child.__flashPathRefKey.split('::')[1]
         });

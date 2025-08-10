@@ -2,6 +2,6 @@
   "description": "Invalid inline resource in Bundle.entry.resource - null resourceType",
   "data": null,
   "bindings": {},
-  "code": "F3011",
+  "code": "F5103",
   "expr-file": "inline-resources-error006.fume"
 }

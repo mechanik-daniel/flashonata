@@ -2,6 +2,6 @@
   "description": "Invalid inline resource array - one valid, one invalid resource",
   "data": null,
   "bindings": {},
-  "code": "F3011",
+  "code": "F5103",
   "expr-file": "inline-resources-error005.fume"
 }

@@ -3,6 +3,6 @@
   "description": "Instance of resource with valid id but required element missing (Basic.code)",
   "data": null,
   "bindings": {},
-  "code": "F3002",
+  "code": "F5130",
   "expr-file": "flash-eval-error002.fume"
 }

@@ -3,7 +3,7 @@
     "skip": false,
     "description": "Auto-generate code (should create MandatorySlice but FAIL on missing display)",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Should fail: MandatorySlice is required (min=1) and its display is mandatory (min=1)",
     "expr-file": "comprehensive-slice-validation.fume"
   },
@@ -11,14 +11,14 @@
     "skip": false,
     "description": "Auto-generate coding (should create MandatorySlice but FAIL on missing display)",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Should fail: Same as above - mandatory slice auto-created but display missing",
     "expr-file": "comprehensive-slice-validation-2.fume"
   },
   {
     "description": "Explicit mandatory slice without display - should FAIL",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Should fail: Explicitly targeting mandatory slice but display is missing",
     "expr-file": "comprehensive-slice-validation-3.fume"
   },
@@ -50,7 +50,7 @@
     "skip": false,
     "description": "Optional slice as empty rule with mandatory slice with missing display  -should FAIL",
     "data": null,
-    "code": "F3012",
+    "code": "F5140",
     "notes": "Should fail: Optional slice may be valid but the mandatory slice is missing its display (min=1)",
     "expr-file": "comprehensive-slice-validation-5.fume"
   },

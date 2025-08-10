@@ -65,7 +65,7 @@ class FlashErrorGenerator {
 
   /**
    * Create a FHIR context error with parent and element information
-   * @param {string} code - Error code (e.g., "F3002", "F3012")
+   * @param {string} code - Error code (e.g., "F5130", "F5140")
    * @param {Object} expr - Expression with position info for errors
    * @param {Object} context - Additional context fields
    * @returns {Object} Formatted FHIR context error

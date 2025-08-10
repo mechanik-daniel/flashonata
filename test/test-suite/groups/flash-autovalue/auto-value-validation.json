@@ -3,7 +3,7 @@
     "skip": false,
     "description": "Case 1: Auto-generate code without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "This should fail because SliceA is mandatory (min=1) and SliceA.display is mandatory (min=1)",
     "expr-file": "auto-value-validation.fume"
   },
@@ -11,14 +11,14 @@
     "skip": false,
     "description": "Case 2: Auto-generate coding without slice notation - should auto-create SliceA with fixed values but FAIL validation due to missing mandatory display",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Same as Case 1 - should fail because the mandatory slice is auto-created but display is missing",
     "expr-file": "auto-value-validation-2.fume"
   },
   {
     "description": "Case 3: Explicit slice notation without display - should FAIL validation due to missing mandatory display",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "This currently works correctly - fails validation as expected",
     "expr-file": "auto-value-validation-3.fume"
   },

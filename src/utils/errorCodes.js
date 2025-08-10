@@ -1,20 +1,68 @@
 /**
      * Error codes
      *
-     * Sxxxx    - Static errors (compile time)
-     * Txxxx    - Type errors
-     * Dxxxx    - Dynamic errors (evaluate time)
-     *  01xx    - tokenizer
-     *  02xx    - parser
-     *  03xx    - regex parser
-     *  04xx    - function signature parser/evaluator
-     *  10xx    - evaluator
-     *  20xx    - operators
-     *  3xxx    - functions (blocks of 10 for each function)
-     * F1xxx    - FLASH/FUME syntactic errors
-     * F2xxx    - FLASH semantic parsing errors
-     * F3xxx    - FLASH evaluation errors
+      * Always fatal (level 0):
+      * =======================
+      * Sxxxx    - Static errors (compile time)
+      * Txxxx    - Type errors
+      * Dxxxx    - Dynamic errors (evaluate time)
+      *  01xx    - tokenizer
+      *  02xx    - parser
+      *  03xx    - regex parser
+      *  04xx    - function signature parser/evaluator
+      *  10xx    - evaluator
+      *  20xx    - operators
+      *  3xxx    - functions (blocks of 10 for each function)
+      * F1xxx    - FLASH/FUME syntactic errors
+      * F2xxx    - FLASH semantic parsing errors
+      * F3xxx    - FLASH evaluation errors (unrecoverable)
+
+      * F5xxx    - FLASH evaluation errors (recoverable):
+      *   (level 1x) Treated as fatal by default:
+      *   ======================================
+      *   10x    - FHIR Type errors (not fixable)
+      *   11x    - FHIR RegEx errors (not fixable)
+      *   12x    - FHIR Required Binding violation errors
+      *   13x    - FHIR Element Cardinality errors
+      *   14x    - FHIR Slice Cardinality errors
+      *
+      *   (level 2x) Treated as errors by default:
+      *   ================================
+      *   20x    - FHIR Server general errors
+      *   21x    - FHIR Server resource resolution errors
+      *   22x    - HTTP errors
+      *
+      *   (level 3x) Treated as warnings by default:
+      *   ================================
+      *   30x    - Code translation errors
+      *   31x    - FHIR Required ValueSet expansion errors
+      *   32x    - User raised warnings
+      *   33x    - FHIR Extensible ValueSet expansion errors
+      *   34x    - FHIR Extensible binding violation warnings
+      *
+      *   Treated as notice/info/debug by default:
+      *   ============================================
+      *   40x    - Cardinality auto correction notices
+      *   41x    - Type auto correction notices
+      *   42x    - Auto-value override notices
+      *   50x    - User raised informational log messages
+      *   60x    - User trace/debug messages
      */
+
+/**
+  * Error severity levels - used to define thresholds for failing and validation skipping
+  * =====================================================================================
+  * {
+      fatal: 0,
+      invalid: 10,
+      error: 20,
+      warning: 30,
+      notice: 40,
+      info: 50,
+      debug: 60
+    }
+*/
+
 const errorCodes = {
   "S0101": "String literal must be terminated by a matching quote",
   "S0102": "Number out of range: {{token}}",
@@ -115,7 +163,6 @@ const errorCodes = {
   "D3141": "{{{message}}}",
   "F1000": "FLASH blocks are present in the expression, but no FHIR Structure Navigator was provided. Cannot process FHIR conformance.",
   "F1001": "Resource.id (expression after 'Instance:' decleration) must evaluate to a string. Got: {{value}}",
-  "F1002": "The symbol {{token}} cannot be used as a binary operator",
   "F1003": "Invalid FHIR type/profile identifier after `InstanceOf:`",
   "F1004": "Duplicate `Instance:` declaration",
   "F1005": "Duplicate `InstanceOf:` declaration",
@@ -162,18 +209,18 @@ const errorCodes = {
   "F2006": "Failed to fetch definition of children for {{fhirType}}.",
   "F2007": "Element definition for {{value}} in {{fhirType}} has no type defined.",
   "F2008": "Failed to fetch definition of children for mandatory element {{value}} in {{fhirType}}.",
-  "F3000": "This FLASH rule is not attached to an ElementDefinition. The compiled FUME expression may be corrupted and needs to be parsed again.",
-  "F3001": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must match the regular expression: {{{regex}}}",
-  "F3002": "The FHIR element {{fhirElement}} is required in {{fhirParent}}, but no value was provided.",
+  "F3000": "This FLASH rule is not attached to an ElementDefinition. This compiled FUME expression may be corrupted and needs to be parsed again.",
+  "F5110": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must match the regular expression: {{{regex}}}",
+  "F5130": "The FHIR element {{fhirElement}} is required in {{fhirParent}}, but no value was provided.",
   "F3003": "Could not find ElementDefinition for {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3004": "Failed to determine the structural kind of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3005": "Failed to determine the JSON element name of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
-  "F3006": "Value for {{fhirElement}} in {{instanceOf}} must be a primitive value, recieved type: {{valueType}}.",
+  "F5101": "Value for {{fhirElement}} in {{instanceOf}} must be a primitive value, recieved type: {{valueType}}.",
   "F3007": "Failed to determine the data type of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
-  "F3008": "Element {{value}} is forbidden according to definition: {{fhirType}}.",
-  "F3010": "Value for {{fhirElement}} in {{fhirParent}} must be a Resource object, received type: {{valueType}}.",
-  "F3011": "Element {{fhirElement}} in {{fhirParent}} must be a Resource, but no \"resourceType\" attribute was found in the assigned object.",
-  "F3012": "Missing required slice {{sliceName}} under {{fhirElement}} in {{fhirParent}}.",
+  "F5131": "Element {{value}} is forbidden according to definition: {{fhirType}}.",
+  "F5102": "Value for {{fhirElement}} in {{fhirParent}} must be a Resource object, received type: {{valueType}}.",
+  "F5103": "Element {{fhirElement}} in {{fhirParent}} must be a Resource, but no \"resourceType\" attribute was found in the assigned object.",
+  "F5140": "Missing required slice {{sliceName}} under {{fhirElement}} in {{fhirParent}}.",
   "F3013": "Failed to determine the children of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3014": "Error generating UUID: {{{errorMessage}}}",
   "F3015": "Internal UUID generation requires a seed value that is a FHIR resource object with a resourceType field"

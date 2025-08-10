@@ -2,6 +2,6 @@
   "description": "Invalid inline resource - empty resourceType attribute",
   "data": null,
   "bindings": {},
-  "code": "F3011",
+  "code": "F5103",
   "expr-file": "inline-resources-error002.fume"
 }

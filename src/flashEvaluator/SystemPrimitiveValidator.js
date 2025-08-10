@@ -36,7 +36,7 @@ class SystemPrimitiveValidator {
   static validateType(input, expr, elementFlashPath) {
     const valueType = fn.type(input);
     if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean') {
-      throw FlashErrorGenerator.createValidationError("F3006", expr, fn.string(input), {
+      throw FlashErrorGenerator.createValidationError("F5101", expr, fn.string(input), {
         valueType,
         fhirElement: elementFlashPath
       });
@@ -56,7 +56,7 @@ class SystemPrimitiveValidator {
     if (elementDefinition.__regexStr) {
       const regexTester = this.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(input))) {
-        throw FlashErrorGenerator.createError("F3001", expr, {
+        throw FlashErrorGenerator.createError("F5110", expr, {
           value: input,
           regex: elementDefinition.__regexStr,
           fhirElement: elementFlashPath

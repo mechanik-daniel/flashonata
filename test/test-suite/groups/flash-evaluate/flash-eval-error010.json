@@ -3,6 +3,6 @@
   "description": "Throws on forbidden element when assigning a sub-extension to ext-il-hmo",
   "data": null,
   "bindings": {},
-  "code": "F3008",
+  "code": "F5131",
   "expr-file": "flash-eval-error010.fume"
 }

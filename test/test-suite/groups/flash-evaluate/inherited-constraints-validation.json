@@ -3,7 +3,7 @@
     "skip": false,
     "description": "Auto-generate code with inherited constraint satisfied (should still FAIL on slice display)",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Should fail: code.text satisfied but MandatorySlice.display still missing",
     "expr-file": "inherited-constraints-validation.fume"
   },
@@ -11,7 +11,7 @@
     "skip": false,
     "description": "Blood pressure with incomplete SystolicBP slice - missing mandatory unit",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "notes": "Should fail: SystolicBP slice has value but missing mandatory unit element",
     "expr-file": "inherited-constraints-validation-bp.fume"
   },

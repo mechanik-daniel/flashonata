@@ -3,14 +3,14 @@
     "skip": false,
     "description": "ObsCodeOnly profile with incomplete code - should fail validation for missing mandatory display in slice",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "expr-file": "obs-code-only.fume"
   },
   {
     "skip": false,
     "description": "ObsCodeOnly profile without code - should fail validation for missing mandatory display element",
     "data": null,
-    "code": "F3002",
+    "code": "F5130",
     "expr-file": "obs-code-only-2.fume"
   },
   {

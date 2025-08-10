@@ -276,23 +276,20 @@ void async function () {
 //   * url = 'http://example.com/bundle-link'
 
 
-InstanceOf: Questionnaire
-* status = 'draft'
-* item
-  * linkId = 'q1'
-  * type = 'string'
-  * item
-    * linkId = 'q1.1'
-    * type = 'string'
-    * item
-      * linkId = 'q1.1.1'
-      * type = 'string'
-      * item
-        * linkId = 'q1.1.1.1'
-        * type = 'string'
-      * item
-        * linkId = 'q1.1.1.2'
-        * type = 'string'
+(
+  InstanceOf: Bundle
+  * entry
+    * resource = {
+        "resourceType": "Patient",
+        "gender": "male",
+        "id": "example-patient"
+      }
+    * link
+      * relation = 'self'
+      * url = 'http://example.com/123'
+  * type = 'transaction'
+    * id = 'bundle-type-id'
+) ~> $string()
 `;
 
   console.log('Starting debug script...');
