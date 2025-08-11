@@ -275,10 +275,9 @@ void async function () {
 //   * relation = 'self'
 //   * url = 'http://example.com/bundle-link'
 
-
 InstanceOf: TestSliceValidation
 * status = 'unknown'
-* code.coding
+* code.coding[OptionalSlice]
 `;
 
   console.log('Starting debug script...');
@@ -301,9 +300,9 @@ InstanceOf: TestSliceValidation
   var res;
 
   try {
-    res = await expr.evaluateVerbose({
+    res = await expr.evaluate({
       resourceType: "Patient"
-    }, { logLevel: 70});
+    }, { logLevel: 13, validationLevel: 14 });
     console.log('Expression evaluated successfully');
   } catch (e) {
     console.error('Error evaluating expression:', e);
