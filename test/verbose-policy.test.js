@@ -139,7 +139,7 @@ describe('Fumifier Verbose Policy Matrix (F5xxx)', () => {
             const res = await expr.evaluateVerbose(dataset, {
               throwLevel: sc.throwLevel,
               validationLevel: sc.throwLevel,
-              logLevel: 70,
+              logLevel: 0,
               collectLevel: 70
             });
 
