@@ -55,6 +55,7 @@ function createFlashEvaluator(evaluate) {
     const fhirTypeCode = elementDefinition.__fhirTypeCode;
 
     if (!fhirTypeCode) {
+      /* c8 ignore next 5 */
       throw FlashErrorGenerator.createError("F3007", expr, {
         instanceOf: rootFhirTypeId,
         fhirElement: elementFlashPath
@@ -171,12 +172,14 @@ function createFlashEvaluator(evaluate) {
     // Ensure the expression refers to a valid FHIR element
 
     if (!expr.flashPathRefKey) {
+      /* c8 ignore next 2 */
       throw FlashErrorGenerator.createSimpleError("F3000", expr);
     }
     // lookup the definition of the element
     const elementDefinition = getElementDefinition(environment, expr);
 
     if (!elementDefinition) {
+      /* c8 ignore next 2 */
       throw FlashErrorGenerator.createSimpleError("F3003", expr);
     }
 
@@ -185,11 +188,13 @@ function createFlashEvaluator(evaluate) {
       !Array.isArray(elementDefinition.__name) || // should be an array
       elementDefinition.__name.length > 1 // no more than one option
     ) {
+      /* c8 ignore next 2 */
       throw FlashErrorGenerator.createSimpleError("F3005", expr);
     }
 
     // get the kind of the element
     const kind = elementDefinition.__kind;
+    /* c8 ignore next 3 */
     if (!kind) {
       throw FlashErrorGenerator.createSimpleError("F3004", expr);
     }
@@ -210,6 +215,7 @@ function createFlashEvaluator(evaluate) {
     const result = createFlashRuleResult(groupingKey, kind);
 
     // if element has a fixed value, use it and return (short circuit)
+    // TODO: hypothesis: safe to delete. fixed values are short circuiting earlier in the eval chain
     if (elementDefinition.__fixedValue) {
       result.value = elementDefinition.__fixedValue;
       return result;
@@ -223,6 +229,7 @@ function createFlashEvaluator(evaluate) {
       // (system primitives are assumed to never be arrays in the definition)
       // TODO: confirm this hypothesis
       if (Array.isArray(resultValue)) {
+        /* c8 ignore next */
         result.value = resultValue[resultValue.length - 1];
       } else {
         result.value = resultValue;
@@ -509,6 +516,8 @@ function createFlashEvaluator(evaluate) {
         )
       );
 
+      // TODO: this next part is shown to not be coverred by tests,
+      // but we do test slices comprehensively... make sure we are not missing something here...
       if (!satisfied) {
         // if this is an array element and has a single possible name, it may have slices that satisfy the requirement.
         // so before we throw on missing mandatory child, we will check if any of the keys in the result start with name[0]:
@@ -683,6 +692,7 @@ function createFlashEvaluator(evaluate) {
     if (definitions && definitions.elementDefinitions && expr && expr.flashPathRefKey) {
       return definitions.elementDefinitions[expr.flashPathRefKey];
     }
+    /* c8 ignore next */
     return undefined;
   }
 
@@ -697,6 +707,7 @@ function createFlashEvaluator(evaluate) {
     if (definitions && definitions.typeMeta && expr && expr.instanceof) {
       return definitions.typeMeta[expr.instanceof];
     }
+    /* c8 ignore next */
     return undefined;
   }
 
@@ -711,6 +722,7 @@ function createFlashEvaluator(evaluate) {
     if (definitions && definitions.typeChildren && expr && expr.instanceof) {
       return definitions.typeChildren[expr.instanceof];
     }
+    /* c8 ignore next */
     return undefined;
   }
 
@@ -728,7 +740,7 @@ function createFlashEvaluator(evaluate) {
       children = definitions.elementChildren[flashPathRefKey];
       return children;
     }
-    /* c8 ignore next 3 */
+    /* c8 ignore next 4 */
     throw FlashErrorGenerator.createError("F3013", expr, {
       instanceOf: expr.instanceof,
       fhirElement: flashPathRefKey

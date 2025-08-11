@@ -1,0 +1,11 @@
+{
+  "skip": false,
+  "description": "Assignment of array into system primitive - should take last value",
+  "data": {},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "456"
+  },
+  "expr-file": "flash-eval012.fume"
+}
