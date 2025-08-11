@@ -95,7 +95,13 @@ class SystemPrimitiveValidator {
 
     // Handle numeric types
     if (['decimal', 'integer', 'positiveInt', 'integer64', 'unsignedInt'].includes(fhirTypeCode)) {
-      return this.convertToNumber(input, valueType);
+      // since policy may have caused regex validation inhibition, the conversion to a number may fail.
+      // if it does, we return the invalid input as is
+      try {
+        return this.convertToNumber(input, valueType);
+      } catch {
+        return input;
+      }
     }
 
     // All other types as strings
