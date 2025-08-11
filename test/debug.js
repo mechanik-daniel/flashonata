@@ -276,20 +276,9 @@ void async function () {
 //   * url = 'http://example.com/bundle-link'
 
 
-(
-  InstanceOf: Bundle
-  * entry
-    * resource = {
-        "resourceType": "Patient",
-        "gender": "male",
-        "id": "example-patient"
-      }
-    * link
-      * relation = 'self'
-      * url = 'http://example.com/123'
-  * type = 'transaction'
-    * id = 'bundle-type-id'
-) ~> $string()
+InstanceOf: TestSliceValidation
+* status = 'unknown'
+* code.coding
 `;
 
   console.log('Starting debug script...');
@@ -299,6 +288,8 @@ void async function () {
     console.log('Compiling expression...');
     expr = await fumifier(expression, {
       navigator
+    }, {
+      logLevel: 70
     });
     console.log('Expression compiled successfully');
   } catch (e) {
@@ -310,9 +301,9 @@ void async function () {
   var res;
 
   try {
-    res = await expr.evaluate({
+    res = await expr.evaluateVerbose({
       resourceType: "Patient"
-    });
+    }, { logLevel: 70});
     console.log('Expression evaluated successfully');
   } catch (e) {
     console.error('Error evaluating expression:', e);

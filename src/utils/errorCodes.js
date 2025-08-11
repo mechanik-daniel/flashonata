@@ -223,7 +223,10 @@ const errorCodes = {
   "F5140": "Missing required slice {{sliceName}} under {{fhirElement}} in {{fhirParent}}.",
   "F3013": "Failed to determine the children of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3014": "Error generating UUID: {{{errorMessage}}}",
-  "F3015": "Internal UUID generation requires a seed value that is a FHIR resource object with a resourceType field"
+  "F3015": "Internal UUID generation requires a seed value that is a FHIR resource object with a resourceType field",
+  "F5320": "{{{message}}}",
+  "F5500": "{{{message}}}",
+  "F5600": "{{{message}}}"
 };
 
 /**

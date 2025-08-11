@@ -25,6 +25,7 @@ import { populateMessage } from './utils/errorCodes.js';
 import defineFunction from './utils/defineFunction.js';
 import registerNativeFn from './utils/registerNativeFn.js';
 import createFlashEvaluator from './flashEvaluator.js';
+import { createDefaultLogger, SYM, decide, push, thresholds, severityFromCode, LEVELS } from './utils/diagnostics.js';
 
 var fumifier = (function() {
 
@@ -1920,6 +1921,54 @@ var fumifier = (function() {
   // Function registration
   registerNativeFn(staticFrame, functionEval);
 
+  // Register user-facing logging functions
+  (function registerLoggingFunctions(frame) {
+    // $warn(message) -> F5320
+    frame.bind('warn', defineFunction(function(message) {
+      const msg = fn.string(message);
+      const env = this.environment;
+      const entry = { code: 'F5320', message: msg };
+      const act = decide(entry.code, env);
+      if (act.shouldLog) {
+        const logger = env.lookup(SYM.logger) || createDefaultLogger();
+        logger.warn(msg);
+      }
+      push(env, entry);
+      return undefined;
+    }, '<s?:u>'));
+
+    // $info(message) -> F5500
+    frame.bind('info', defineFunction(function(message) {
+      const msg = fn.string(message);
+      const env = this.environment;
+      const entry = { code: 'F5500', message: msg };
+      const act = decide(entry.code, env);
+      if (act.shouldLog) {
+        const logger = env.lookup(SYM.logger) || createDefaultLogger();
+        logger.info(msg);
+      }
+      push(env, entry);
+      return undefined;
+    }, '<s?:u>'));
+
+    // $trace(value?, label, projection?) -> F5600, returns value
+    frame.bind('trace', defineFunction(function(value, label, projection) {
+      const env = this.environment;
+      const val = value;
+      const lbl = fn.string(label);
+      const proj = (typeof projection === 'undefined') ? val : projection;
+      const msg = `${lbl}: ${fn.string(proj)}`;
+      const entry = { code: 'F5600', message: msg, label: lbl, value: val };
+      const act = decide(entry.code, env);
+      if (act.shouldLog) {
+        const logger = env.lookup(SYM.logger) || createDefaultLogger();
+        logger.debug(msg);
+      }
+      push(env, entry);
+      return val;
+    }, '<x-sx?:x>'));
+  })(staticFrame);
+
   /**
      * Fumifier
      * @param {string} expr - FUME mapping expression as text
@@ -1972,6 +2021,15 @@ var fumifier = (function() {
     }
 
     var environment = createFrame(staticFrame);
+
+    // Threshold defaults (scoped variables)
+    environment.bind('throwLevel', 30);
+    environment.bind('logLevel', 40);
+    environment.bind('collectLevel', 70);
+    environment.bind('validationLevel', 30);
+
+    // Global logger for this compiled expression (not exposed to expressions)
+    environment.bind(SYM.logger, createDefaultLogger());
 
     var timestamp = new Date(); // will be overridden on each call to evalute()
     environment.bind('now', defineFunction(function(picture, timezone) {
@@ -2027,6 +2085,8 @@ var fumifier = (function() {
         } else {
           exec_env = environment;
         }
+        // fresh diagnostics bag per call
+        exec_env.bind(SYM.diagnostics, { error: [], warning: [], debug: [] });
         // put the input document into the environment as the root object
         exec_env.bind('$', input);
 
@@ -2047,12 +2107,74 @@ var fumifier = (function() {
           if (typeof callback === "function") {
             callback(null, it);
           }
+          // success -> discard diagnostics
           return it;
         } catch (err) {
           // insert error message into structure
           populateMessage(err); // possible side-effects on `err`
+          try {
+            const bag = exec_env.lookup(SYM.diagnostics);
+            if (bag) err.flashDiagnostics = bag;
+          } catch(ex) { /* ignore diagnostics attachment issues */ }
           throw err;
         }
+      },
+      evaluateVerbose: async function(input, bindings) {
+        // Like evaluate(), but never throws for handled errors; returns a report
+        var exec_env = typeof bindings !== 'undefined' ? createFrame(environment) : environment;
+        if (typeof bindings !== 'undefined') {
+          for (var v in bindings) exec_env.bind(v, bindings[v]);
+        }
+        // TODO: Expose a validation inhibitor hook (Symbol) on the environment so callers
+        // can provide custom suppression logic for certain validations. See enforcePolicy().
+        // Example:
+        //   exec_env.bind(Symbol.for('fumifier.__validationInhibitor'), fn);
+        // Ensure downstream policy checks honor it.
+        const bag = { error: [], warning: [], debug: [] };
+        exec_env.bind(SYM.diagnostics, bag);
+        exec_env.bind('$', input);
+
+        timestamp = new Date();
+        exec_env.timestamp = timestamp;
+        if(Array.isArray(input) && !isSequence(input)) {
+          input = createSequence(input);
+          input.outerWrapper = true;
+        }
+
+        let result;
+        try {
+          result = await evaluate(ast, input, exec_env);
+        } catch (err) {
+          // In verbose mode: never throw for any defined error (F/S/T/D). Only throw if completely unrecognized shape.
+          populateMessage(err);
+          // Use diagnostics push() with the original error (message populated); push() will sanitize
+          push(exec_env, err);
+          // TODO: Optional post-pass logging: if any collected diagnostic wasn't logged
+          // (e.g., produced outside enforcePolicy), log it here in verbose mode.
+          // This would ensure console reflects the diagnostics bag. Keep off by default.
+          // Example: iterate ['error','warning','debug'] and log unseen entries.
+          // Guard with a bindings flag like verboseLogAllCollected=true.
+          // result remains undefined
+        }
+
+        const status = (function computeStatus() {
+          const { throwLevel } = thresholds(exec_env);
+          const numSev = (e) => (typeof e.severity === 'number' ? e.severity : severityFromCode(e.code));
+          const hasFatal = (bag.error || []).some(e => numSev(e) === LEVELS.fatal);
+          const hasInvalid = (bag.error || []).some(e => {
+            const s = numSev(e);
+            return s >= LEVELS.invalid && s < LEVELS.error;
+          });
+          const hasThrowables = ['error','warning','debug'].some(bn =>
+            (bag[bn] || []).some(e => numSev(e) < throwLevel)
+          );
+          if (hasFatal) return 422;
+          if (!hasThrowables && !hasInvalid) return 200;
+          if (!hasThrowables && hasInvalid) return 206;
+          return 206;
+        })();
+
+        return { ok: status === 200, status, result, diagnostics: bag };
       },
       assign: function (name, value) {
         environment.bind(name, value);
@@ -2060,6 +2182,15 @@ var fumifier = (function() {
       registerFunction: function(name, implementation, signature) {
         var func = defineFunction(implementation, signature);
         environment.bind(name, func);
+      },
+      setLogger: function(newLogger) {
+        let lg;
+        if (newLogger && typeof newLogger.debug === 'function' && typeof newLogger.info === 'function' && typeof newLogger.warn === 'function' && typeof newLogger.error === 'function') {
+          lg = newLogger;
+        } else {
+          lg = createDefaultLogger();
+        }
+        environment.bind(SYM.logger, lg);
       },
       ast: function() {
         return ast;

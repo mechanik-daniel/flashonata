@@ -12,6 +12,46 @@ import MetaProfileInjector from './flashEvaluator/MetaProfileInjector.js';
 import ResultProcessor from './flashEvaluator/ResultProcessor.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
 import { createFlashRuleResult, createFlashRuleResultArray } from './flashEvaluator/FlashRuleResult.js';
+import { decide as decidePolicy, getLogger, push as pushDiag, LEVELS, severityFromCode, thresholds } from './utils/diagnostics.js';
+import { populateMessage } from './utils/errorCodes.js';
+
+// Centralized FLASH policy application: logs by severity, collects diagnostics, returns whether to throw
+/**
+ * Apply policy-driven behavior for a FLASH error: log, collect, and decide throw.
+ * @param {Object} err - Error object with a code and optional message
+ * @param {Object} environment - Environment with thresholds/logger
+ * @returns {boolean} true if the caller should throw the error, false to downgrade/continue
+ */
+function enforcePolicy(err, environment) {
+  const sev = severityFromCode(err.code);
+  const { validationLevel } = thresholds(environment);
+  // Validation inhibition: outside the validation band -> do not throw or log, but still collect for reporting
+  if (!(sev < validationLevel)) {
+    try { populateMessage(err); } catch (_) { /* no-op */ }
+    try { Object.defineProperty(err, '__inhibited', { value: true, enumerable: false }); } catch (_) { /* ignore */ }
+    pushDiag(environment, err);
+    return false;
+  }
+  const { shouldThrow, shouldLog } = decidePolicy(err.code, environment);
+  // Ensure message is populated before any side effects
+  try { populateMessage(err); } catch (_) { /* no-op */ }
+
+  if (shouldLog) {
+    const logger = getLogger(environment);
+    const ctx = err.fhirParent || err.fhirElement ? ` [${err.fhirParent || ''}${err.fhirParent && err.fhirElement ? ' -> ' : ''}${err.fhirElement || ''}]` : '';
+    const msg = `${err.code}: ${err.message || 'FLASH issue'}${ctx}`;
+    if (sev < LEVELS.invalid) logger.error(msg);
+    else if (sev < LEVELS.error) logger.error(msg);
+    else if (sev < LEVELS.warning) logger.error(msg);
+    else if (sev < LEVELS.notice) logger.warn(msg);
+    else if (sev < LEVELS.info) logger.info(msg);
+    else logger.debug(msg);
+    try { Object.defineProperty(err, '__logged', { value: true, enumerable: false }); } catch (_) { /* ignore */ }
+  }
+  // Collect sanitized diagnostic (no stack) with level name
+  pushDiag(environment, err);
+  return shouldThrow;
+}
 
 // Import utility functions directly since they are simple utilities
 const { boolize } = fn;
@@ -72,11 +112,15 @@ function createFlashEvaluator(evaluate) {
     if (elementDefinition.__regexStr) {
       const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(processedInput))) {
-        throw FlashErrorGenerator.createError("F5110", expr, {
+        const err = FlashErrorGenerator.createError("F5110", expr, {
           value: processedInput,
           regex: elementDefinition.__regexStr,
           fhirElement: elementFlashPath
         });
+        if (enforcePolicy(err, environment)) {
+          throw err;
+        }
+        // Downgraded: continue with processedInput so the invalid value remains visible
       }
     }
 
@@ -88,18 +132,19 @@ function createFlashEvaluator(evaluate) {
    * Ensure a Resource input is an object with a valid resourceType
    * @param {*} input - Input value to validate
    * @param {Object} expr - Expression with position info for errors
+   * @param {Object} environment - Environment with policy/diagnostics
    * @returns {*} Validated resource input
    */
-  function assertResourceInput(input, expr) {
+  function assertResourceInput(input, expr, environment) {
 
     // Handle arrays of resources
     if (Array.isArray(input)) {
-      return input.map(item => assertResourceInput(item, expr));
+      return input.map(item => assertResourceInput(item, expr, environment));
     }
 
     // Input must be an object
     if (!input || typeof input !== 'object') {
-      const error = {
+      const err = {
         code: "F5102",
         stack: (new Error()).stack,
         position: expr.position,
@@ -109,13 +154,13 @@ function createFlashEvaluator(evaluate) {
         fhirElement: expr.flashPathRefKey.split('::')[1],
         valueType: typeof input
       };
-
-      throw error;
+      if (enforcePolicy(err, environment)) throw err;
+      return input; // downgraded: keep invalid value visible
     }
 
     // Object must have resourceType attribute
     if (!input.resourceType || typeof input.resourceType !== 'string' || input.resourceType.trim() === '') {
-      const error = {
+      const err = {
         code: "F5103",
         stack: (new Error()).stack,
         position: expr.position,
@@ -124,8 +169,8 @@ function createFlashEvaluator(evaluate) {
         fhirParent: expr.instanceof,
         fhirElement: expr.flashPathRefKey.split('::')[1]
       };
-
-      throw error;
+      if (enforcePolicy(err, environment)) throw err;
+      return input; // downgraded: keep invalid value visible
     }
 
     return input;
@@ -273,11 +318,17 @@ function createFlashEvaluator(evaluate) {
 
       if (def.max === '0') {
         // forbidden element
-        throw FlashErrorGenerator.createError("F5131", expr, {
+        const err = FlashErrorGenerator.createError("F5131", expr, {
           value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
           fhirType: def.__fromDefinition
         });
-      } else if (def.__fixedValue) {
+        if (enforcePolicy(err, environment)) {
+          throw err;
+        }
+        // downgraded: allow processing to continue; do not suppress the element
+      }
+
+      if (def.__fixedValue) {
         // short circuit if the element has a fixed value
         let fixed = def.__fixedValue;
         if (kind === 'primitive-type') {
@@ -423,12 +474,17 @@ function createFlashEvaluator(evaluate) {
 
           // if result is still missing the mandatory slice, throw an error
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
+            // TODO(policy): when downgraded, record F5140 and continue without auto-creating slice
             // throw F5140 with sliceName and fhir parent
-            throw FlashErrorGenerator.createFhirContextError("F5140", expr, {
+            const err = FlashErrorGenerator.createFhirContextError("F5140", expr, {
               fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
               fhirElement: parentKey,
               sliceName: sliceElement.sliceName
             });
+            if (enforcePolicy(err, environment)) {
+              throw err;
+            }
+            // downgraded: do not throw; continue without auto-creating slice
           }
         }
       }
@@ -440,8 +496,13 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} result - Result object
    * @param {Array} children - Children definitions
    * @param {Object} expr - Original expression
+   * @param {Object} environment - Environment with policy/diagnostics
    */
-  function validateMandatoryChildren(result, children, expr) {
+  function validateMandatoryChildren(result, children, expr, environment) {
+    // TODO: Consider validation inhibition here as well for specific child paths
+    // If an inhibitor hook exists, allow it to suppress F5130 for known exceptions,
+    // e.g., derived-from profile leniencies or runtime flags.
+    // See enforcePolicy() for the suggested environment hook.
     // Ensure mandatory children exist
     for (const child of children) {
       // skip non-mandatory children
@@ -461,6 +522,7 @@ function createFlashEvaluator(evaluate) {
       );
 
       if (!satisfied) {
+        // TODO(policy): when downgraded, record F5130 and continue without throwing
         // if this is an array element and has a single possible name, it may have slices that satisfy the requirement.
         // so before we throw on missing mandatory child, we will check if any of the keys in the result start with name[0]:
         const isArrayElement = child.__isArray && child.__name.length === 1;
@@ -471,10 +533,14 @@ function createFlashEvaluator(evaluate) {
             continue; // skip this child, slices satisfy the requirement
           }
         }
-        throw FlashErrorGenerator.createFhirContextError("F5130", expr, {
+        const err = FlashErrorGenerator.createFhirContextError("F5130", expr, {
           fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
           fhirElement: child.__flashPathRefKey.split('::')[1]
         });
+        if (enforcePolicy(err, environment)) {
+          throw err;
+        }
+        // downgraded: continue without throwing
       }
     }
   }
@@ -584,7 +650,7 @@ function createFlashEvaluator(evaluate) {
       }
     }
 
-    validateMandatoryChildren(result, children, expr);
+    validateMandatoryChildren(result, children, expr, environment);
 
     // Flatten FHIR primitive values in the final result JUST BEFORE returning
     if (result && typeof result === 'object' && !Array.isArray(result)) {
