@@ -204,7 +204,7 @@ class ResultProcessor {
     }
 
     // if the element has max 1, take last value only
-    if (child.max === '1' && !child.__isArray) {
+    if (!child.__isArray) {
       primitiveValues = primitiveValues[primitiveValues.length - 1];
       properties = properties[properties.length - 1];
     } else if (child.max === '1' && child.__isArray) {
@@ -287,8 +287,8 @@ class ResultProcessor {
 
     // Then, add keys in the order defined by FHIR children definitions
     for (const child of children) {
-      if (!child.__name || child.max === '0' || child.sliceName) {
-        // Skip elements with no name, max = 0, or slices (slices are gone by now - appended into their base array)
+      if (!child.__name || child.sliceName) {
+        // Skip elements with no name or slices (slices are gone by now - appended into their base array)
         continue;
       }
 

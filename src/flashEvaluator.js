@@ -644,7 +644,7 @@ function createFlashEvaluator(evaluate) {
       // OPTIMIZATION: Process all children in parallel since they are independent
       // Each child processes its own values without dependencies on other children
       const childProcessor = new ChildValueProcessor(environment, evaluate);
-      const validChildren = children.filter(child => child.max !== '0' && child.__name);
+      const validChildren = children.filter(child => child.__name);
 
       const childProcessingPromises = validChildren.map(child =>
         childProcessor.processChild(child, inlineResult, subExpressionResults, expr, patternValue)
