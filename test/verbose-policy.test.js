@@ -136,9 +136,13 @@ describe('Fumifier Verbose Policy Matrix (F5xxx)', () => {
           ];
 
           for (const sc of scenarios) {
+            // Ensure validations are not inhibited for the code under test:
+            // override any conflicting validationLevel by setting it above the code severity
+            const validationLevel = Math.min(sev + 1, 70);
+
             const res = await expr.evaluateVerbose(dataset, {
               throwLevel: sc.throwLevel,
-              validationLevel: sc.throwLevel,
+              validationLevel,
               logLevel: 0,
               collectLevel: 70
             });
