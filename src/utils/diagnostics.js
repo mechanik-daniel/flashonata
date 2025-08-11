@@ -140,11 +140,15 @@ export function push(env, entry) {
   const { collectLevel } = thresholds(env);
   if (sev >= collectLevel) return;
 
+  // Bucket assignment: group related severities for user consumption
   let bucket;
-  if (sev < LEVELS.error) bucket = 'error'; // fatal+invalid
-  else if (sev < LEVELS.warning) bucket = 'error'; // error band
-  else if (sev < LEVELS.notice) bucket = 'warning';
-  else bucket = 'debug';
+  if (sev < LEVELS.warning) {
+    bucket = 'error'; // fatal, invalid, error → all critical issues
+  } else if (sev < LEVELS.notice) {
+    bucket = 'warning'; // warning → actionable but not critical
+  } else {
+    bucket = 'debug'; // notice, info, debug → informational
+  }
 
   // sanitize entry: remove stack from collected diagnostics
   const rest = { ...(entry || {}) };

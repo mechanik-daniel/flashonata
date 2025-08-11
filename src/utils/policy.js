@@ -15,12 +15,15 @@ function logBySeverity(env, err) {
   const logger = getLogger(env);
   const ctx = err.fhirParent || err.fhirElement ? ` [${err.fhirParent || ''}${err.fhirParent && err.fhirElement ? ' -> ' : ''}${err.fhirElement || ''}]` : '';
   const msg = `${err.code}: ${err.message || 'FLASH issue'}${ctx}`;
-  if (sev < LEVELS.invalid) logger.error(msg);
-  else if (sev < LEVELS.error) logger.error(msg);
-  else if (sev < LEVELS.warning) logger.error(msg);
-  else if (sev < LEVELS.notice) logger.warn(msg);
-  else if (sev < LEVELS.info) logger.info(msg);
-  else logger.debug(msg);
+
+  // Map severity ranges to logger methods
+  if (sev < LEVELS.invalid) logger.error(msg);      // fatal
+  else if (sev < LEVELS.error) logger.error(msg);   // invalid
+  else if (sev < LEVELS.warning) logger.error(msg); // error
+  else if (sev < LEVELS.notice) logger.warn(msg);   // warning
+  else if (sev < LEVELS.info) logger.info(msg);     // notice
+  else if (sev < LEVELS.debug) logger.info(msg);    // info
+  else logger.debug(msg);                           // debug
 }
 
 /**
