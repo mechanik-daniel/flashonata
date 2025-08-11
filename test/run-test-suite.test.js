@@ -159,7 +159,8 @@ describe("Fumifier Test Suite", () => {
             // ✅ Proceed to evaluation phase only if parsing succeeded
             if (expr) {
               const dataset = resolveDataset(datasets, testcase);
-
+              expr.assign('logLevel', 0);
+              expr.assign('collectLevel', 0);
               if ("undefinedResult" in testcase) {
                 const result = expr.evaluate(dataset, testcase.bindings);
                 return expect(result).to.eventually.deep.equal(undefined);
