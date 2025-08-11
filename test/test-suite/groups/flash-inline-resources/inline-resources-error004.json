@@ -1,7 +1,25 @@
-{
-  "description": "Invalid inline resource - string instead of object",
-  "data": null,
-  "bindings": {},
-  "code": "F5102",
-  "expr-file": "inline-resources-error004.fume"
-}
+[
+  {
+    "description": "Invalid inline resource - string instead of object",
+    "data": null,
+    "bindings": {
+      "validationLevel": 11
+    },
+    "code": "F5102",
+    "expr-file": "inline-resources-error004.fume"
+  },
+  {
+    "description": "Invalid inline resource - string instead of object - inhibited",
+    "data": null,
+    "bindings": {
+      "validationLevel": 10
+    },
+    "result": {
+      "resourceType": "Patient",
+      "contained": [
+        "not an object"
+      ]
+    },
+    "expr-file": "inline-resources-error004.fume"
+  }
+]

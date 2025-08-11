@@ -1,7 +1,30 @@
-{
-  "description": "Invalid inline resource array - one valid, one invalid resource",
-  "data": null,
-  "bindings": {},
-  "code": "F5103",
-  "expr-file": "inline-resources-error005.fume"
-}
+[
+  {
+    "description": "Invalid inline resource array - one valid, one invalid resource",
+    "data": null,
+    "bindings": {
+      "validationLevel": 11
+    },
+    "code": "F5103",
+    "expr-file": "inline-resources-error005.fume"
+  },
+  {
+    "description": "Invalid inline resource array - one valid, one invalid resource - inhibited",
+    "data": null,
+    "bindings": {
+      "validationLevel": 10
+    },
+    "result": {
+      "resourceType": "Patient",
+      "contained": [
+        {
+          "resourceType": "Patient"
+        },
+        {
+          "invalid": "resource"
+        }
+      ]
+    },
+    "expr-file": "inline-resources-error005.fume"
+  }
+]

@@ -164,6 +164,14 @@ function createFlashEvaluator(evaluate) {
 
     // Input must be an object
     if (!input || typeof input !== 'object') {
+      // Inhibition: skip this validation entirely when F5102 (sev=10) is outside validation band
+      {
+        const sevF5102 = severityFromCode('F5102');
+        const { validationLevel } = thresholds(environment);
+        if (!(sevF5102 < validationLevel)) {
+          return input; // inhibited: do not enforce object requirement
+        }
+      }
       const err = {
         code: "F5102",
         stack: (new Error()).stack,
@@ -180,6 +188,14 @@ function createFlashEvaluator(evaluate) {
 
     // Object must have resourceType attribute
     if (!input.resourceType || typeof input.resourceType !== 'string' || input.resourceType.trim() === '') {
+      // Inhibition: skip this validation entirely when F5103 is outside validation band
+      {
+        const sevF5103 = severityFromCode('F5103');
+        const { validationLevel } = thresholds(environment);
+        if (!(sevF5103 < validationLevel)) {
+          return input; // inhibited: do not enforce resourceType requirement
+        }
+      }
       const err = {
         code: "F5103",
         stack: (new Error()).stack,
@@ -484,23 +500,28 @@ function createFlashEvaluator(evaluate) {
       for (const sliceElement of allSliceElements) {
         if (sliceElement.min > 0 && !presentSlices.has(sliceElement.sliceName)) {
 
-          // Try to auto-generate the missing mandatory slice using virtual rule
-          const autoValue = await VirtualRuleEvaluator.evaluateVirtualRule(
-            evaluate,
-            expr,
-            sliceElement.__flashPathRefKey,
-            environment
-          );
+          // Try to auto-generate the missing mandatory slice using virtual rule, unless inhibited
+          let autoValue;
+          {
+            const sevF5140 = severityFromCode('F5140');
+            const { validationLevel } = thresholds(environment);
+            if (sevF5140 < validationLevel) {
+              autoValue = await VirtualRuleEvaluator.evaluateVirtualRule(
+                evaluate,
+                expr,
+                sliceElement.__flashPathRefKey,
+                environment
+              );
+            }
+          }
 
           if (typeof autoValue !== 'undefined') {
             // Add the auto-generated slice to the result
             result[autoValue.key] = autoValue.value;
           }
 
-          // if result is still missing the mandatory slice, throw an error
+          // If result is still missing the mandatory slice, emit F5140 (policy will handle downgrade/inhibition)
           if (!result[`${parentKey}:${sliceElement.sliceName}`]) {
-            // TODO(policy): when downgraded, record F5140 and continue without auto-creating slice
-            // throw F5140 with sliceName and fhir parent
             const err = FlashErrorGenerator.createFhirContextError("F5140", expr, {
               fhirParent: (expr.flashPathRefKey || expr.instanceof).replace('::', '/'),
               fhirElement: parentKey,
@@ -509,7 +530,7 @@ function createFlashEvaluator(evaluate) {
             if (enforcePolicy(err, environment)) {
               throw err;
             }
-            // downgraded: do not throw; continue without auto-creating slice
+            // downgraded/inhibited: continue without auto-creating slice
           }
         }
       }
@@ -625,11 +646,7 @@ function createFlashEvaluator(evaluate) {
       // we expect the user to assing the primitive value itself in an inline expression,
       // not the intermediate object representation of a primitive (with the `value` as property).
       if (kind === 'primitive-type' && inlineResult !== undefined) {
-        // eslint-disable-next-line no-console
-        console.debug(`BEFORE inlineResult:`, inlineResult);
         inlineResult = createFhirPrimitive({value: inlineResult});
-        // eslint-disable-next-line no-console
-        console.debug(`AFTER inlineResult:`, inlineResult);
       }
 
       // Handle resourceType attribute for flash rules and blocks
