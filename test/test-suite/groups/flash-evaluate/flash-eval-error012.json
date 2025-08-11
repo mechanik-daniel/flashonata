@@ -1,0 +1,33 @@
+[
+  {
+    "skip": false,
+    "description": "Throws on non-primitive value in fhir primitive field",
+    "data": null,
+    "bindings": {
+      "validationLevel": 11
+    },
+    "code": "F5101",
+    "expr-file": "flash-eval-error012.fume",
+    "comment": "Validation level 11: so this test (level 10) should be performed and throw an error"
+  },
+  {
+    "expr-file": "flash-eval-error012.fume",
+    "description": "Skipped validation for non-primitive value in fhir primitive field",
+    "bindings": {
+      "validationLevel": 10
+    },
+    "result": {
+      "resourceType": "Patient",
+      "name": [
+        {
+          "given": [
+            {
+              "resourceType": "Patient"
+            }
+          ]
+        }
+      ]
+    },
+    "comment": "Validation level 10: so this test should be skipped and return the invalid value"
+  }
+]

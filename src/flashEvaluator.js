@@ -100,12 +100,32 @@ function createFlashEvaluator(evaluate) {
     }
 
     // Validate that input is a primitive type
-    const valueType = SystemPrimitiveValidator.validateType(input, expr, elementFlashPath);
+    let valueType;
+    {
+      const sevF5101 = severityFromCode('F5101');
+      const { validationLevel } = thresholds(environment);
+      if (!(sevF5101 < validationLevel)) {
+        // Policy says: skip F5101 checks; infer type without throwing
+        valueType = fn.type(input);
+      } else {
+        valueType = SystemPrimitiveValidator.validateType(input, expr, elementFlashPath);
+      }
+    }
 
     // Handle date truncation BEFORE regex validation to ensure we validate the correct format
     let processedInput = input;
     if (fhirTypeCode === 'date' && valueType === 'string' && input.length > 10) {
       processedInput = input.slice(0, 10);
+    }
+
+    // Validation inhibition for F5110 level (11): when inhibited, skip regex test and conversion
+    {
+      const sevF5110 = severityFromCode('F5110');
+      const { validationLevel } = thresholds(environment);
+      if (!(sevF5110 < validationLevel)) {
+        // Policy says: do not perform this level of tests -> return raw processed input
+        return processedInput;
+      }
     }
 
     // Validate against regex constraints if present (using the processed input)
@@ -316,16 +336,21 @@ function createFlashEvaluator(evaluate) {
       // TODO: handle inline resources (will probably not have an element definition but a structure definition)
       kind = def.__kind;
 
-      if (def.max === '0') {
-        // forbidden element
-        const err = FlashErrorGenerator.createError("F5131", expr, {
-          value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
-          fhirType: def.__fromDefinition
-        });
-        if (enforcePolicy(err, environment)) {
-          throw err;
+      // Forbidden element check (F5131) – apply only if not inhibited by validationLevel
+      {
+        const sevF5131 = severityFromCode('F5131');
+        const { validationLevel } = thresholds(environment);
+        if (sevF5131 < validationLevel && def.max === '0') {
+          // forbidden element
+          const err = FlashErrorGenerator.createError("F5131", expr, {
+            value: expr.flashPathRefKey?.slice(expr.instanceof.length + 2),
+            fhirType: def.__fromDefinition
+          });
+          if (enforcePolicy(err, environment)) {
+            throw err;
+          }
+          // downgraded: allow processing to continue; do not suppress the element
         }
-        // downgraded: allow processing to continue; do not suppress the element
       }
 
       if (def.__fixedValue) {
@@ -499,10 +524,14 @@ function createFlashEvaluator(evaluate) {
    * @param {Object} environment - Environment with policy/diagnostics
    */
   function validateMandatoryChildren(result, children, expr, environment) {
-    // TODO: Consider validation inhibition here as well for specific child paths
-    // If an inhibitor hook exists, allow it to suppress F5130 for known exceptions,
-    // e.g., derived-from profile leniencies or runtime flags.
-    // See enforcePolicy() for the suggested environment hook.
+    // Inhibition: skip this validation entirely when F5130 (sev=13) is outside validation band
+    {
+      const sevF5130 = severityFromCode('F5130');
+      const { validationLevel } = thresholds(environment);
+      if (!(sevF5130 < validationLevel)) {
+        return; // do not perform mandatory-children checks
+      }
+    }
     // Ensure mandatory children exist
     for (const child of children) {
       // skip non-mandatory children
@@ -596,7 +625,11 @@ function createFlashEvaluator(evaluate) {
       // we expect the user to assing the primitive value itself in an inline expression,
       // not the intermediate object representation of a primitive (with the `value` as property).
       if (kind === 'primitive-type' && inlineResult !== undefined) {
-        inlineResult = createFhirPrimitive(inlineResult);
+        // eslint-disable-next-line no-console
+        console.debug(`BEFORE inlineResult:`, inlineResult);
+        inlineResult = createFhirPrimitive({value: inlineResult});
+        // eslint-disable-next-line no-console
+        console.debug(`AFTER inlineResult:`, inlineResult);
       }
 
       // Handle resourceType attribute for flash rules and blocks

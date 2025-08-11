@@ -1,8 +1,23 @@
-{
-  "skip": false,
-  "description": "Instance of resource with valid id but required element missing (Basic.code)",
-  "data": null,
-  "bindings": {},
-  "code": "F5130",
-  "expr-file": "flash-eval-error002.fume"
-}
+[
+  {
+    "skip": false,
+    "description": "Instance of resource with valid id but required element missing (Basic.code)",
+    "data": null,
+    "bindings": {},
+    "code": "F5130",
+    "expr-file": "flash-eval-error002.fume"
+  },
+  {
+    "expr-file": "flash-eval-error002.fume",
+    "bindings": {
+      "validationLevel": 13
+    },
+    "result": {
+      "resourceType": "Basic",
+      "id": "ab-c.123"
+    },
+    "data": null,
+    "skip": false,
+    "description": "Instance of resource with valid id but required element missing (Basic.code) - inhibited"
+  }
+]

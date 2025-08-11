@@ -1,0 +1,2 @@
+InstanceOf: Patient
+* id = { 'resourceType': 'Patient' }
