@@ -364,7 +364,7 @@ function createFlashEvaluator(evaluate) {
       const errCode = mode === 'error' ? codeMap[strength].expansionError : codeMap[strength].expansionLazy;
       // Additional inhibition: if expansion error code itself is outside validation band, skip entirely
       if (!policy.shouldValidate(errCode)) return; // no diagnostic at all
-      const err = createBindingError(errCode, expr, elementDefinition, { value: val });
+      const err = createBindingError(errCode, expr, elementDefinition, { value: val, elementType: 'primitive' });
       if (policy.enforce(err)) throw err; // ensure throw honored
       return;
     }
@@ -402,9 +402,9 @@ function createFlashEvaluator(evaluate) {
     const expansionDict = elementDefinition.__vsRefKey ? expansions[elementDefinition.__vsRefKey] : undefined;
 
     const codeMap = {
-      Coding: { required: { full: 'F5121', expansionError: 'F5312', expansionLazy: 'F5313' }, extensible: { full: 'F5341', expansionError: 'F5332', expansionLazy: 'F5333' } },
-      Quantity: { required: { full: 'F5122', expansionError: 'F5314', expansionLazy: 'F5315' }, extensible: { full: 'F5342', expansionError: 'F5334', expansionLazy: 'F5335' } },
-      CodeableConcept: { required: { full: 'F5123', expansionError: 'F5316', expansionLazy: 'F5317' }, extensible: { full: 'F5343', expansionError: 'F5336', expansionLazy: 'F5337' } }
+      Coding: { required: { full: 'F5121' }, extensible: { full: 'F5341' }, elementType: 'Coding' },
+      Quantity: { required: { full: 'F5122' }, extensible: { full: 'F5342' }, elementType: 'Quantity' },
+      CodeableConcept: { required: { full: 'F5123' }, extensible: { full: 'F5343' }, elementType: 'CodeableConcept' }
     };
 
     /**
@@ -419,10 +419,14 @@ function createFlashEvaluator(evaluate) {
     }
 
     if (mode === 'error' || mode === 'lazy') {
-      const key = mode === 'error' ? 'expansionError' : 'expansionLazy';
-      const errCode = codeMap[kindCode][strength][key];
+      let errCode;
+      if (mode === 'error') {
+        errCode = strength === 'required' ? 'F5310' : 'F5330';
+      } else { // lazy
+        errCode = strength === 'required' ? 'F5311' : 'F5331';
+      }
       if (!policy.shouldValidate(errCode)) return; // skip entirely if inhibited for this specific code
-      enforce(errCode, {});
+      enforce(errCode, { elementType: codeMap[kindCode].elementType });
       return;
     }
 

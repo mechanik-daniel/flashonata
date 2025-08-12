@@ -228,23 +228,11 @@ const errorCodes = {
   "F5122": "Quantity unit code (system={{system}}, code={{code}}) for {{fhirElement}} in {{instanceOf}} is not in the required ValueSet.",
   "F5123": "CodeableConcept has no Coding matching the required ValueSet ({{codingCount}} provided) for {{fhirElement}} in {{instanceOf}}.",
   // Required ValueSet expansion errors (warnings by default)
-  "F5310": "Failed to expand required ValueSet for {{fhirElement}} in {{instanceOf}} (primitive binding).",
-  "F5311": "Lazy expansion not implemented for required ValueSet (primitive binding) {{fhirElement}} in {{instanceOf}}.",
-  "F5312": "Failed to expand required ValueSet for Coding {{fhirElement}} in {{instanceOf}}.",
-  "F5313": "Lazy expansion not implemented for required Coding ValueSet {{fhirElement}} in {{instanceOf}}.",
-  "F5314": "Failed to expand required ValueSet for Quantity {{fhirElement}} in {{instanceOf}}.",
-  "F5315": "Lazy expansion not implemented for required Quantity ValueSet {{fhirElement}} in {{instanceOf}}.",
-  "F5316": "Failed to expand required ValueSet for CodeableConcept {{fhirElement}} in {{instanceOf}}.",
-  "F5317": "Lazy expansion not implemented for required CodeableConcept ValueSet {{fhirElement}} in {{instanceOf}}.",
-  // Extensible ValueSet expansion errors (warnings by default)
-  "F5330": "Failed to expand extensible ValueSet for {{fhirElement}} in {{instanceOf}} (primitive binding).",
-  "F5331": "Lazy expansion not implemented for extensible ValueSet (primitive binding) {{fhirElement}} in {{instanceOf}}.",
-  "F5332": "Failed to expand extensible ValueSet for Coding {{fhirElement}} in {{instanceOf}}.",
-  "F5333": "Lazy expansion not implemented for extensible Coding ValueSet {{fhirElement}} in {{instanceOf}}.",
-  "F5334": "Failed to expand extensible ValueSet for Quantity {{fhirElement}} in {{instanceOf}}.",
-  "F5335": "Lazy expansion not implemented for extensible Quantity ValueSet {{fhirElement}} in {{instanceOf}}.",
-  "F5336": "Failed to expand extensible ValueSet for CodeableConcept {{fhirElement}} in {{instanceOf}}.",
-  "F5337": "Lazy expansion not implemented for extensible CodeableConcept ValueSet {{fhirElement}} in {{instanceOf}}.",
+  "F5310": "Failed to expand required ValueSet for {{fhirElement}} in {{instanceOf}} ({{elementType}} binding).",
+  "F5311": "Lazy expansion not implemented for required ValueSet for {{fhirElement}} in {{instanceOf}} ({{elementType}} binding).",
+  // Extensible ValueSet expansion errors (warnings by default) consolidated
+  "F5330": "Failed to expand extensible ValueSet for {{fhirElement}} in {{instanceOf}} ({{elementType}} binding).",
+  "F5331": "Lazy expansion not implemented for extensible ValueSet for {{fhirElement}} in {{instanceOf}} ({{elementType}} binding).",
   // Extensible binding violations (warnings by default)
   "F5340": "Value {{value}} for {{fhirElement}} in {{instanceOf}} is not in the extensible ValueSet.",
   "F5341": "Coding (system={{system}}, code={{code}}) for {{fhirElement}} in {{instanceOf}} is not in the extensible ValueSet.",
