@@ -1,0 +1,38 @@
+[
+  {
+    "description": "Required CodeableConcept violation (no matching Coding in expansion) emits F5123 at validationLevel 13",
+    "data": null,
+    "bindings": {
+      "validationLevel": 13
+    },
+    "code": "F5123",
+    "expr-file": "flash-bindings006.fume"
+  },
+  {
+    "description": "Required CodeableConcept violation inhibited at validationLevel 12 (invalid coding retained)",
+    "data": null,
+    "bindings": {
+      "validationLevel": 12
+    },
+    "result": {
+      "resourceType": "Condition",
+      "verificationStatus": {
+        "coding": [
+          {
+            "code": "999",
+            "system": "http://example.com/wee-haa"
+          }
+        ]
+      },
+      "code": {
+        "coding": [
+          {
+            "system": "http://example.com/ooh-wee",
+            "code": "999"
+          }
+        ]
+      }
+    },
+    "expr-file": "flash-bindings006.fume"
+  }
+]

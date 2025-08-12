@@ -279,16 +279,13 @@ void async function () {
 // * status = 'unknown'
 // * code.coding[OptionalSlice]
 
+InstanceOf: Observation
+* interpretation.coding
+  * system = 'http://example.org/interpretation'
+  * code = 'XYZ'
+* status = 'final'
+* code.text = 'code is mandatory'
 
-(
-  InstanceOf: ext-il-hmo
-  * value
-    * text = 'HMO Name'
-    * coding
-      * system = 'http://fhir.health.gov.il/cs/paying-entity-moh'
-      * code = '103'
-
-) ~> $string()
 
 
 `
@@ -316,7 +313,7 @@ void async function () {
   try {
     res = await expr.evaluate({
       resourceType: "Patient"
-    }, { logLevel: 50, validationLevel: 70, throwLevel: 30, collectLevel: 70 });
+    }, { logLevel: 50, validationLevel: 35, throwLevel: 35, collectLevel: 70 });
     console.log('Expression evaluated successfully');
   } catch (e) {
     console.error('Error evaluating expression:', e);

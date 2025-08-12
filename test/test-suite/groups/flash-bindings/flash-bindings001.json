@@ -1,0 +1,11 @@
+{
+  "skip": false,
+  "description": "Required binding primitive passes (Patient.gender female in required ValueSet)",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "gender": "female"
+  },
+  "expr-file": "flash-bindings001.fume"
+}

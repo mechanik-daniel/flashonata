@@ -1,0 +1,43 @@
+{
+  "description": "Quantity extensible binding outside ValueSet (no error at default validationLevel=30) -> inhibited unless validationLevel raised",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Observation",
+    "code": {
+      "text": "something"
+    },
+    "status": "unknown",
+    "valueQuantity": {
+      "system": "http://unitsofmeasure.org",
+      "code": "kg"
+    }
+  },
+  "notes": "Extensible violation would be F5342 if validationLevel > 34",
+  "expr-file": "flash-bindings004.fume",
+  "variants": [
+    {
+      "description": "Extensible Quantity binding violation emits F5342 at validationLevel 35",
+      "data": null,
+      "bindings": {
+        "validationLevel": 35
+      },
+      "code": "F5342",
+      "expr-file": "flash-bindings004.fume"
+    },
+    {
+      "description": "Extensible Quantity binding violation inhibited at default validationLevel 30 (no diagnostic)",
+      "data": null,
+      "bindings": {},
+      "result": {
+        "resourceType": "Observation",
+        "valueQuantity": {
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      },
+      "notes": "Violation suppressed due to validationLevel band",
+      "expr-file": "flash-bindings004.fume"
+    }
+  ]
+}

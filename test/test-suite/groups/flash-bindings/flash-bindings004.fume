@@ -1,0 +1,6 @@
+InstanceOf: Observation
+* status = 'unknown'
+* code
+  * text = "something"
+* valueQuantity.system = 'http://unitsofmeasure.org'
+* valueQuantity.code = 'kg'

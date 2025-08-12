@@ -1,0 +1,15 @@
+{
+  "description": "Required CodeableConcept Coding passes (present in expansion)",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Observation",
+    "status": "unknown",
+    "code": {
+      "coding": [
+        { "system": "http://example.com/vital-signs-code", "code": "123" }
+      ]
+    }
+  },
+  "expr-file": "flash-bindings005.fume"
+}

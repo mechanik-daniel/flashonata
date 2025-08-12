@@ -1,0 +1,4 @@
+InstanceOf: Observation
+* status = 'unknown'
+* code = { "text": "uncoded observation type"}
+* interpretation.text = 'High'

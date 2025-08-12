@@ -1,0 +1,21 @@
+[
+  {
+    "skip": false,
+    "description": "Required binding primitive violation (invalid Observation.status)",
+    "data": null,
+    "bindings": { "validationLevel": 13 },
+    "code": "F5120",
+    "expr-file": "flash-bindings002.fume"
+  },
+  {
+    "skip": false,
+    "description": "Required binding primitive violation inhibited at validationLevel=12 (returns invalid value)",
+    "data": null,
+    "bindings": { "validationLevel": 12 },
+    "result": {
+      "resourceType": "Observation",
+      "status": "not-a-valid-status"
+    },
+    "expr-file": "flash-bindings002.fume"
+  }
+]

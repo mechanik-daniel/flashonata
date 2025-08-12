@@ -1,0 +1,2 @@
+InstanceOf: Observation
+* status = 'not-a-valid-status'

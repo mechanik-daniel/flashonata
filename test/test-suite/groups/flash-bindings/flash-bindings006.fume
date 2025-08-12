@@ -1,0 +1,10 @@
+InstanceOf: Condition
+* code.coding
+  * system = 'http://example.com/ooh-wee'
+  * code = '999'
+* verificationStatus = {
+  "coding": [{
+    "code": '999',
+    "system": "http://example.com/wee-haa"
+  }]
+}

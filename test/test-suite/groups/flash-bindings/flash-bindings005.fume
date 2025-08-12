@@ -1,0 +1,5 @@
+InstanceOf: Observation
+* status = 'unknown'
+* code.coding
+  * system = 'http://example.com/vital-signs-code'
+  * code = '123'

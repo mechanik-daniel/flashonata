@@ -1,0 +1,6 @@
+InstanceOf: Observation
+* interpretation.coding
+  * system = 'http://example.org/interpretation'
+  * code = 'XYZ'
+* status = 'final'
+* code.text = 'code is mandatory'
