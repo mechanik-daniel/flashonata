@@ -254,6 +254,7 @@ function createFlashEvaluator(evaluate) {
         ...input,
         value: evaluated // Assign the evaluated value to the 'value' key (can be undefined)
       });
+      validatePrimitiveBinding(result, elementDefinition, expr, environment);
       return result;
     }
 
@@ -268,6 +269,190 @@ function createFlashEvaluator(evaluate) {
     }
 
     return result;
+  }
+
+  /**
+   * Retrieve resolved ValueSet expansions dictionary from environment
+   * @param {Object} environment Execution environment
+   * @returns {Object} Map of vsRefKey -> expansion dictionary
+   */
+  function getResolvedValueSetDict(environment) {
+    const defs = getFhirDefinitionsDictinary(environment);
+    return defs?.resolvedValueSetExpansions || {};
+  }
+
+  /**
+   * Test if primitive value exists in any system bucket of expansion dict
+   * @param {string} codeVal Primitive code string
+   * @param {Object} expansionDict Expansion dictionary { system: { code: concept } }
+   * @returns {boolean} True if found
+   */
+  function valueInExpansionPrimitive(codeVal, expansionDict) {
+    if (codeVal === undefined || codeVal === null || codeVal === '') return false;
+    for (const sys of Object.keys(expansionDict)) {
+      if (expansionDict[sys] && expansionDict[sys][codeVal]) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Test if (system, code) pair exists in expansion dict
+   * @param {string} system System URI
+   * @param {string} code Code string
+   * @param {Object} expansionDict Expansion dictionary
+   * @returns {boolean} True if pair found
+   */
+  function valueInExpansionSystemCode(system, code, expansionDict) {
+    if (!system || !code) return false;
+    const sysDict = expansionDict[system];
+    return !!(sysDict && sysDict[code]);
+  }
+
+  /**
+   * Create structured binding validation error object
+   * @param {string} code Error code
+   * @param {Object} expr Expression node
+   * @param {Object} elementDefinition ElementDefinition providing context
+   * @param {Object} inserts Additional message inserts
+   * @returns {Object} Error object
+   */
+  function createBindingError(code, expr, elementDefinition, inserts = {}) {
+    return {
+      code,
+      stack: (new Error()).stack,
+      position: expr.position,
+      start: expr.start,
+      line: expr.line,
+      instanceOf: expr.instanceof,
+      fhirElement: (expr.flashPathRefKey || '').slice(expr.instanceof.length + 2),
+      bindingStrength: elementDefinition.__bindingStrength,
+      expansionMode: elementDefinition.__vsExpansionMode,
+      ...inserts
+    };
+  }
+
+  /**
+   * Validate a bound FHIR primitive (string|uri|code) against its ValueSet
+   * @param {Object} resultObj FlashRuleResult for primitive
+   * @param {Object} elementDefinition ElementDefinition
+   * @param {Object} expr AST node
+   * @param {Object} environment Execution environment
+   */
+  function validatePrimitiveBinding(resultObj, elementDefinition, expr, environment) {
+    if (!elementDefinition.__bindingStrength) return; // no binding
+    const strength = elementDefinition.__bindingStrength; // required | extensible
+    const policy = createPolicy(environment);
+    // Inhibit entire binding validation if outside validation band (performance optimization)
+    const representativeCode = strength === 'required' ? 'F5120' : 'F5340';
+    if (!policy.shouldValidate(representativeCode)) return;
+    const typeCode = elementDefinition.__fhirTypeCode;
+    if (!['string','uri','code'].includes(typeCode)) return; // only these primitives
+    const valObj = resultObj.value; // FHIR primitive intermediate (object with value key)
+    const val = valObj ? valObj.value : undefined;
+    const mode = elementDefinition.__vsExpansionMode; // full | error | lazy
+    const expansions = getResolvedValueSetDict(environment);
+    const expansionDict = elementDefinition.__vsRefKey ? expansions[elementDefinition.__vsRefKey] : undefined;
+
+    const hasValue = !(val === undefined || val === null || val === '');
+
+    const codeMap = {
+      required: { full: 'F5120', expansionError: 'F5310', expansionLazy: 'F5311' },
+      extensible: { full: 'F5340', expansionError: 'F5330', expansionLazy: 'F5331' }
+    };
+
+    if (mode === 'error' || mode === 'lazy') {
+      const errCode = mode === 'error' ? codeMap[strength].expansionError : codeMap[strength].expansionLazy;
+      // Additional inhibition: if expansion error code itself is outside validation band, skip entirely
+      if (!policy.shouldValidate(errCode)) return; // no diagnostic at all
+      const err = createBindingError(errCode, expr, elementDefinition, { value: val });
+      if (policy.enforce(err)) throw err; // ensure throw honored
+      return;
+    }
+
+    if (strength === 'required') {
+      if (!hasValue || !valueInExpansionPrimitive(val, expansionDict || {})) {
+        const err = createBindingError(codeMap.required.full, expr, elementDefinition, { value: val });
+        if (policy.enforce(err)) throw err;
+      }
+    } else if (strength === 'extensible') {
+      if (hasValue && !valueInExpansionPrimitive(val, expansionDict || {})) {
+        const err = createBindingError(codeMap.extensible.full, expr, elementDefinition, { value: val });
+        if (policy.enforce(err)) throw err;
+      }
+    }
+  }
+
+  /**
+   * Validate complex Coding/Quantity/CodeableConcept binding
+   * @param {string} kindCode Element type code (Coding|Quantity|CodeableConcept)
+   * @param {Object} valueObj Evaluated value object (intermediate with primitives inside)
+   * @param {Object} elementDefinition ElementDefinition
+   * @param {Object} expr AST node
+   * @param {Object} environment Execution environment
+   */
+  function validateComplexCodingLike(kindCode, valueObj, elementDefinition, expr, environment) {
+    if (!elementDefinition.__bindingStrength) return;
+    const strength = elementDefinition.__bindingStrength;
+    const policy = createPolicy(environment);
+    // Representative codes for inhibition decision use same bands: required -> F5120, extensible -> F5340
+    const representativeCode = strength === 'required' ? 'F5120' : 'F5340';
+    if (!policy.shouldValidate(representativeCode)) return; // skip entirely
+    const mode = elementDefinition.__vsExpansionMode;
+    const expansions = getResolvedValueSetDict(environment);
+    const expansionDict = elementDefinition.__vsRefKey ? expansions[elementDefinition.__vsRefKey] : undefined;
+
+    const codeMap = {
+      Coding: { required: { full: 'F5121', expansionError: 'F5312', expansionLazy: 'F5313' }, extensible: { full: 'F5341', expansionError: 'F5332', expansionLazy: 'F5333' } },
+      Quantity: { required: { full: 'F5122', expansionError: 'F5314', expansionLazy: 'F5315' }, extensible: { full: 'F5342', expansionError: 'F5334', expansionLazy: 'F5335' } },
+      CodeableConcept: { required: { full: 'F5123', expansionError: 'F5316', expansionLazy: 'F5317' }, extensible: { full: 'F5343', expansionError: 'F5336', expansionLazy: 'F5337' } }
+    };
+
+    /**
+     * Enforce a binding validation issue via policy.
+     * @param {string} code Error code
+     * @param {Object} inserts Additional inserts for message
+     * @returns {void}
+     */
+    function enforce(code, inserts) {
+      const err = createBindingError(code, expr, elementDefinition, inserts);
+      if (policy.enforce(err)) throw err; // honor throwLevel
+    }
+
+    if (mode === 'error' || mode === 'lazy') {
+      const key = mode === 'error' ? 'expansionError' : 'expansionLazy';
+      const errCode = codeMap[kindCode][strength][key];
+      if (!policy.shouldValidate(errCode)) return; // skip entirely if inhibited for this specific code
+      enforce(errCode, {});
+      return;
+    }
+
+    if (kindCode === 'Coding' || kindCode === 'Quantity') {
+      const rawSystem = valueObj?.system;
+      const rawCode = valueObj?.code;
+      const system = (rawSystem && typeof rawSystem === 'object' && Object.prototype.hasOwnProperty.call(rawSystem, 'value')) ? rawSystem.value : rawSystem;
+      const code = (rawCode && typeof rawCode === 'object' && Object.prototype.hasOwnProperty.call(rawCode, 'value')) ? rawCode.value : rawCode;
+      const pairValid = system && code && valueInExpansionSystemCode(system, code, expansionDict || {});
+      if (strength === 'required') {
+        if (!pairValid) enforce(codeMap[kindCode].required.full, { system, code });
+      } else if (strength === 'extensible') {
+        if (system && code && !pairValid) enforce(codeMap[kindCode].extensible.full, { system, code });
+      }
+    } else if (kindCode === 'CodeableConcept') {
+      const codings = Array.isArray(valueObj?.coding) ? valueObj.coding : [];
+      let anyValid = false;
+      for (const c of codings) {
+        const rawSystem = c?.system;
+        const rawCode = c?.code;
+        const system = (rawSystem && typeof rawSystem === 'object' && Object.prototype.hasOwnProperty.call(rawSystem, 'value')) ? rawSystem.value : rawSystem;
+        const code = (rawCode && typeof rawCode === 'object' && Object.prototype.hasOwnProperty.call(rawCode, 'value')) ? rawCode.value : rawCode;
+        if (system && code && valueInExpansionSystemCode(system, code, expansionDict || {})) { anyValid = true; break; }
+      }
+      if (strength === 'required') {
+        if (!anyValid) enforce(codeMap.CodeableConcept.required.full, { codingCount: codings.length });
+      } else if (strength === 'extensible') {
+        if (codings.length > 0 && !anyValid) enforce(codeMap.CodeableConcept.extensible.full, { codingCount: codings.length });
+      }
+    }
   }
 
   /**
@@ -656,6 +841,16 @@ function createFlashEvaluator(evaluate) {
     if (expr.isFlashRule) {
       // if it's a flash rule, process and return the result as a flash rule
       result = finalizeFlashRuleResult(expr, result, environment);
+      // Perform complex-type binding validation if applicable
+      if (result && result.kind === 'complex-type') {
+        const elDef = getElementDefinition(environment, expr);
+        if (elDef) {
+          const typeCode = elDef.__fhirTypeCode;
+          if (['Coding','Quantity','CodeableConcept'].includes(typeCode)) {
+            validateComplexCodingLike(typeCode, result.value, elDef, expr, environment);
+          }
+        }
+      }
     }
 
     // flashblock result finalization

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /* eslint-disable require-jsdoc */
 /** Takes a FHIR Structure Navigator and returns helper functions used to fetch FHIR semantic data
  * @param {FhirStructureNavigator} navigator - FHIR structure navigator
@@ -11,20 +10,22 @@
 function createFhirFetchers(navigator) {
   return {
     getElement: async function (snapshotId, path) {
-      // console.log('getElement', snapshotId, path);
       return await navigator.getElement(snapshotId, path);
     },
     getChildren: async function (snapshotId, path) {
-      // console.log('getChildren', snapshotId, path);
       return await navigator.getChildren(snapshotId, path ?? '.');
     },
     getTypeMeta: async function (snapshotId) {
-      // console.log('getTypeMeta', snapshotId);
       return await navigator.getFsg().getMetadata(snapshotId);
     },
     getBaseTypeMeta: async function (typeCode, sourcePackage) {
-      // console.log('getBaseTypeMeta', typeCode, sourcePackage);
       return await navigator.getFsg().getMetadata(typeCode, sourcePackage);
+    },
+    expandValueSet: async function (valueSetKey, sourcePackage) {
+      // valueSetKey can be id | name | canonical URL
+      // sourcePackage is expected to be provided in internal calls,
+      // but may be omitted when user calls it from within expressions
+      return await navigator.getFsg().expandValueSet(valueSetKey, sourcePackage);
     }
   };
 }

@@ -2060,7 +2060,8 @@ var fumifier = (function() {
       baseTypeMeta: ast.resolvedBaseTypeMeta,
       typeChildren: ast.resolvedTypeChildren,
       elementDefinitions: ast.resolvedElementDefinitions,
-      elementChildren: ast.resolvedElementChildren
+      elementChildren: ast.resolvedElementChildren,
+      resolvedValueSetExpansions: ast.resolvedValueSetExpansions // added so flashEvaluator can access VS expansions
     });
 
     var fumifierObject = {

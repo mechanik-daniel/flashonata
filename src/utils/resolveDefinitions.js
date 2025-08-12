@@ -80,22 +80,134 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
     getTypeMeta,
     getBaseTypeMeta,
     getElement,
-    getChildren
+    getChildren,
+    expandValueSet
   } = createFhirFetchers(navigator);
 
   // Initialize containers for resolved definitions
   // ============================================================
-  // key is the value of InstanceOf:, value is the resolved type metadata
-  const resolvedTypeMeta = {};
-  // key is the packageId@version + type code, value is the resolved type metadata
-  const resolvedBaseTypeMeta = {};
-  // key is the value of InstanceOf:, value is the resolved children of the type
-  const resolvedTypeChildren = {};
-  // key is the InstanceOf: + full FLASH path, value is the resolved ElementDefinition
-  const resolvedElementDefinitions = {};
-  // key is the InstanceOf: + full FLASH path, value is the resolved children of the element
-  const resolvedElementChildren = {};
+  const resolvedTypeMeta = {}; // key: InstanceOf: value: type metadata
+  const resolvedBaseTypeMeta = {}; // key: packageId@version::typeCode value: base type metadata
+  const resolvedTypeChildren = {}; // key: InstanceOf: value: children array
+  const resolvedElementDefinitions = {}; // key: InstanceOf: + flash path value: ElementDefinition
+  const resolvedElementChildren = {}; // key: InstanceOf: + flash path value: children array
+  // ValueSet expansion cache (full expansions only, transformed for fast lookup)
+  const resolvedValueSetExpansions = {}; // key: pkgId@pkgVersion::filename -> { [system]: { [code]: concept } }
+  // Tracker to avoid repeated expansions per (url + sourcePackage)
+  const valueSetExpansionTracker = {}; // key: pkgId@pkgVersion::valueSetUrl -> { mode, vsRefKey }
   // ============================================================
+
+  // Helper: flatten/collect contains (handles nested contains) & build system->code dictionary
+  /**
+   * Transform a ValueSet.expansion into a fast lookup dictionary.
+   * Structure: { [system]: { [code]: concept } }
+   * Nested contains are flattened.
+   * @param {Object} expansion - The ValueSet.expansion object
+   * @returns {Object} Dictionary for quick system/code lookup
+   */
+  function transformExpansion(expansion) {
+    const dict = {};
+    if (!expansion || !Array.isArray(expansion.contains)) return dict;
+    const stack = [...expansion.contains];
+    while (stack.length) {
+      const c = stack.pop();
+      if (!c || !c.system || !c.code) continue;
+      if (!dict[c.system]) dict[c.system] = {};
+      if (!dict[c.system][c.code]) dict[c.system][c.code] = c;
+      if (Array.isArray(c.contains)) stack.push(...c.contains);
+    }
+    return dict;
+  }
+
+  /**
+   * Detect and process a binding on an ElementDefinition. Applies precedence (a,b,c) to determine
+   * the binding, attempts ValueSet expansion, and annotates the element with:
+   *  - __bindingStrength ('required' | 'extensible')
+   *  - __vsRefKey (only if expansion succeeded)
+   *  - __vsExpansionMode ('full' | 'lazy' | 'error')
+   * Uses internal caches to avoid repeated expansions per (url + package).
+   * @param {ElementDefinition} ed - ElementDefinition to enrich
+   * @param {Object} meta - Owning StructureDefinition metadata (for package scoping)
+   */
+  async function processBinding(ed, meta) {
+    try {
+      const binding = ed && ed.binding;
+      if (!binding) return;
+
+      let strength;
+      let vsUrl;
+
+      // (a) required + valueSet (any non-empty string incl. URNs treated as valid identifier)
+      if (typeof binding.strength === 'string' && binding.strength === 'required' && typeof binding.valueSet === 'string' && binding.valueSet.trim() !== '') {
+        strength = 'required';
+        vsUrl = binding.valueSet.trim();
+      } else if (!vsUrl) {
+        // (b) extension elementdefinition-maxValueSet
+        const ext = Array.isArray(binding.extension) ? binding.extension.find(e => e && e.url === 'http://hl7.org/fhir/StructureDefinition/elementdefinition-maxValueSet' && typeof e.valueCanonical === 'string' && e.valueCanonical.trim() !== '') : undefined;
+        if (ext) {
+          strength = 'required';
+          vsUrl = ext.valueCanonical.trim();
+        }
+      }
+      if (!vsUrl) {
+        // (c) extensible + valueSet
+        if (typeof binding.strength === 'string' && binding.strength === 'extensible' && typeof binding.valueSet === 'string' && binding.valueSet.trim() !== '') {
+          strength = 'extensible';
+          vsUrl = binding.valueSet.trim();
+        }
+      }
+
+      if (!vsUrl || !strength) return; // nothing applicable
+
+      ed.__bindingStrength = strength;
+
+      const sourcePackage = { id: meta?.__packageId, version: meta?.__packageVersion };
+      if (!sourcePackage.id || !sourcePackage.version) return; // cannot scope expansion properly
+
+      const trackerKey = `${sourcePackage.id}@${sourcePackage.version}::${vsUrl}`;
+      if (valueSetExpansionTracker[trackerKey]) {
+        // Reuse previous outcome
+        const prev = valueSetExpansionTracker[trackerKey];
+        if (prev.vsRefKey) ed.__vsRefKey = prev.vsRefKey;
+        ed.__vsExpansionMode = prev.mode;
+        return;
+      }
+
+      // First encounter of this ValueSet (by url + package)
+      let mode = 'error';
+      let vsRefKey;
+      try {
+        const vs = await expandValueSet(vsUrl, sourcePackage); // may throw
+        if (vs && vs.expansion) {
+          // Determine size
+          let count = vs.expansion.count;
+          if (typeof count !== 'number') {
+            const containsCount = Array.isArray(vs.expansion.contains) ? vs.expansion.contains.length : 0;
+            count = containsCount;
+          }
+          const pkgId = vs.__packageId || sourcePackage.id;
+          const pkgVersion = vs.__packageVersion || sourcePackage.version;
+          const filename = vs.__filename || vs.id || vs.url || vsUrl;
+          vsRefKey = `${pkgId}@${pkgVersion}::${filename}`;
+          if (count <= 100) {
+            const transformed = transformExpansion(vs.expansion);
+            resolvedValueSetExpansions[vsRefKey] = transformed;
+            mode = 'full';
+          } else {
+            mode = 'lazy'; // too big to embed fully
+          }
+        } else {
+          mode = 'error';
+        }
+      } catch {
+        mode = 'error';
+      }
+
+      if (vsRefKey) ed.__vsRefKey = vsRefKey;
+      ed.__vsExpansionMode = mode;
+      valueSetExpansionTracker[trackerKey] = { mode, vsRefKey };
+    } catch { /* ignore binding processing errors entirely */ }
+  }
 
   const sdRefs = expr.structureDefinitionRefs || {};
   const edRefs = expr.elementDefinitionRefs || {};
@@ -115,34 +227,25 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
     if (meta.__isError) return; // skip failed ones
     try {
       const children = await getChildren(meta);
-      // for each child, assign __isArray and if it has a single type, also the __kind, __fhirTypeCode and __fixedValue properties
-      const enriched = children.map(child => {
+      const enriched = await Promise.all(children.map(async child => {
         assignIsArray(child);
         handleContentReference(child);
         if (child.type && child.type.length === 1) {
           child.__kind = child.type[0].__kind;
           assignFhirTypeCode(child);
           assignFixedOrPatternValue(child);
+          await processBinding(child, meta);
         }
-        // Add __flashPathRefKey for children of types
         const flashSegment = toFlashSegment(child.id);
         child.__flashPathRefKey = `${instanceofId}::${flashSegment}`;
-
-        // Store in resolvedElementDefinitions - only if not already there
         if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
           resolvedElementDefinitions[child.__flashPathRefKey] = child;
         }
-
         return child;
-      });
+      }));
       resolvedTypeChildren[instanceofId] = enriched;
     } catch (e) {
-      const baseError = {
-        code: 'F2006',
-        token: 'InstanceOf:',
-        value: instanceofId,
-        fhirType: meta.name || instanceofId
-      };
+      const baseError = { code: 'F2006', token: 'InstanceOf:', value: instanceofId, fhirType: meta.name || instanceofId };
       resolvedTypeChildren[instanceofId] = handleRecoverableError(baseError, sdRefs[instanceofId], recover, errors, e);
     }
   }));
@@ -150,136 +253,89 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
   // Resolve all referenced elementDefinitions
   await Promise.all(Object.entries(edRefs).map(async ([key, flashpathNodes]) => {
     const flash = flashpathNodes[0];
-    const baseError = {
-      token: '(flashpath)',
-      value: flash.fullPath,
-      fhirType: flash.instanceOf
-    };
-
+    const baseError = { token: '(flashpath)', value: flash.fullPath, fhirType: flash.instanceOf };
     try {
       const meta = resolvedTypeMeta[flash.instanceOf];
       if (!meta || meta.__isError) return;
-
       baseError.fhirType = meta.name || flash.instanceOf;
       const ed = await getElement(meta, flash.fullPath);
-
       if (!ed) {
         baseError.code = 'F2002';
         return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element not found'));
       }
-
       if (!ed.type || ed.type.length === 0) {
-        // no type defined
-        // if also no contentRef, then it's an error
         if (ed.contentReference) {
-          // there's a content reference, so we can just assume the type is BackboneElement
           ed.type = [{ __kind: 'complex-type', code: 'BackboneElement' }];
         } else {
           baseError.code = 'F2007';
           return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Element has no type defined'));
         }
       }
-
       if (ed.type?.length > 1) {
-        // polymorphic element
         const baseName = ed.path.split('.').pop().replace(/\[x]$/, '');
         const allowed = ed.type.map(t => baseName + fn.initCapOnce(t.code)).join(', ');
         baseError.code = 'F2004';
         baseError.allowedNames = allowed;
         return handleRecoverableError(baseError, flashpathNodes, recover, errors, new Error('Must select one of multiple types'));
       } else {
-        // Single type element (confirmed)
-
-        // Set the kind of the element (system, primitive-type, complex-type, resource)
         const kind = ed.type?.[0]?.__kind;
         ed.__kind = kind;
-        // Assign __isArray property based on the base.max cardinality
         assignIsArray(ed);
-        // Assign the FHIR type code to the element definition
         assignFhirTypeCode(ed);
-        // Assign fixed or pattern values to the element definition
         assignFixedOrPatternValue(ed);
-
+        await processBinding(ed, meta);
         let elementChildren = [];
         if (kind !== 'system') {
           try {
             elementChildren = await getChildren(meta, flash.fullPath);
-            if (!elementChildren.length)
-              throw new Error('No children found');
-
-            // Enrich children with __flashPathRefKey for element children
-            elementChildren = elementChildren.map(child => {
+            if (!elementChildren.length) throw new Error('No children found');
+            elementChildren = await Promise.all(elementChildren.map(async child => {
               assignIsArray(child);
               handleContentReference(child);
               if (child.type && child.type.length === 1) {
                 child.__kind = child.type[0].__kind;
                 assignFhirTypeCode(child);
                 assignFixedOrPatternValue(child);
+                await processBinding(child, meta);
               }
-
-              // Add __flashPathRefKey for children of elements
               const flashSegment = toFlashSegment(child.id);
               child.__flashPathRefKey = `${key}.${flashSegment}`;
-
-              // Store in resolvedElementDefinitions - only if not already there
               if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
                 resolvedElementDefinitions[child.__flashPathRefKey] = child;
               }
-
               return child;
-            });
-
+            }));
             resolvedElementChildren[key] = elementChildren;
           } catch (e) {
             baseError.code = 'F2003';
             return handleRecoverableError(baseError, flashpathNodes, recover, errors, e);
           }
         }
-
-        // TODO: Move this regex extraction into a helper like `extractRegex(ed, kind, elementChildren, meta)`
         let primitiveValueEd;
         if (kind === 'primitive-type') {
           primitiveValueEd = elementChildren.find((c) => c.path.endsWith('.value'));
         } else if (kind === 'system') {
           try {
-            // first check if we already fetched this base type in the context of this package
-            const key = `${meta.__packageId}@${meta.__packageVersion}::${ed.__fhirTypeCode}`;
-            let baseTypeMeta = resolvedBaseTypeMeta[key];
+            const baseKey = `${meta.__packageId}@${meta.__packageVersion}::${ed.__fhirTypeCode}`;
+            let baseTypeMeta = resolvedBaseTypeMeta[baseKey];
             if (!baseTypeMeta) {
-              // if not, fetch the base type meta from the navigator
-              baseTypeMeta = await getBaseTypeMeta(ed.__fhirTypeCode, {
-                id: meta.__packageId,
-                version: meta.__packageVersion
-              });
-              resolvedBaseTypeMeta[key] = baseTypeMeta;
+              baseTypeMeta = await getBaseTypeMeta(ed.__fhirTypeCode, { id: meta.__packageId, version: meta.__packageVersion });
+              resolvedBaseTypeMeta[baseKey] = baseTypeMeta;
             }
-            // then try to get the primitive value element from the base type
             primitiveValueEd = baseTypeMeta ? await getElement(baseTypeMeta, 'value') : undefined;
-          } catch {
-          // ignore errors if no primitive value element is found
-          }
+          } catch { /* ignore */ }
         }
-
         if (primitiveValueEd) {
-          ed.__regexStr = primitiveValueEd.type?.[0]?.extension?.find(
-            (e) => e.url === 'http://hl7.org/fhir/StructureDefinition/regex'
-          )?.valueString;
+          ed.__regexStr = primitiveValueEd.type?.[0]?.extension?.find((e) => e.url === 'http://hl7.org/fhir/StructureDefinition/regex')?.valueString;
         }
-
         if (ed.__regexStr) {
           const label = `__fhir_regex_${ed.__regexStr}`;
-          if (!compiledRegexCache[label]) {
-            // compile the regex string and store it in the cache
-            compiledRegexCache[label] = new RegExp(`^${ed.__regexStr}$`);
-          }
+          if (!compiledRegexCache[label]) compiledRegexCache[label] = new RegExp(`^${ed.__regexStr}$`);
         }
         resolvedElementDefinitions[key] = ed;
       }
     } catch (e) {
-      const err = {
-        ...e,
-        ...baseError
-      };
+      const err = { ...e, ...baseError };
       if (!e.code) err.code = 'F2002';
       handleRecoverableError(err, flashpathNodes, recover, errors, e);
     }
@@ -288,58 +344,18 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
   // - Recursively fetch, resolve and save mandatory elements' children, to enable fixed[x] and pattern[x] injection at all levels.
   // - This is needed for elements that are not directly referenced in the FLASH block, but expected to be populated automatically.
   const pending = new Set();
+  const shouldExpand = (key, ed) => (ed?.min >= 1 && ed.__kind && ed.__kind !== 'system' && !ed.__fixedValue && !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key));
+  for (const [k, ed] of Object.entries(resolvedElementDefinitions)) if (shouldExpand(k, ed)) pending.add(k);
+  for (const [k, childrenEds] of Object.entries(resolvedTypeChildren)) for (const ed of childrenEds) { const childKey = `${k}::${toFlashSegment(ed.id)}`; if (shouldExpand(childKey, ed)) pending.add(childKey); }
+  for (const [k, childrenEds] of Object.entries(resolvedElementChildren)) for (const ed of childrenEds) { const childKey = `${k}.${toFlashSegment(ed.id)}`; if (shouldExpand(childKey, ed)) pending.add(childKey); }
 
-  // function to test if an element should be expanded even if not explicitly referenced in the FLASH block
-  const shouldExpand = (key, ed) => {
-    const shouldIt = (
-      ed?.min >= 1 && // mandatory
-      ed.__kind && // by the existence of __kind, we know it has a single type so it can be expanded
-      ed.__kind !== 'system' && // system primitives can never have children
-      !ed.__fixedValue && // if it has a fixed value, we naively use it and don't care about the children definitions
-      !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key) // skip if already resolved
-    );
-    return shouldIt;
-  };
-
-  // Step 1: Seed with all unexpanded mandatory elements
-  // - 1.a: directly referenced in the FLASH block
-  for (const [key, ed] of Object.entries(resolvedElementDefinitions)) {
-    if (shouldExpand(key, ed)) {
-      pending.add(key);
-    }
-  }
-  // - 1.b: not directly referenced, but mandatory in the root type definition
-  for (const [key, childrenEds] of Object.entries(resolvedTypeChildren)) {
-    // loop through all children of the root elements
-    for (const ed of childrenEds) {
-      const childKey = `${key}::${toFlashSegment(ed.id)}`;
-      if (shouldExpand(childKey, ed)) {
-        pending.add(childKey);
-      }
-    }
-  }
-  // - 1.c: mandatory children of any visited element
-  for (const [key, childrenEds] of Object.entries(resolvedElementChildren)) {
-    // loop through all children of the previously expanded elements
-    for (const ed of childrenEds) {
-      const childKey = `${key}.${toFlashSegment(ed.id)}`;
-      if (shouldExpand(childKey, ed)) {
-        pending.add(childKey);
-      }
-    }
-  }
-
-  // Step 2: Expand recursively
   while (pending.size > 0) {
     const keys = Array.from(pending);
     pending.clear();
-
     await Promise.all(keys.map(async (key) => {
-
       const [instanceOf, parentFlashpath] = key.split('::');
       const fhirTypeMeta = resolvedTypeMeta[instanceOf];
       if (!fhirTypeMeta || fhirTypeMeta.__isError) return;
-      // if children are already resolved (including empty arrays), skip
       if (Object.prototype.hasOwnProperty.call(resolvedElementChildren, key)) return;
       let ed;
       try {
@@ -349,36 +365,27 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
           resolvedElementDefinitions[key] = ed;
         }
         const children = await getChildren(fhirTypeMeta, parentFlashpath);
-
-        const enriched = children.map(child => {
+        const enriched = await Promise.all(children.map(async child => {
           assignIsArray(child);
           handleContentReference(child);
           if (child.type && child.type.length === 1) {
             child.__kind = child.type[0].__kind;
             assignFhirTypeCode(child);
             assignFixedOrPatternValue(child);
+            await processBinding(child, fhirTypeMeta);
           }
-
-          // Add __flashPathRefKey for recursively expanded children
           const flashSegment = toFlashSegment(child.id);
           child.__flashPathRefKey = `${key}.${flashSegment}`;
-
-          // Store in resolvedElementDefinitions if not already there
           if (!resolvedElementDefinitions[child.__flashPathRefKey]) {
             resolvedElementDefinitions[child.__flashPathRefKey] = child;
           }
-
           return child;
-        });
-
+        }));
         resolvedElementChildren[key] = enriched;
-
-        // Recurse into mandatory children that are not fixed and not yet expanded
         enriched.forEach(child => {
           const childPathSegment = toFlashSegment(child.id);
           const childKey = `${instanceOf}::${parentFlashpath}.${childPathSegment}`;
           if (shouldExpand(childKey, child)) {
-          // Cache the definition if not already present
             if (!resolvedElementDefinitions[childKey]) {
               resolvedElementDefinitions[childKey] = child;
             }
@@ -386,12 +393,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
           }
         });
       } catch (e) {
-        /* c8 ignore next 7 */
-        const baseError = {
-          code: 'F2008',
-          value: parentFlashpath,
-          fhirType: fhirTypeMeta.name || instanceOf
-        };
+        const baseError = { code: 'F2008', value: parentFlashpath, fhirType: fhirTypeMeta.name || instanceOf };
         resolvedElementChildren[key] = handleRecoverableError(baseError, [], recover, errors, e);
       }
     }));
@@ -402,6 +404,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
   expr.resolvedTypeChildren = resolvedTypeChildren;
   expr.resolvedElementDefinitions = resolvedElementDefinitions;
   expr.resolvedElementChildren = resolvedElementChildren;
+  expr.resolvedValueSetExpansions = resolvedValueSetExpansions; // new cache for small ValueSets
   return expr;
 };
 

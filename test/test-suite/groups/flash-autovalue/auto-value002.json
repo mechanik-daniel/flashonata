@@ -4,6 +4,12 @@
   "result": {
     "url": "http://fhir.health.gov.il/StructureDefinition/ext-il-hmo",
     "valueCodeableConcept": {
+      "coding": [
+        {
+          "code": "101",
+          "system": "http://fhir.health.gov.il/cs/paying-entity-moh"
+        }
+      ],
       "text": "HMO Name"
     }
   },

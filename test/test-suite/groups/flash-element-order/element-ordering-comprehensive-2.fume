@@ -1,4 +1,9 @@
 (
   InstanceOf: ext-il-hmo
-  * value.text = 'HMO Name'
-) ~> $keys()
+  * value
+    * text = 'HMO Name'
+    * coding
+      * system = 'http://fhir.health.gov.il/cs/paying-entity-moh'
+      * code = '103'
+
+) ~> $string()

@@ -4,4 +4,4 @@ InstanceOf: Address
 * line
   * extension[data-absent-reason].value = 'masked'
 * line
-  * extension[data-absent-reason].value = 'temp-unavailable'
+  * extension[data-absent-reason].value = 'temp-unknown'

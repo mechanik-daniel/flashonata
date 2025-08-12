@@ -19,10 +19,7 @@
     "skip": false,
     "description": "Element ordering: Extension with auto-injected url - url should come before value",
     "data": null,
-    "result": [
-      "url",
-      "valueCodeableConcept"
-    ],
+    "result": "{\"url\":\"http://fhir.health.gov.il/StructureDefinition/ext-il-hmo\",\"valueCodeableConcept\":{\"coding\":[{\"system\":\"http://fhir.health.gov.il/cs/paying-entity-moh\",\"code\":\"103\"}],\"text\":\"HMO Name\"}}",
     "expr-file": "element-ordering-comprehensive-2.fume"
   },
   {
