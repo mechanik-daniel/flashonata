@@ -13,7 +13,8 @@ import ResultProcessor from './flashEvaluator/ResultProcessor.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
 import { createFlashRuleResult, createFlashRuleResultArray } from './flashEvaluator/FlashRuleResult.js';
 import createPolicy from './utils/policy.js';
-import dateTime from './utils/datetime.js';
+// datetime ops now handled in DateLikeCanonicalizer
+import DateLikeCanonicalizer from './flashEvaluator/DateLikeCanonicalizer.js';
 
 /**
  * Flash evaluation module that contains all FLASH-specific evaluation logic
@@ -69,173 +70,17 @@ function createFlashEvaluator(evaluate) {
       valueType = SystemPrimitiveValidator.validateType(input, expr, elementFlashPath);
     }
 
-    // Strict validation/canonicalization for date-like primitives using JSONata datetime conversion
+    // Strict validation/canonicalization for date-like primitives
     const isDateLike = fhirTypeCode === 'date' || fhirTypeCode === 'dateTime' || fhirTypeCode === 'instant';
     if (isDateLike && valueType === 'string') {
-      const originalStr = fn.string(input);
-
-      // If regex-band validation is inhibited entirely, keep original value (no parsing, no truncation)
-      if (!policy.shouldValidate('F5110')) {
-        return originalStr;
-      }
-
-      // Shape flags
-      const hasT = originalStr.indexOf('T') !== -1;
-      const hasFrac = /\.\d+/.test(originalStr);
-      const fracLen = hasFrac ? (originalStr.match(/\.\d+/)[0].length - 1) : 0;
-      const hasSeconds = /T\d{2}:\d{2}:\d{2}/.test(originalStr);
-      const hasMinutes = /T\d{2}:\d{2}(?!:)/.test(originalStr) || /T\d{2}:\d{2}($|[^:])/.test(originalStr) || hasSeconds || hasFrac;
-      const hasTZ = /(Z|[+-]\d{2}:\d{2})$/i.test(originalStr);
-      const hasNumericTZ = /[+-]\d{2}:\d{2}$/.test(originalStr);
-      const tzMatch = originalStr.match(/([+-]\d{2}):(\d{2})$/);
-      const timezoneArg = tzMatch ? `${tzMatch[1]}${tzMatch[2]}` : undefined;
-      const isYearOnly = /^\d{4}$/.test(originalStr);
-      const isYearMonth = /^\d{4}-\d{2}$/.test(originalStr);
-
-      // Disallow 24:00 (and any hour starting with 24) per FHIR
-      if (hasT && /T24:/.test(originalStr)) {
-        const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-        if (policy.enforce(err)) throw err;
-        return originalStr;
-      }
-
-      // Instant must include timezone (and implies seconds via parsing below)
-      if (fhirTypeCode === 'instant' && !hasTZ) {
-        const err = FlashErrorGenerator.createError("F5111", expr, {
-          value: originalStr,
-          fhirElement: elementFlashPath
-        });
-        if (policy.enforce(err)) throw err;
-        return originalStr; // downgraded
-      }
-
-      // dateTime: if time is present, timezone SHALL be present
-      if (fhirTypeCode === 'dateTime' && hasT) {
-        if (!hasTZ) {
-          const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-          if (policy.enforce(err)) throw err;
-          return originalStr; // downgraded
-        }
-      }
-
-      // Step 1: parse to millis. Try default ISO first; if that fails, try a picture tailored to the input shape
-      let millis;
-      let parsed = false;
-      try {
-        millis = dateTime.toMillis(originalStr);
-        parsed = (typeof millis === 'number' && isFinite(millis));
-      } catch (e) {
-        parsed = false;
-      }
-
-      if (!parsed) {
-        let parsePicture;
-        if (fhirTypeCode === 'date') {
-          if (!hasT) {
-            if (isYearOnly) parsePicture = '[Y0001]';
-            else if (isYearMonth) parsePicture = '[Y0001]-[M01]';
-            else parsePicture = '[Y0001]-[M01]-[D01]';
-          }
-        } else if (fhirTypeCode === 'dateTime') {
-          if (!hasT) {
-            if (isYearOnly) parsePicture = '[Y0001]';
-            else if (isYearMonth) parsePicture = '[Y0001]-[M01]';
-            else parsePicture = '[Y0001]-[M01]-[D01]';
-          } else {
-            const tzPart = hasNumericTZ ? '[Z01:01]' : '';
-            if (hasMinutes && !hasSeconds && !hasFrac) {
-              parsePicture = `[Y0001]-[M01]-[D01]T[H01]:[m01]${tzPart}`;
-            } else if (hasSeconds && !hasFrac) {
-              parsePicture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01]${tzPart}`;
-            } else if (hasFrac) {
-              const fDigits = '0'.repeat(Math.max(1, Math.min(fracLen, 9)));
-              parsePicture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01].[f${fDigits}]${tzPart}`;
-            }
-          }
-        } else if (fhirTypeCode === 'instant') {
-          // seconds (and optional fraction) with required timezone
-          if (hasFrac) {
-            const fDigits = '0'.repeat(Math.max(1, Math.min(fracLen, 9)));
-            parsePicture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01].[f${fDigits}][Z01:01]`;
-          } else {
-            parsePicture = '[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01][Z01:01]';
-          }
-        }
-
-        if (parsePicture) {
-          try {
-            millis = dateTime.toMillis.call({ environment }, originalStr, parsePicture);
-            parsed = (typeof millis === 'number' && isFinite(millis));
-          } catch (e) {
-            parsed = false;
-          }
-        }
-      }
-
-      if (!parsed) {
-        const err = FlashErrorGenerator.createError("F5111", expr, {
-          value: originalStr,
-          fhirElement: elementFlashPath
-        });
-        if (policy.enforce(err)) throw err;
-        return originalStr; // downgraded
-      }
-
-      // Step 2: format preserving user precision (and for 'date', allow truncation from datetime)
-      if (fhirTypeCode === 'date') {
-        const picture = isYearOnly ? '[Y0001]' : isYearMonth ? '[Y0001]-[M01]' : '[Y0001]-[M01]-[D01]';
-        const formatted = dateTime.fromMillis(millis, picture);
-        // Round-trip check only when original had no time; when truncating from dateTime, equality will differ by design
-        if (!hasT && formatted !== originalStr) {
-          const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-          if (policy.enforce(err)) throw err;
-        }
-        return formatted;
-      }
-
-      if (fhirTypeCode === 'dateTime') {
-        if (!hasT) {
-          const picture = isYearOnly ? '[Y0001]' : isYearMonth ? '[Y0001]-[M01]' : '[Y0001]-[M01]-[D01]';
-          const formatted = dateTime.fromMillis(millis, picture);
-          if (formatted !== originalStr) {
-            const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-            if (policy.enforce(err)) throw err;
-          }
-          return formatted;
-        }
-        const tzPartOut = hasTZ ? '[Z01:01t]' : '';
-        let picture;
-        if (hasMinutes && !hasSeconds && !hasFrac) {
-          picture = `[Y0001]-[M01]-[D01]T[H01]:[m01]${tzPartOut}`;
-        } else if (hasSeconds && !hasFrac) {
-          picture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01]${tzPartOut}`;
-        } else {
-          const fDigits = '0'.repeat(Math.max(1, Math.min(fracLen, 9)));
-          picture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01].[f${fDigits}]${tzPartOut}`;
-        }
-        const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
-        if (formatted !== originalStr) {
-          const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-          if (policy.enforce(err)) throw err;
-        }
-        return formatted;
-      }
-
-      // instant: timezone required; preserve fraction digits if present
-      if (fhirTypeCode === 'instant') {
-        let picture;
-        if (hasFrac) {
-          picture = `[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01].[f${'0'.repeat(Math.max(1, Math.min(fracLen, 9)))}][Z01:01t]`;
-        } else {
-          picture = '[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01][Z01:01t]';
-        }
-        const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
-        if (formatted !== originalStr) {
-          const err = FlashErrorGenerator.createError("F5111", expr, { value: originalStr, fhirElement: elementFlashPath });
-          if (policy.enforce(err)) throw err;
-        }
-        return formatted;
-      }
+      return DateLikeCanonicalizer.canonicalize(
+        expr,
+        input,
+        fhirTypeCode,
+        elementFlashPath,
+        environment,
+        policy
+      );
     }
 
     // Validation inhibition for F5110 (regex): when inhibited, skip regex test and conversion
@@ -245,7 +90,8 @@ function createFlashEvaluator(evaluate) {
     }
 
     // Validate against regex constraints if present (using the raw input)
-    if (elementDefinition.__regexStr) {
+    // Skip for date/dateTime/instant because canonicalizer fully validates them
+    if (!isDateLike && elementDefinition.__regexStr) {
       const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(input))) {
         const err = FlashErrorGenerator.createError("F5110", expr, {
