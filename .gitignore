@@ -1,15 +1,7 @@
 coverage/
 /dist/
-doc/
-fumifier.js
-fumifier.min.js
-fumifier-es5.js
-fumifier-es5.min.js
-!src/fumifier.js
 node_modules/
 npm-debug.log
-.idea/
-.nyc_output
 test/.test-cache
 test/ast.json
 test/fsh-test-pkg/dist/fsh-generated/data/
