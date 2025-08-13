@@ -2,7 +2,7 @@
 /* eslint-disable no-console */
 import fs from 'fs';
 import path from 'path';
-import fumifier from '../src/fumifier.js';
+import fumifier from '../dist/index.js';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { FhirStructureNavigator } from '@outburn/structure-navigator';

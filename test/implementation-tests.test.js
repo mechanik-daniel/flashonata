@@ -8,7 +8,7 @@
  * in order to achieve 100% coverage for this implementation.
  */
 
-import fumifier from "../src/fumifier.js";
+import fumifier from '../dist/index.js';
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);

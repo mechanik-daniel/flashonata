@@ -27,6 +27,31 @@ import registerNativeFn from './utils/registerNativeFn.js';
 import createFlashEvaluator from './flashEvaluator.js';
 import { createDefaultLogger, SYM, decide, push, thresholds, severityFromCode, LEVELS } from './utils/diagnostics.js';
 
+/**
+ * @typedef {import('@outburn/structure-navigator').FhirStructureNavigator} FhirStructureNavigator
+ */
+
+/**
+ * @typedef FumifierOptions
+ * @property {boolean} [recover] Attempt to recover on parse error.
+ * @property {FhirStructureNavigator} [navigator] FHIR structure navigator used to resolve FLASH constructs.
+ */
+
+/**
+ * @typedef FumifierCompiled
+ * @property {(input: any, bindings?: Record<string, any>, callback?: (err: any, resp: any) => void) => Promise<any>} evaluate
+ *   Evaluate the compiled expression against input. If provided, callback will be called with (err, result).
+ * @property {(input: any, bindings?: Record<string, any>) => Promise<{ ok: boolean, status: number, result: any, diagnostics: any }>} evaluateVerbose
+ *   Like evaluate(), but never throws for handled errors; returns a report with diagnostics and HTTP-like status.
+ * @property {(name: string | symbol, value: any) => void} assign Assign a value to a variable in the compilation scope.
+ * @property {(name: string, implementation: (this: {environment:any, input:any}, ...args: any[]) => any, signature?: string) => void} registerFunction
+ *   Register a custom function available to the expression. Optional JSONata signature string is supported.
+ * @property {(newLogger: {debug: Function, info: Function, warn: Function, error: Function}) => void} setLogger
+ *   Provide a logger implementation; defaults to console-based logger.
+ * @property {() => any} ast Get the parsed AST (possibly FLASH-processed).
+ * @property {() => any} errors Get parse-time errors if compiled with recover=true.
+ */
+
 var fumifier = (function() {
 
   const {
@@ -1972,10 +1997,8 @@ var fumifier = (function() {
   /**
      * Fumifier
      * @param {string} expr - FUME mapping expression as text
-     * @param {FumifierOptions} options
-     * @param {boolean} options.recover: attempt to recover on parse error
-     * @param {FhirStructureNavigator} options.navigator: FHIR structure navigator
-     * @returns {Promise<fumifier.Expression> | fumifier.Expression} Compiled expression object
+     * @param {FumifierOptions} [options]
+     * @returns {Promise<FumifierCompiled>} Compiled expression object
      */
   async function fumifier(expr, options) {
     var ast;

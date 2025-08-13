@@ -4,8 +4,7 @@
  *   This project is licensed under the MIT License, see LICENSE
  */
 
-import { randomUUID } from 'crypto';
-import uuid from 'uuid-by-string';
+import { randomUUID, createHash } from 'crypto';
 
 const utils = (() => {
 
@@ -205,6 +204,29 @@ const utils = (() => {
   var chainAST = {"type":"lambda","arguments":[{"value":"f","type":"variable","position":11,"line":1},{"value":"g","type":"variable","position":15,"line":1}],"position":9,"line":1,"body":{"type":"lambda","arguments":[{"value":"x","type":"variable","position":30,"line":1}],"position":28,"line":1,"body":{"type":"lambda","thunk":true,"arguments":[],"position":36,"line":1,"body":{"type":"function","value":"(","position":36,"line":1,"arguments":[{"type":"function","value":"(","position":39,"line":1,"arguments":[{"value":"x","type":"variable","position":41,"line":1}],"procedure":{"value":"f","type":"variable","position":38,"line":1}}],"procedure":{"value":"g","type":"variable","position":35,"line":1}}}}};
 
   /**
+   * Generates a UUID v5-like identifier from a string using SHA-1.
+   * RFC 4122 variant bits are set; version is set to 5.
+   * @param {string} seedString - Input string to derive the UUID from
+   * @returns {string} - Deterministic UUID string
+   */
+  function uuidFromString(seedString) {
+    const hash = createHash('sha1').update(seedString).digest(); // Buffer (20 bytes)
+    const b = Buffer.from(hash.slice(0, 16));
+    // Set version 5 (0101)
+    b[6] = (b[6] & 0x0f) | 0x50;
+    // Set variant RFC 4122 (10xxxxxx)
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const hex = b.toString('hex');
+    return (
+      hex.slice(0, 8) + '-' +
+      hex.slice(8, 12) + '-' +
+      hex.slice(12, 16) + '-' +
+      hex.slice(16, 20) + '-' +
+      hex.slice(20)
+    );
+  }
+
+  /**
    * Generates a UUID based on a seed or random if no seed provided
    * @param {*} [seed] - optional seed value (will be stringified if not a string)
    * @returns {string} - UUID string
@@ -216,7 +238,7 @@ const utils = (() => {
 
     // Stringify the seed if it's not already a string
     const seedString = typeof seed === 'string' ? seed : JSON.stringify(seed);
-    return uuid(seedString);
+    return uuidFromString(seedString);
   }
 
   /**

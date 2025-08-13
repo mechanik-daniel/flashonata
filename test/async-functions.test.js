@@ -1,4 +1,4 @@
-import fumifier from '../src/fumifier.js';
+import fumifier from '../dist/index.js';
 import fetch from 'node-fetch';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';

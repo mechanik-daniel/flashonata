@@ -1,4 +1,4 @@
-import fumifier from '../src/fumifier.js';
+import fumifier from '../dist/index.js';
 import assert from 'assert';
 import chai from 'chai';
 
