@@ -2120,7 +2120,7 @@ var fumifier = (function() {
           throw err;
         }
       },
-      evaluateVerbose: async function(input, bindings) {
+      evaluateVerbose: async function (input, bindings) {
         // Like evaluate(), but never throws for handled errors; returns a report
         var exec_env = typeof bindings !== 'undefined' ? createFrame(environment) : environment;
         if (typeof bindings !== 'undefined') {
@@ -2150,12 +2150,6 @@ var fumifier = (function() {
           populateMessage(err);
           // Use diagnostics push() with the original error (message populated); push() will sanitize
           push(exec_env, err);
-          // TODO: Optional post-pass logging: if any collected diagnostic wasn't logged
-          // (e.g., produced outside enforcePolicy), log it here in verbose mode.
-          // This would ensure console reflects the diagnostics bag. Keep off by default.
-          // Example: iterate ['error','warning','debug'] and log unseen entries.
-          // Guard with a bindings flag like verboseLogAllCollected=true.
-          // result remains undefined
         }
 
         const status = (function computeStatus() {
@@ -2204,8 +2198,6 @@ var fumifier = (function() {
     return fumifierObject;
 
   }
-
-  fumifier.parser = parser; // TODO remove this in a future release - use ast() instead
 
   return fumifier;
 
