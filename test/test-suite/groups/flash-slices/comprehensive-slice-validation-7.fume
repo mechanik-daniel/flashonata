@@ -1,0 +1,10 @@
+InstanceOf: il-core-patient
+* gender = 'male'
+* birthDate = '1980-01-01'
+* identifier[il-id].value = '123456789'
+* name
+  * family = 'Doe'
+  * given = ['John', 'A.']
+* extension[hmo].value.coding
+  * code = 'UNK'
+  * system = 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor'

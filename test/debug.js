@@ -280,13 +280,9 @@ void async function () {
 // * code.coding[OptionalSlice]
 
 InstanceOf: Patient
-* maritalStatus.coding
-  * system = 'http://example.org/marital-status'
-  * code = 'XYZ'
-* gender = 'female'
-
-
-
+* name
+  * family = 'Doe'
+  * given = ['John', 'A.']
 
 `
 ;

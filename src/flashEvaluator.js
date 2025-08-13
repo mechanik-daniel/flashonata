@@ -248,6 +248,15 @@ function createFlashEvaluator(evaluate) {
         environment
       );
 
+      // handle array primitive inline assignments by returning multiple FlashRuleResults
+      if (Array.isArray(input.value)) {
+        // evaluated is an array of parsed primitive values (because parseSystemPrimitive maps arrays)
+        const primitiveItems = evaluated.map(item => createFhirPrimitive({ value: item }));
+        const resultsArray = createFlashRuleResultArray(groupingKey, kind, primitiveItems);
+        resultsArray.forEach(r => validatePrimitiveBinding(r, elementDefinition, expr, environment));
+        return resultsArray; // return early with array of FlashRuleResults
+      }
+
       // For primitive types, result.value is always an object even if there's no value
       // This is necessary for elements that have children (extension or id) but no value
       result.value = createFhirPrimitive({
@@ -782,6 +791,8 @@ function createFlashEvaluator(evaluate) {
       // not the intermediate object representation of a primitive (with the `value` as property).
       if (kind === 'primitive-type' && inlineResult !== undefined) {
         inlineResult = createFhirPrimitive({value: inlineResult});
+        // FIX: preserve the inline primitive so finalizeFlashRuleResult can access it via input.value
+        result.value = inlineResult; // inlineResult may be a single value or an array (user supplied)
       }
 
       // Handle resourceType attribute for flash rules and blocks

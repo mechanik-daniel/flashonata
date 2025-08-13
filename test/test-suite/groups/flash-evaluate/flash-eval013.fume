@@ -1,0 +1,4 @@
+InstanceOf: Patient
+* name
+  * family = 'Doe'
+  * given = ['John', 'A.']

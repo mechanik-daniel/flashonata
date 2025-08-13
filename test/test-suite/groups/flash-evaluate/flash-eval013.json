@@ -1,0 +1,19 @@
+{
+  "skip": false,
+  "description": "Assignment of array into array primitive - should take all values",
+  "data": {},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "family": "Doe",
+        "given": [
+          "John",
+          "A."
+        ]
+      }
+    ]
+  },
+  "expr-file": "flash-eval013.fume"
+}
