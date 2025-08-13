@@ -2,15 +2,14 @@
 // Project: https://github.com/jsonata-js/jsonata
 // Definitions by: Nick <https://github.com/nick121212> and Michael M. Tiller <https://github.com/xogeny>
 
-import { FhirStructureNavigator } from "@outburn/structure-navigator";
+import type { FhirStructureNavigator } from "@outburn/structure-navigator";
 
 declare function fumifier(str: string, options?: fumifier.FumifierOptions): Promise<fumifier.Expression> | fumifier.Expression;
 declare namespace fumifier {
 
   interface FumifierOptions {
     recover?: boolean,
-    navigator?: FhirStructureNavigator,
-    verbose?: boolean
+    navigator?: FhirStructureNavigator
   }
 
   interface ExprNode {
@@ -71,9 +70,6 @@ declare namespace fumifier {
     assign(name: string, value: any): void;
     registerFunction(name: string, implementation: (this: Focus, ...args: any[]) => any, signature?: string): void;
     ast(): ExprNode;
-    logs(): Array<any>;
-    exportLogs(): string;
-    clearLogs(): void;
   }
 }
 
