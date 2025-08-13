@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of full datetime into Observation.effectiveDateTime - should preserve fraction and Z",
+  "data": {},
+  "bindings": {},
+  "result": "2025-07-21T23:27:35.948Z",
+  "expr-file": "flash-eval016.fume"
+}

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "dateTime with timezone but missing minutes - invalid time",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error019.fume"
+}

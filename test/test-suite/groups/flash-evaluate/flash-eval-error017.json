@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "instant using disallowed 24:00:00 - must be valid time",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error017.fume"
+}

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "date with timezone suffix - not allowed",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error018.fume"
+}

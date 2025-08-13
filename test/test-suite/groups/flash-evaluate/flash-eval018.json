@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of date-only into Observation.effectiveDateTime - should preserve",
+  "data": {},
+  "bindings": {},
+  "result": "2025-07-21",
+  "expr-file": "flash-eval018.fume"
+}

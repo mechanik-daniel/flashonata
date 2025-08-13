@@ -20,7 +20,7 @@ void async function () {
 
   var expression = `
 InstanceOf: Patient
-* birthDate = '1970-02-31'
+* birthDate = '1970-02-29'
 `
 ;
 

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Instant without timezone in Observation.issued - must include timezone",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error014.fume"
+}

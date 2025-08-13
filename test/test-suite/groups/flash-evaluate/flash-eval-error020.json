@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "dateTime with invalid timezone format (+HHMM without colon) - must be +HH:MM or Z",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error020.fume"
+}

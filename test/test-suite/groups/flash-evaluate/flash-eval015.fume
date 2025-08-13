@@ -1,0 +1,2 @@
+(InstanceOf: Patient
+* birthDate = '1970-07').birthDate

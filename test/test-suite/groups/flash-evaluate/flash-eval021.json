@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of datetime with seconds+fraction and timezone offset into Observation.effectiveDateTime - should preserve",
+  "data": {},
+  "bindings": {},
+  "result": "2025-07-21T23:27:35.123+05:30",
+  "expr-file": "flash-eval021.fume"
+}

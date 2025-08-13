@@ -211,6 +211,7 @@ const errorCodes = {
   "F2008": "Failed to fetch definition of children for mandatory element {{value}} in {{fhirType}}.",
   "F3000": "This FLASH rule is not attached to an ElementDefinition. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F5110": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must match the regular expression: {{{regex}}}",
+  "F5111": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must be a valid calendar date/dateTime.",
   "F5130": "The FHIR element {{fhirElement}} is required in {{fhirParent}}, but no value was provided.",
   "F3003": "Could not find ElementDefinition for {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3004": "Failed to determine the structural kind of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",

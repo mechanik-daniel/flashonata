@@ -1,0 +1,4 @@
+(InstanceOf: Observation
+* status = 'final'
+* code.text = 'abc'
+* issued = '2025-07-21T23:27:35Z').issued

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "dateTime with time but no timezone - must include timezone",
+  "data": {},
+  "bindings": {},
+  "code": "F5111",
+  "expr-file": "flash-eval-error015.fume"
+}

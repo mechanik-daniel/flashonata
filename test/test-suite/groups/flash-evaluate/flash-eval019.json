@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of datetime with timezone offset into Observation.effectiveDateTime - should preserve",
+  "data": {},
+  "bindings": {},
+  "result": "2025-07-21T23:27+01:00",
+  "expr-file": "flash-eval019.fume"
+}

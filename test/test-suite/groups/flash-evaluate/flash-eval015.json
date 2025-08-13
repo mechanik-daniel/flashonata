@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of year-month into Patient.birthDate - should preserve",
+  "data": {},
+  "bindings": {},
+  "result": "1970-07",
+  "expr-file": "flash-eval015.fume"
+}

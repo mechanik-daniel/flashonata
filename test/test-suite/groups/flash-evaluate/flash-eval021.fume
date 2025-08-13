@@ -1,0 +1,4 @@
+(InstanceOf: Observation
+* status = 'final'
+* code.text = 'abc'
+* effectiveDateTime = '2025-07-21T23:27:35.123+05:30').effectiveDateTime

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "Assignment of instant into Observation.issued - must preserve",
+  "data": {},
+  "bindings": {},
+  "result": "2025-07-21T23:27:35Z",
+  "expr-file": "flash-eval017.fume"
+}
