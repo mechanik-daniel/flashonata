@@ -184,7 +184,10 @@ const functions = (() => {
 
     var pos = str.indexOf(chars);
     if (pos > -1) {
-      return str.substr(0, pos);
+      // NOTE:
+      // Original JSONata code used str.substr(...) which is deprecated.
+      // Replaced with str.slice(...) to remove the deprecation warning
+      return str.slice(0, pos);
     } else {
       return str;
     }
@@ -204,7 +207,10 @@ const functions = (() => {
 
     var pos = str.indexOf(chars);
     if (pos > -1) {
-      return str.substr(pos + chars.length);
+      // NOTE:
+      // Original JSONata code used str.substr(...) which is deprecated.
+      // Replaced with str.slice(...) to remove the deprecation warning
+      return str.slice(pos + chars.length);
     } else {
       return str;
     }
