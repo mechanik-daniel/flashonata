@@ -2,7 +2,10 @@
   {
     "description": "Extensible CodeableConcept violation emits F5343 at throwLevel 35",
     "data": null,
-    "bindings": { "throwLevel": 35, "validationLevel": 35 },
+    "bindings": {
+      "throwLevel": 35,
+      "validationLevel": 35
+    },
     "code": "F5343",
     "expr-file": "flash-bindings007.fume"
   },
@@ -11,12 +14,16 @@
     "data": null,
     "bindings": {},
     "result": {
-      "resourceType": "Observation",
-      "interpretation": [{
-        "coding": [ { "system": "http://example.org/interpretation", "code": "XYZ" } ]
-      }],
-      "status": "final",
-      "code": { "text": "code is mandatory" }
+      "resourceType": "Patient",
+      "maritalStatus": {
+        "coding": [
+          {
+            "system": "http://example.org/marital-status",
+            "code": "XYZ"
+          }
+        ]
+      },
+      "gender": "female"
     },
     "expr-file": "flash-bindings007.fume"
   }

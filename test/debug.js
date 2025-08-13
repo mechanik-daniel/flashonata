@@ -279,12 +279,12 @@ void async function () {
 // * status = 'unknown'
 // * code.coding[OptionalSlice]
 
-InstanceOf: Observation
-* interpretation.coding
-  * system = 'http://example.org/interpretation'
+InstanceOf: Patient
+* maritalStatus.coding
+  * system = 'http://example.org/marital-status'
   * code = 'XYZ'
-* status = 'final'
-* code.text = 'code is mandatory'
+* gender = 'female'
+
 
 
 
