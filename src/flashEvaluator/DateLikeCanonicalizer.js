@@ -41,6 +41,26 @@ const RE_T_24 = /T24:/;
  */
 export default class DateLikeCanonicalizer {
   /**
+   * Helper method to create and handle F5111 validation errors consistently.
+   * @param {Object} expr Expression with FHIR context for error reporting
+   * @param {string} originalStr Original input string value
+   * @param {string} elementFlashPath Element flash path for diagnostics
+   * @param {('date'|'dateTime'|'instant')} fhirTypeCode The FHIR type code
+   * @param {Object} policy Active validation policy
+   * @returns {string} Returns originalStr if error is not enforced
+   * @throws {Error} Throws error if policy enforces it
+   */
+  static _createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy) {
+    const err = FlashErrorGenerator.createError('F5111', expr, {
+      value: originalStr,
+      fhirElement: elementFlashPath,
+      fhirType: fhirTypeCode
+    });
+    if (policy.enforce(err)) throw err;
+    return originalStr; // downgraded
+  }
+
+  /**
    * Canonicalize a FHIR date-like primitive value.
    * @param {Object} expr Expression with FHIR context for error reporting
    * @param {string} inputStr Input value to canonicalize
@@ -73,28 +93,18 @@ export default class DateLikeCanonicalizer {
 
     // Disallow 24:00 (and any hour starting with 24) per FHIR
     if (hasT && RE_T_24.test(originalStr)) {
-      const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-      if (policy.enforce(err)) throw err;
-      return originalStr;
+      return this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
     }
 
     // Instant must include timezone (and implies seconds via parsing below)
     if (fhirTypeCode === 'instant' && !hasTZ) {
-      const err = FlashErrorGenerator.createError('F5111', expr, {
-        value: originalStr,
-        fhirElement: elementFlashPath,
-        fhirType: fhirTypeCode
-      });
-      if (policy.enforce(err)) throw err;
-      return originalStr; // downgraded
+      return this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
     }
 
     // dateTime: if time is present, timezone SHALL be present
     if (fhirTypeCode === 'dateTime' && hasT) {
       if (!hasTZ) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-        if (policy.enforce(err)) throw err;
-        return originalStr; // downgraded
+        return this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
       }
     }
 
@@ -153,13 +163,7 @@ export default class DateLikeCanonicalizer {
     }
 
     if (!parsed) {
-      const err = FlashErrorGenerator.createError('F5111', expr, {
-        value: originalStr,
-        fhirElement: elementFlashPath,
-        fhirType: fhirTypeCode
-      });
-      if (policy.enforce(err)) throw err;
-      return originalStr; // downgraded
+      return this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
     }
 
     // Step 2: format preserving user precision (and for 'date', allow truncation from datetime)
@@ -168,8 +172,7 @@ export default class DateLikeCanonicalizer {
       const formatted = dateTime.fromMillis(millis, picture);
       // Round-trip check only when original had no time; when truncating from dateTime, equality will differ by design
       if (!hasT && formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-        if (policy.enforce(err)) throw err;
+        this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
       }
       return formatted;
     }
@@ -179,8 +182,7 @@ export default class DateLikeCanonicalizer {
         const picture = isYearOnly ? '[Y0001]' : isYearMonth ? '[Y0001]-[M01]' : '[Y0001]-[M01]-[D01]';
         const formatted = dateTime.fromMillis(millis, picture);
         if (formatted !== originalStr) {
-          const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-          if (policy.enforce(err)) throw err;
+          this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
         }
         return formatted;
       }
@@ -196,8 +198,7 @@ export default class DateLikeCanonicalizer {
       }
       const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
       if (formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-        if (policy.enforce(err)) throw err;
+        this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
       }
       return formatted;
     }
@@ -212,8 +213,7 @@ export default class DateLikeCanonicalizer {
       }
       const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
       if (formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
-        if (policy.enforce(err)) throw err;
+        this._createF5111ErrorOrDowngrade(expr, originalStr, elementFlashPath, fhirTypeCode, policy);
       }
       return formatted;
     }
