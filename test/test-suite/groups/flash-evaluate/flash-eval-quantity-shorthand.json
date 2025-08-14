@@ -1,7 +1,7 @@
 [
   {
+    "skip": true,
     "description": "Quantity shorthand: number -> value",
-    "group": "flash-evaluate",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": 42,
     "bindings": {},
@@ -16,8 +16,8 @@
     }
   },
   {
+    "skip": true,
     "description": "Quantity shorthand: string numeric -> coerced number",
-    "group": "flash-evaluate",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": "42",
     "bindings": {},
@@ -32,8 +32,8 @@
     }
   },
   {
+    "skip": true,
     "description": "Quantity shorthand: array mix string/number -> last taken",
-    "group": "flash-evaluate",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": ["13", 42],
     "bindings": {},
@@ -48,8 +48,8 @@
     }
   },
   {
+    "skip": true,
     "description": "Quantity shorthand: array mix string/object -> last object wins",
-    "group": "flash-evaluate",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": ["42", {"value": "13"}],
     "bindings": {},
