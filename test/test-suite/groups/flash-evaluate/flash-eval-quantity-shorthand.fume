@@ -1,0 +1,4 @@
+InstanceOf: Patient
+* extension
+  * url = 'http://example.com/fhir/StructureDefinition/test-extension'
+  * valueQuantity = $
