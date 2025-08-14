@@ -20,8 +20,11 @@ void async function () {
 
   var expression = `
 (InstanceOf: Observation
+* id = 'dfdf_4343'
 * status = 'final'
-* code.coding.code = {'a':'b'}).code.coding[0].code
+* code.coding.code = '123'
+* effectiveDateTime = '2023-10-01T12:00:00Z'
+)
 
 `
 ;

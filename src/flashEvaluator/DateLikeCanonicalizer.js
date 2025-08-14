@@ -73,7 +73,7 @@ export default class DateLikeCanonicalizer {
 
     // Disallow 24:00 (and any hour starting with 24) per FHIR
     if (hasT && RE_T_24.test(originalStr)) {
-      const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+      const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
       if (policy.enforce(err)) throw err;
       return originalStr;
     }
@@ -82,7 +82,8 @@ export default class DateLikeCanonicalizer {
     if (fhirTypeCode === 'instant' && !hasTZ) {
       const err = FlashErrorGenerator.createError('F5111', expr, {
         value: originalStr,
-        fhirElement: elementFlashPath
+        fhirElement: elementFlashPath,
+        fhirType: fhirTypeCode
       });
       if (policy.enforce(err)) throw err;
       return originalStr; // downgraded
@@ -91,7 +92,7 @@ export default class DateLikeCanonicalizer {
     // dateTime: if time is present, timezone SHALL be present
     if (fhirTypeCode === 'dateTime' && hasT) {
       if (!hasTZ) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
         if (policy.enforce(err)) throw err;
         return originalStr; // downgraded
       }
@@ -154,7 +155,8 @@ export default class DateLikeCanonicalizer {
     if (!parsed) {
       const err = FlashErrorGenerator.createError('F5111', expr, {
         value: originalStr,
-        fhirElement: elementFlashPath
+        fhirElement: elementFlashPath,
+        fhirType: fhirTypeCode
       });
       if (policy.enforce(err)) throw err;
       return originalStr; // downgraded
@@ -166,7 +168,7 @@ export default class DateLikeCanonicalizer {
       const formatted = dateTime.fromMillis(millis, picture);
       // Round-trip check only when original had no time; when truncating from dateTime, equality will differ by design
       if (!hasT && formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
         if (policy.enforce(err)) throw err;
       }
       return formatted;
@@ -177,7 +179,7 @@ export default class DateLikeCanonicalizer {
         const picture = isYearOnly ? '[Y0001]' : isYearMonth ? '[Y0001]-[M01]' : '[Y0001]-[M01]-[D01]';
         const formatted = dateTime.fromMillis(millis, picture);
         if (formatted !== originalStr) {
-          const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+          const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
           if (policy.enforce(err)) throw err;
         }
         return formatted;
@@ -194,7 +196,7 @@ export default class DateLikeCanonicalizer {
       }
       const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
       if (formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
         if (policy.enforce(err)) throw err;
       }
       return formatted;
@@ -210,7 +212,7 @@ export default class DateLikeCanonicalizer {
       }
       const formatted = dateTime.fromMillis(millis, picture, timezoneArg);
       if (formatted !== originalStr) {
-        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath });
+        const err = FlashErrorGenerator.createError('F5111', expr, { value: originalStr, fhirElement: elementFlashPath, fhirType: fhirTypeCode });
         if (policy.enforce(err)) throw err;
       }
       return formatted;

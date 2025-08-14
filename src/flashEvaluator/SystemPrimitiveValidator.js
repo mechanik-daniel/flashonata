@@ -59,7 +59,8 @@ class SystemPrimitiveValidator {
         throw FlashErrorGenerator.createError("F5110", expr, {
           value: input,
           regex: elementDefinition.__regexStr,
-          fhirElement: elementFlashPath
+          fhirElement: elementFlashPath,
+          fhirType: elementDefinition.__fhirTypeCode
         });
       }
     }

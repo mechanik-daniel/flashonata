@@ -5,7 +5,6 @@
 
 import fn from './utils/functions.js';
 import FlashErrorGenerator from './flashEvaluator/FlashErrorGenerator.js';
-import SystemPrimitiveValidator from './flashEvaluator/SystemPrimitiveValidator.js';
 import ChildValueProcessor from './flashEvaluator/ChildValueProcessor.js';
 import VirtualRuleEvaluator from './flashEvaluator/VirtualRuleEvaluator.js';
 import MetaProfileInjector from './flashEvaluator/MetaProfileInjector.js';
@@ -13,8 +12,7 @@ import ResultProcessor from './flashEvaluator/ResultProcessor.js';
 import { createFhirPrimitive, isFhirPrimitive } from './flashEvaluator/FhirPrimitive.js';
 import { createFlashRuleResult, createFlashRuleResultArray } from './flashEvaluator/FlashRuleResult.js';
 import createPolicy from './utils/policy.js';
-// datetime ops now handled in DateLikeCanonicalizer
-import DateLikeCanonicalizer from './flashEvaluator/DateLikeCanonicalizer.js';
+import PrimitiveValidator from './flashEvaluator/PrimitiveValidator.js';
 
 /**
  * Flash evaluation module that contains all FLASH-specific evaluation logic
@@ -35,145 +33,7 @@ function createFlashEvaluator(evaluate) {
    * @returns {*} Parsed primitive value
    */
   function parseSystemPrimitive(expr, input, elementDefinition, environment) {
-    const policy = createPolicy(environment);
-    if (Array.isArray(input)) {
-      // input is an array, parse each entry and return an array
-      return input.map(item => parseSystemPrimitive(expr, item, elementDefinition, environment));
-    }
-
-    // Validate input - skip processing if invalid
-    const validation = SystemPrimitiveValidator.validateInput(input);
-    if (!validation.isValid) {
-      return undefined;
-    }
-
-    const rootFhirTypeId = expr.instanceof;
-    const elementFlashPath = expr.flashPathRefKey.slice(rootFhirTypeId.length + 2); // for error reporting
-
-    // get the fhir type code for the element
-    const fhirTypeCode = elementDefinition.__fhirTypeCode;
-
-    if (!fhirTypeCode) {
-      /* c8 ignore next 5 */
-      throw FlashErrorGenerator.createError("F3007", expr, {
-        instanceOf: rootFhirTypeId,
-        fhirElement: elementFlashPath
-      });
-    }
-
-    // Validate that input is a primitive type
-    let valueType;
-    if (!policy.shouldValidate('F5101')) {
-      // Policy says: skip F5101 checks; infer type without throwing
-      valueType = fn.type(input);
-    } else {
-      valueType = SystemPrimitiveValidator.validateType(input, expr, elementFlashPath);
-    }
-
-    // Strict validation/canonicalization for date-like primitives
-    const isDateLike = fhirTypeCode === 'date' || fhirTypeCode === 'dateTime' || fhirTypeCode === 'instant';
-    if (isDateLike && valueType === 'string') {
-      return DateLikeCanonicalizer.canonicalize(
-        expr,
-        input,
-        fhirTypeCode,
-        elementFlashPath,
-        environment,
-        policy
-      );
-    }
-
-    // Custom validation for string-like primitives: string | markdown | code
-    const isStringLike = fhirTypeCode === 'string' || fhirTypeCode === 'markdown' || fhirTypeCode === 'code';
-    if (isStringLike) {
-      // Inhibit entire validation if regex band is skipped (align with date-like behavior)
-      if (!policy.shouldValidate('F5110')) {
-        return input; // inhibited: return raw input
-      }
-
-      const s = fn.string(input);
-
-      // Helper to detect Unicode whitespace using JS \s (covers White_Space including NBSP)
-      const isWhitespaceChar = (ch) => /\s/u.test(ch);
-
-      if (fhirTypeCode === 'code') {
-        // code rules:
-        // - at least one character
-        // - no leading/trailing whitespace (Unicode)
-        // - only single spaces or NBSPs between non-space characters
-        // - no other whitespace characters allowed anywhere
-        const hasAnyChar = s.length > 0;
-        const leadingOrTrailingWS = /^\s|\s$/u.test(s);
-        // disallow any whitespace that is not ASCII space or NBSP
-        let hasDisallowedWS = false;
-        for (const ch of s) {
-          if (isWhitespaceChar(ch) && ch !== ' ' && ch !== '\u00A0') { hasDisallowedWS = true; break; }
-        }
-        // disallow consecutive allowed space separators (space or NBSP)
-        const hasDoubleSpace = /( |\u00A0){2,}/u.test(s);
-
-        if (!hasAnyChar || leadingOrTrailingWS || hasDisallowedWS || hasDoubleSpace) {
-          const err = FlashErrorGenerator.createError('F5113', expr, {
-            value: s,
-            fhirElement: elementFlashPath
-          });
-          if (policy.enforce(err)) throw err;
-          return s; // downgraded
-        }
-        return s;
-      } else {
-        // string/markdown rules:
-        // - allow TAB (U+0009), LF (U+000A), CR (U+000D)
-        // - allow all characters from U+0020 upwards, excluding C1 controls U+0080..U+009F
-        // - must contain at least one non-whitespace character
-        let validChars = true;
-        let hasNonWhitespace = false;
-        for (const ch of s) {
-          const cp = ch.codePointAt(0);
-          if (cp < 0x20) {
-            if (cp !== 0x09 && cp !== 0x0A && cp !== 0x0D) { validChars = false; break; }
-          } else if (cp >= 0x80 && cp <= 0x9F) {
-            validChars = false; break; // exclude C1 controls
-          }
-          if (!isWhitespaceChar(ch)) hasNonWhitespace = true;
-        }
-        if (!validChars || !hasNonWhitespace) {
-          const err = FlashErrorGenerator.createError('F5112', expr, {
-            value: s,
-            fhirElement: elementFlashPath
-          });
-          if (policy.enforce(err)) throw err;
-          return s; // downgraded
-        }
-        return s;
-      }
-    }
-
-    // Validation inhibition for F5110 (regex): when inhibited, skip regex test and conversion
-    if (!policy.shouldValidate('F5110')) {
-      // Policy says: do not perform this level of tests -> return raw input as-is
-      return input;
-    }
-
-    // Validate against regex constraints if present (using the raw input)
-    // Skip for date/dateTime/instant and string-like (string/markdown/code) because we fully validate them above
-    if (!isDateLike && !isStringLike && elementDefinition.__regexStr) {
-      const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
-      if (regexTester && !regexTester.test(fn.string(input))) {
-        const err = FlashErrorGenerator.createError("F5110", expr, {
-          value: input,
-          regex: elementDefinition.__regexStr,
-          fhirElement: elementFlashPath
-        });
-        if (policy.enforce(err)) {
-          throw err;
-        }
-        // Downgraded: continue with input so the invalid value remains visible
-      }
-    }
-
-    // Convert to appropriate JSON type (using the raw input)
-    return SystemPrimitiveValidator.convertValue(input, fhirTypeCode, valueType);
+    return PrimitiveValidator.validate(expr, input, elementDefinition, environment);
   }
 
   /**
