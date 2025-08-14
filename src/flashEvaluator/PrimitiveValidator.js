@@ -86,7 +86,7 @@ export default class PrimitiveValidator {
 
     // Optional regex constraint
     if (!isDateLike && !isStringLike && elementDefinition.__regexStr) {
-      const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
+      const regexTester = PrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(input))) {
         const err = FlashErrorGenerator.createError('F5110', expr, {
           value: input,
@@ -103,5 +103,18 @@ export default class PrimitiveValidator {
 
     // Convert to target JSON type
     return SystemPrimitiveValidator.convertValue(input, fhirTypeCode, valueType);
+  }
+
+  /**
+   * Get compiled FHIR regex tester from environment (dispatcher-owned).
+   * @param {Object} environment Execution environment
+   * @param {string} regexStr Regex string
+   * @returns {RegExp|undefined} Compiled regex instance or undefined when not available
+   */
+  static getRegexTester(environment, regexStr) {
+    let compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
+    if (compiled) return compiled;
+    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
+    return compiled;
   }
 }

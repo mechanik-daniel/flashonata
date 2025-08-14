@@ -1,6 +1,7 @@
 /**
  * @module SystemPrimitiveValidator
- * @description Validation logic for system primitives in FLASH evaluation
+ * @description Internal helpers for system primitive validation/coercion.
+ * NOTE: Used by PrimitiveValidator as an implementation detail.
  */
 
 import fn from '../utils/functions.js';
@@ -10,7 +11,7 @@ import FlashErrorGenerator from './FlashErrorGenerator.js';
 const { boolize } = fn;
 
 /**
- * Validation logic for system primitives
+ * Validation/coercion helpers for system primitives
  */
 class SystemPrimitiveValidator {
   /**
@@ -36,49 +37,12 @@ class SystemPrimitiveValidator {
   static validateType(input, expr, elementFlashPath) {
     const valueType = fn.type(input);
     if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean') {
-      throw FlashErrorGenerator.createValidationError("F5101", expr, fn.string(input), {
+      throw FlashErrorGenerator.createValidationError('F5101', expr, fn.string(input), {
         valueType,
         fhirElement: elementFlashPath
       });
     }
     return valueType;
-  }
-
-  /**
-   * Validate input against regex constraint
-   * @param {*} input - Input value to validate
-   * @param {Object} elementDefinition - FHIR element definition
-   * @param {Object} expr - Expression for error reporting
-   * @param {string} elementFlashPath - FHIR element path for error reporting
-   * @param {Object} environment - Environment with regex testers
-   */
-  static validateRegex(input, elementDefinition, expr, elementFlashPath, environment) {
-    if (elementDefinition.__regexStr) {
-      const regexTester = this.getRegexTester(environment, elementDefinition.__regexStr);
-      if (regexTester && !regexTester.test(fn.string(input))) {
-        throw FlashErrorGenerator.createError("F5110", expr, {
-          value: input,
-          regex: elementDefinition.__regexStr,
-          fhirElement: elementFlashPath,
-          fhirType: elementDefinition.__fhirTypeCode
-        });
-      }
-    }
-  }
-
-  /**
-   * Get compiled FHIR regex tester from environment
-   * @param {Object} environment - Environment with compiled regexes
-   * @param {string} regexStr - Regex string to compile
-   * @returns {RegExp} Compiled regex
-   */
-  static getRegexTester(environment, regexStr) {
-    var compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_GET'))(regexStr);
-    if (compiled) {
-      return compiled;
-    }
-    compiled = environment.lookup(Symbol.for('fumifier.__compiledFhirRegex_SET'))(regexStr);
-    return compiled;
   }
 
   /**
