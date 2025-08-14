@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "string: control char should fail",
+  "data": {},
+  "bindings": {},
+  "code": "F5112",
+  "expr-file": "flash-eval-error021.fume"
+}

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: simple passes",
+  "data": {},
+  "bindings": {},
+  "result": "abc",
+  "expr-file": "flash-eval025.fume"
+}

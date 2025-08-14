@@ -1,0 +1,3 @@
+(InstanceOf: Observation
+* status = 'final'
+* code.coding.code = 'abc\u00A0def').code.coding[0].code

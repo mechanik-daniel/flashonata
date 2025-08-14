@@ -1,0 +1,3 @@
+(InstanceOf: Observation
+* status = 'final'
+* code.text = 'abc\u0001def').code.text

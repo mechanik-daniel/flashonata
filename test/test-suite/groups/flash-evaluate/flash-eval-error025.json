@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: TAB within content should fail (only space/NBSP allowed)",
+  "data": {},
+  "bindings": {},
+  "code": "F5113",
+  "expr-file": "flash-eval-error025.fume"
+}

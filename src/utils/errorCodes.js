@@ -212,6 +212,8 @@ const errorCodes = {
   "F3000": "This FLASH rule is not attached to an ElementDefinition. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F5110": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must match the regular expression: {{{regex}}}",
   "F5111": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. The value must be a valid calendar date/dateTime.",
+  "F5112": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. Strings must contain at least one non-whitespace character and may only include TAB, LF, CR, or Unicode characters U+0020 and above (excluding U+0080..U+009F).",
+  "F5113": "The value {{value}} is invalid for FHIR element {{fhirElement}} in {{instanceOf}}. Codes must have no leading/trailing whitespace, no consecutive spaces, and may only contain space (U+0020) or NBSP (U+00A0) as internal whitespace.",
   "F5130": "The FHIR element {{fhirElement}} is required in {{fhirParent}}, but no value was provided.",
   "F3003": "Could not find ElementDefinition for {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",
   "F3004": "Failed to determine the structural kind of {{fhirElement}} in {{instanceOf}}. This compiled FUME expression may be corrupted and needs to be parsed again.",

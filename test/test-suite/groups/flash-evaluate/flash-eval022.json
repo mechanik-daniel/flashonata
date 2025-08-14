@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "string: plain ASCII passes",
+  "data": {},
+  "bindings": {},
+  "result": "abc",
+  "expr-file": "flash-eval022.fume"
+}

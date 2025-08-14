@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: double space should fail",
+  "data": {},
+  "bindings": {},
+  "code": "F5113",
+  "expr-file": "flash-eval027.fume"
+}

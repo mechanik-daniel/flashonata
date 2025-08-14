@@ -19,8 +19,10 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-InstanceOf: Patient
-* birthDate = '1970-02-29'
+(InstanceOf: Observation
+* status = 'final'
+* code.coding.code = {'a':'b'}).code.coding[0].code
+
 `
 ;
 

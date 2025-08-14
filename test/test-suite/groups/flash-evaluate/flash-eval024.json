@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "string: NBSP allowed",
+  "data": {},
+  "bindings": {},
+  "result": "abc\u00A0def",
+  "expr-file": "flash-eval024.fume"
+}

@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "string: non-whitespace Unicode passes",
+  "data": {},
+  "bindings": {},
+  "result": "αβγ",
+  "expr-file": "flash-eval023.fume"
+}

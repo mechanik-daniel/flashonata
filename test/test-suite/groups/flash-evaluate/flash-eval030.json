@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: NBSP allowed internally",
+  "data": {},
+  "bindings": {},
+  "result": "abc\u00A0def",
+  "expr-file": "flash-eval030.fume"
+}

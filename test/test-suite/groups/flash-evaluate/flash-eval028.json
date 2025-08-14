@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: leading space should fail",
+  "data": {},
+  "bindings": {},
+  "code": "F5113",
+  "expr-file": "flash-eval028.fume"
+}

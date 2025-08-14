@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: single ASCII space passes",
+  "data": {},
+  "bindings": {},
+  "result": "abc def",
+  "expr-file": "flash-eval026.fume"
+}

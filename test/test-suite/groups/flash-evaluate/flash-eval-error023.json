@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "string: whitespace-only should fail",
+  "data": {},
+  "bindings": {},
+  "code": "F5112",
+  "expr-file": "flash-eval-error023.fume"
+}

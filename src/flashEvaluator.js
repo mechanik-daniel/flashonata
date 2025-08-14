@@ -83,6 +83,72 @@ function createFlashEvaluator(evaluate) {
       );
     }
 
+    // Custom validation for string-like primitives: string | markdown | code
+    const isStringLike = fhirTypeCode === 'string' || fhirTypeCode === 'markdown' || fhirTypeCode === 'code';
+    if (isStringLike) {
+      // Inhibit entire validation if regex band is skipped (align with date-like behavior)
+      if (!policy.shouldValidate('F5110')) {
+        return input; // inhibited: return raw input
+      }
+
+      const s = fn.string(input);
+
+      // Helper to detect Unicode whitespace using JS \s (covers White_Space including NBSP)
+      const isWhitespaceChar = (ch) => /\s/u.test(ch);
+
+      if (fhirTypeCode === 'code') {
+        // code rules:
+        // - at least one character
+        // - no leading/trailing whitespace (Unicode)
+        // - only single spaces or NBSPs between non-space characters
+        // - no other whitespace characters allowed anywhere
+        const hasAnyChar = s.length > 0;
+        const leadingOrTrailingWS = /^\s|\s$/u.test(s);
+        // disallow any whitespace that is not ASCII space or NBSP
+        let hasDisallowedWS = false;
+        for (const ch of s) {
+          if (isWhitespaceChar(ch) && ch !== ' ' && ch !== '\u00A0') { hasDisallowedWS = true; break; }
+        }
+        // disallow consecutive allowed space separators (space or NBSP)
+        const hasDoubleSpace = /( |\u00A0){2,}/u.test(s);
+
+        if (!hasAnyChar || leadingOrTrailingWS || hasDisallowedWS || hasDoubleSpace) {
+          const err = FlashErrorGenerator.createError('F5113', expr, {
+            value: s,
+            fhirElement: elementFlashPath
+          });
+          if (policy.enforce(err)) throw err;
+          return s; // downgraded
+        }
+        return s;
+      } else {
+        // string/markdown rules:
+        // - allow TAB (U+0009), LF (U+000A), CR (U+000D)
+        // - allow all characters from U+0020 upwards, excluding C1 controls U+0080..U+009F
+        // - must contain at least one non-whitespace character
+        let validChars = true;
+        let hasNonWhitespace = false;
+        for (const ch of s) {
+          const cp = ch.codePointAt(0);
+          if (cp < 0x20) {
+            if (cp !== 0x09 && cp !== 0x0A && cp !== 0x0D) { validChars = false; break; }
+          } else if (cp >= 0x80 && cp <= 0x9F) {
+            validChars = false; break; // exclude C1 controls
+          }
+          if (!isWhitespaceChar(ch)) hasNonWhitespace = true;
+        }
+        if (!validChars || !hasNonWhitespace) {
+          const err = FlashErrorGenerator.createError('F5112', expr, {
+            value: s,
+            fhirElement: elementFlashPath
+          });
+          if (policy.enforce(err)) throw err;
+          return s; // downgraded
+        }
+        return s;
+      }
+    }
+
     // Validation inhibition for F5110 (regex): when inhibited, skip regex test and conversion
     if (!policy.shouldValidate('F5110')) {
       // Policy says: do not perform this level of tests -> return raw input as-is
@@ -90,8 +156,8 @@ function createFlashEvaluator(evaluate) {
     }
 
     // Validate against regex constraints if present (using the raw input)
-    // Skip for date/dateTime/instant because canonicalizer fully validates them
-    if (!isDateLike && elementDefinition.__regexStr) {
+    // Skip for date/dateTime/instant and string-like (string/markdown/code) because we fully validate them above
+    if (!isDateLike && !isStringLike && elementDefinition.__regexStr) {
       const regexTester = SystemPrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(input))) {
         const err = FlashErrorGenerator.createError("F5110", expr, {

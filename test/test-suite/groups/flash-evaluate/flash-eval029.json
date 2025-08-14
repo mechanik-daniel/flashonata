@@ -1,0 +1,8 @@
+{
+  "skip": false,
+  "description": "code: trailing NBSP should fail (no trailing whitespace)",
+  "data": {},
+  "bindings": {},
+  "code": "F5113",
+  "expr-file": "flash-eval029.fume"
+}

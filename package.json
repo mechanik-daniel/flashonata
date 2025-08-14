@@ -10,7 +10,7 @@
     "directory": "dist"
   },
   "scripts": {
-    "build": "rimraf dist && ncc build src/fumifier.js --minify --no-cache --out dist",
+    "build": "rimraf dist && ncc build src/fumifier.js --minify --out dist",
     "postbuild": "npm run build:types && npm run write:dist-pkg",
     "build:types": "tsc -p tsconfig.types.json && node -e \"const fs=require('fs');const path=require('path');const root='dist';const ensureIndex=()=>{const cands=['dist/types/index.d.ts','dist/fumifier.d.ts','dist/src/fumifier.d.ts'];for(const c of cands){if(fs.existsSync(c)){const out=path.join(root,'index.d.ts');if(c!==out){fs.mkdirSync(root,{recursive:true});fs.renameSync(c,out);}return out;}}return path.join(root,'index.d.ts');};const keep=ensureIndex();function walk(dir){for(const e of fs.readdirSync(dir)){const p=path.join(dir,e);const st=fs.statSync(p);if(st.isDirectory()){walk(p);try{if(fs.readdirSync(p).length===0)fs.rmdirSync(p);}catch(_){}}else if(p.endsWith('.d.ts')&&p!==keep){fs.unlinkSync(p);}}}walk(root);\"",
     "write:dist-pkg": "node -e \"const fs=require('fs');const path=require('path');const rootPkg=JSON.parse(fs.readFileSync('package.json','utf8'));const outDir='dist';fs.mkdirSync(outDir,{recursive:true});const minimal={name:rootPkg.name,version:rootPkg.version,main:'index.js',type:'module',types:'index.d.ts',license:rootPkg.license,files:['index.js','index.d.ts'],dependencies:rootPkg.dependencies||{}};fs.writeFileSync(path.join(outDir,'package.json'),JSON.stringify(minimal,null,2));\"",
