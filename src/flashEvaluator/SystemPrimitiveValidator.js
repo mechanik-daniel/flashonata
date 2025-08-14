@@ -55,6 +55,10 @@ class SystemPrimitiveValidator {
   static convertValue(input, fhirTypeCode, valueType) {
     // Handle boolean elements
     if (fhirTypeCode === 'boolean') {
+      // Special handling for explicit string 'false' and 'FALSE'
+      if (typeof input === 'string' && (input === 'false' || input === 'FALSE')) {
+        return false;
+      }
       return boolize(input);
     }
 

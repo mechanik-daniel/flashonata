@@ -1,0 +1,11 @@
+{
+  "skip": false,
+  "description": "boolean: literal 'false' should evaluate to false",
+  "data": {},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "active": false
+  },
+  "expr-file": "flash-eval032.fume"
+}

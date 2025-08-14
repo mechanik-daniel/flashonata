@@ -19,12 +19,8 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-(InstanceOf: Observation
-* id = 'dfdf_4343'
-* status = 'final'
-* code.coding.code = '123'
-* effectiveDateTime = '2023-10-01T12:00:00Z'
-)
+(InstanceOf: Patient
+* active = 'false')
 
 `
 ;

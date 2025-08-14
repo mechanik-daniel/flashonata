@@ -84,8 +84,9 @@ export default class PrimitiveValidator {
       return input;
     }
 
-    // Optional regex constraint
-    if (!isDateLike && !isStringLike && elementDefinition.__regexStr) {
+    // Optional regex constraint (skip for boolean types like we do for dates and strings)
+    const isBooleanLike = fhirTypeCode === 'boolean';
+    if (!isDateLike && !isStringLike && !isBooleanLike && elementDefinition.__regexStr) {
       const regexTester = PrimitiveValidator.getRegexTester(environment, elementDefinition.__regexStr);
       if (regexTester && !regexTester.test(fn.string(input))) {
         const err = FlashErrorGenerator.createError('F5110', expr, {
