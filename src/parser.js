@@ -1,5 +1,16 @@
-/* eslint-disable no-console */
 /* eslint-disable valid-jsdoc */
+
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+This file includes and modifies code from JSONata (https://github.com/jsonata-js/jsonata),
+licensed under the MIT License. See NOTICE and LICENSES/MIT-JSONata.txt for details.
+Portions of the evaluator, parser, and function library were adapted and refactored.
+*/
+
 /**
  * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
  *   Project name: JSONata

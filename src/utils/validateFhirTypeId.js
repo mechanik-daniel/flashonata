@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 /**
  * Check if the string provided after InstanceOf: conforms to the limitations on URLs
  * and FHIR type names and logical id's

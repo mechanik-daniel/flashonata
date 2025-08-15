@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 /* eslint-disable require-jsdoc */
 /** Takes a FHIR Structure Navigator and returns helper functions used to fetch FHIR semantic data
  * @param {FhirStructureNavigator} navigator - FHIR structure navigator

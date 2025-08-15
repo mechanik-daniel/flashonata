@@ -9,3 +9,4 @@ test/fsh-test-pkg/dist/fsh-generated/includes/
 test/fsh-test-pkg/dist/fsh-generated/fsh-index.txt
 debug-logs.txt
 debug-result.json
+fumifier-*.tgz

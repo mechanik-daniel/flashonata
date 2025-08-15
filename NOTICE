@@ -1,0 +1,22 @@
+Fumifier (part of the FUME open-source initiative)
+Copyright (c) 2025 Outburn Ltd. and contributors
+
+Licensed under the Apache License, Version 2.0 (Apache-2.0).
+See the file named LICENSE in the project root for the full license text.
+
+Third-party components and attributions
+- JSONata (https://github.com/jsonata-js/jsonata)
+  License: MIT License
+  Copyright: (c) 2016–2025 JSONata authors
+  Notes: Portions of the evaluator, parser, and function library in this project
+         are adapted and refactored from the JSONata codebase.
+  License text: see LICENSES/MIT-JSONata.txt (verbatim upstream notice and license).
+
+Distribution notes
+- When redistributing this project in source or binary form, include this NOTICE file
+  alongside the LICENSE file. This NOTICE is provided for informational purposes and
+  does not modify the terms of the licenses referenced above.
+
+Trademarks
+- JSONata is a separate project. All trademarks are the property of their respective
+  owners. No endorsement by the JSONata project or its authors is implied.

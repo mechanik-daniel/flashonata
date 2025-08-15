@@ -1,3 +1,9 @@
+/**
+ * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
+ *   Project name: JSONata
+ *   This project is licensed under the MIT License, see LICENSE
+ */
+
 import seekParent from './seekParent.js';
 
 const resolveAncestry = function(path, ancestorWrapper) {

@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 /**
  * @module FlashErrorGenerator
  * @description Standardized error generation for FLASH evaluation

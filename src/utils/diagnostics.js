@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 /* eslint-disable no-console */
 // Diagnostics infrastructure for FLASH (F5xxx policy-governed) and user logging
 // Lower value = more critical. Supports decimal severities.

@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 /* eslint-disable no-console */
 // Centralized policy utilities for validation inhibition, logging, collection, and throw decision
 // This wraps diagnostics.js and errorCodes.js into a tiny API consumable by call sites.

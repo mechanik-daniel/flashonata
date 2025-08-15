@@ -1,3 +1,11 @@
+/*
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2025 Outburn Ltd.
+
+Project: Fumifier (part of the FUME open-source initiative)
+
+*/
+
 const contextualizeRule = (rule) => {
   if (!rule || !rule.type === 'flashrule' || !rule.context) {
     // If the rule is not a flashrule or does not have a context, return it as is

@@ -1,3 +1,9 @@
+/**
+ * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
+ *   Project name: JSONata
+ *   This project is licensed under the MIT License, see LICENSE
+ */
+
 // tail call optimization
 // this is invoked by the post parser to analyse lambda functions to see
 // if they make a tail call.  If so, it is replaced by a thunk which will
