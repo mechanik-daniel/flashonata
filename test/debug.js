@@ -19,9 +19,10 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-InstanceOf: Patient
-* active = true
-* identifier = 'some-id'
+InstanceOf: Patient  
+* extension
+  * valueQuantity = [42, { "value": 100, "unit": "mg" }, 3.14]
+  * url = 'http://example.com/'
 
 `
 ;

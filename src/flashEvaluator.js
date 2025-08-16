@@ -424,10 +424,23 @@ function createFlashEvaluator(evaluate) {
     const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
     const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
 
+    // Special case: For Quantity arrays, wrap primitive values as { value: primitive }
+    let processedInput = inlineArray;
+    if (kind === 'complex-type' && elementDefinition.__fhirTypeCode === 'Quantity') {
+      processedInput = inlineArray.map(item => {
+        // If item is primitive (null or not an object), wrap it as { value: primitive }
+        if (item === null || typeof item !== 'object') {
+          return { value: item };
+        }
+        // Otherwise, keep the object as-is
+        return item;
+      });
+    }
+
     // Apply resource validation if needed (CRITICAL: must happen before createFlashRuleResultArray)
-    let validatedInput = inlineArray;
+    let validatedInput = processedInput;
     if (kind === 'resource') {
-      validatedInput = assertResourceInput(inlineArray, expr, environment);
+      validatedInput = assertResourceInput(processedInput, expr, environment);
     }
 
     return createFlashRuleResultArray(groupingKey, kind, validatedInput);
@@ -765,8 +778,14 @@ function createFlashEvaluator(evaluate) {
         const policy = createPolicy(environment);
         // Check if we received a primitive when expecting a complex type
         if (inlineResult === null || typeof inlineResult !== 'object') {
-          // Inhibition: skip this validation entirely when F5104 is outside validation band
-          if (!policy.shouldValidate('F5104')) {
+          // Special case: Allow primitive assignments to Quantity types, wrap as { value: primitive }
+          const elementDefinition = getElementDefinition(environment, expr);
+          const typeCode = elementDefinition?.__fhirTypeCode;
+
+          if (typeCode === 'Quantity') {
+            // For Quantity, wrap primitive values as { value: primitiveValue }
+            result = { value: inlineResult };
+          } else if (!policy.shouldValidate('F5104')) {
             // inhibited: allow the primitive assignment without validation
             result = inlineResult;
           } else {

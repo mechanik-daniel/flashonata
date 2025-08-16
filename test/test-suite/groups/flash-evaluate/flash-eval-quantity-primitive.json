@@ -1,0 +1,23 @@
+[
+  {
+    "description": "Observation with primitive value assigned to Quantity type - should wrap as { value: primitive }",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Observation",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "system": "http://loinc.org",
+            "code": "29463-7"
+          }
+        ]
+      },
+      "valueQuantity": {
+        "value": 42
+      }
+    },
+    "expr-file": "flash-eval-quantity-primitive.fume"
+  }
+]

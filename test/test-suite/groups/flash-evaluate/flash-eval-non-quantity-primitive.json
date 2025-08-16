@@ -1,0 +1,9 @@
+[
+  {
+    "description": "Patient with primitive value assigned to non-Quantity complex type (Address) - should still throw F5104",
+    "data": null,
+    "bindings": {},
+    "code": "F5104",
+    "expr-file": "flash-eval-non-quantity-primitive.fume"
+  }
+]

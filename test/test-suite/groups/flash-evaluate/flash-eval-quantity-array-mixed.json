@@ -1,0 +1,20 @@
+[
+  {
+    "description": "Patient with mixed primitive and object values in Quantity array - primitives should be wrapped",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Patient",
+      "extension": [
+        {
+          "url": "http://example.com/",
+          "valueQuantity": {
+            "value": 3.14,
+            "unit": "mg"
+          }
+        }
+      ]
+    },
+    "expr-file": "flash-eval-quantity-array-mixed.fume"
+  }
+]
