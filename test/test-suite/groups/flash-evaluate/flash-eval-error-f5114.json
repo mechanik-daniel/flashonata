@@ -1,0 +1,27 @@
+[
+  {
+    "description": "Patient with string exceeding maxLength (1048576) - should throw F5114",
+    "data": null,
+    "bindings": {},
+    "code": "F5114",
+    "expr-file": "flash-eval-error-f5114.fume"
+  },
+  {
+    "expr-file": "flash-eval-error-f5114.fume",
+    "bindings": {
+      "validationLevel": 10
+    },
+    "result": 1048600,
+    "data": null,
+    "description": "Patient with string exceeding maxLength - inhibited (F5114 outside validation band)"
+  },
+  {
+    "expr-file": "flash-eval-error-f5114.fume",
+    "bindings": {
+      "throwLevel": 10
+    },
+    "result": 1048600,
+    "data": null,
+    "description": "Patient with string exceeding maxLength - downgraded (F5114 not thrown)"
+  }
+]

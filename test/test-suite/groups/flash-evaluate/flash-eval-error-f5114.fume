@@ -1,0 +1,3 @@
+(InstanceOf: Patient
+* name.family = $join([1..1048600].('a'))
+).name[0].family.$length()
