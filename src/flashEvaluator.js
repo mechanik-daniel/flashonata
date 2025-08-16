@@ -155,13 +155,6 @@ function createFlashEvaluator(evaluate) {
     // create a container object for the evaluated flash rule
     const result = createFlashRuleResult(groupingKey, kind);
 
-    // if element has a fixed value, use it and return (short circuit)
-    // TODO: hypothesis: safe to delete. fixed values are short circuiting earlier in the eval chain
-    if (elementDefinition.__fixedValue) {
-      result.value = elementDefinition.__fixedValue;
-      return result;
-    }
-
     // handle system primitive's inline value
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
