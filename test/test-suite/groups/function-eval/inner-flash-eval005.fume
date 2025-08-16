@@ -1,0 +1,7 @@
+$eval("
+  InstanceOf: Patient
+  * active = status='active'
+  * name
+    * given = first
+    * family = last
+")

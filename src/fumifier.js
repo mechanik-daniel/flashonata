@@ -32,6 +32,8 @@ import resolveDefinitions from './utils/resolveDefinitions.js';
 
 // Import boolize directly since it's a simple utility function
 const { boolize } = fn;
+// Destructure common helpers from utils to use as globals in this module
+const { isNumeric, isArrayOfNumbers, isArrayOfStrings, createSequence, isSequence, isFunction, isIterable, getFunctionArity, isDeepEqual, isPromise, isLambda } = utils;
 import { populateMessage } from './utils/errorCodes.js';
 import defineFunction from './utils/defineFunction.js';
 import registerNativeFn from './utils/registerNativeFn.js';
@@ -65,22 +67,38 @@ import { createDefaultLogger, SYM, decide, push, thresholds, severityFromCode, L
 
 var fumifier = (function() {
 
-  const {
-    isNumeric,
-    isArrayOfStrings,
-    isArrayOfNumbers,
-    createSequence,
-    isSequence,
-    isFunction,
-    isLambda,
-    isIterable,
-    isPromise,
-    getFunctionArity,
-    isDeepEqual
-  } = utils;
+  // Create frame
+  function createFrame(enclosingEnvironment) {
+    var bindings = {};
+    const newFrame = {
+      bind: function (name, value) {
+        bindings[name] = value;
+      },
+      lookup: function (name) {
+        var value;
+        if(Object.prototype.hasOwnProperty.call(bindings, name)) {
+          value = bindings[name];
+        } else if (enclosingEnvironment) {
+          value = enclosingEnvironment.lookup(name);
+        }
+        return value;
+      },
+      timestamp: enclosingEnvironment ? enclosingEnvironment.timestamp : null,
+      async: enclosingEnvironment ? enclosingEnvironment.async : false,
+      isParallelCall: enclosingEnvironment ? enclosingEnvironment.isParallelCall : false,
+      global: enclosingEnvironment ? enclosingEnvironment.global : {
+        ancestry: [null]
+      }
+    };
 
-  // Initialize flash evaluator function
-  const evaluateFlash = createFlashEvaluator(evaluate);
+    if (enclosingEnvironment) {
+      var framePushCallback = enclosingEnvironment.lookup(Symbol.for('fumifier.__createFrame_push'));
+      if(framePushCallback) {
+        framePushCallback(enclosingEnvironment, newFrame);
+      }
+    }
+    return newFrame;
+  }
 
   // Start of Evaluator code
 
@@ -196,6 +214,9 @@ var fumifier = (function() {
 
     return result;
   }
+
+  // Initialize FLASH evaluator (uses main evaluate)
+  const evaluateFlash = createFlashEvaluator(evaluate);
 
   /**
      * Evaluate unary expression against input data
@@ -1889,10 +1910,27 @@ var fumifier = (function() {
       }
     }
 
+    let ast;
     try {
-      var ast = parser(expr, false);
+      ast = parser(expr, false);
+
+      // Post-parse FLASH processing for inner $eval expressions
+      // Inherit navigator from the factory; callers of $eval do not (and must not) pass it.
+      if (ast && ast.containsFlash === true) {
+        const env = this.environment;
+        const navigator = env && env.lookup(Symbol.for('fumifier.__navigator'));
+        if (!navigator) {
+          // Mirror factory behavior for missing navigator with FLASH content
+          const err = { code: 'F1000', position: 0 };
+          err.stack = (new Error()).stack;
+          throw err; // will be wrapped as D3120 below
+        }
+        const compiledFhirRegex = env && env.lookup(Symbol.for('fumifier.__compiledFhirRegex_OBJ'));
+        const errors = []; // no recover mode for $eval; collect if needed but do not expose
+        ast = await resolveDefinitions(ast, navigator, false, errors, compiledFhirRegex);
+      }
     } catch(err) {
-      // error parsing the expression passed to $eval
+      // error parsing the expression (or resolving FLASH definitions) passed to $eval
       populateMessage(err);
       throw {
         stack: (new Error()).stack,
@@ -1902,7 +1940,28 @@ var fumifier = (function() {
       };
     }
     try {
-      var result = await evaluate(ast, input, this.environment);
+      // Evaluate with environment inherited from the caller, overriding only the
+      // FHIR resolved definitions when this inner AST contains FLASH content.
+      // Note: thresholds/logging/diagnostics and regex GET/SET remain inherited.
+      let evalEnv = this.environment;
+      if (ast && ast.containsFlash === true) {
+        const localEnv = createFrame(this.environment);
+        localEnv.bind(Symbol.for('fumifier.__resolvedDefinitions'), {
+          typeMeta: ast.resolvedTypeMeta,
+          baseTypeMeta: ast.resolvedBaseTypeMeta,
+          typeChildren: ast.resolvedTypeChildren,
+          elementDefinitions: ast.resolvedElementDefinitions,
+          elementChildren: ast.resolvedElementChildren,
+          resolvedValueSetExpansions: ast.resolvedValueSetExpansions
+        });
+        // TODO(inner-verbose): if we add support for inner verbose mode in $eval, we
+        // will need to plumb a verbose flag and return a structured report instead of
+        // throwing. For now, inner $eval is always non-verbose by design.
+        evalEnv = localEnv;
+      }
+
+      var result = await evaluate(ast, input, evalEnv);
+      return result;
     } catch(err) {
       // error evaluating the expression passed to $eval
       populateMessage(err);
@@ -1913,45 +1972,6 @@ var fumifier = (function() {
         error: err
       };
     }
-
-    return result;
-  }
-
-  /**
-     * Create frame
-     * @param {Object} enclosingEnvironment - Enclosing environment
-     * @returns {{bind: bind, lookup: lookup}} Created frame
-     */
-  function createFrame(enclosingEnvironment) {
-    var bindings = {};
-    const newFrame = {
-      bind: function (name, value) {
-        bindings[name] = value;
-      },
-      lookup: function (name) {
-        var value;
-        if(bindings.hasOwnProperty(name)) {
-          value = bindings[name];
-        } else if (enclosingEnvironment) {
-          value = enclosingEnvironment.lookup(name);
-        }
-        return value;
-      },
-      timestamp: enclosingEnvironment ? enclosingEnvironment.timestamp : null,
-      async: enclosingEnvironment ? enclosingEnvironment.async : false,
-      isParallelCall: enclosingEnvironment ? enclosingEnvironment.isParallelCall : false,
-      global: enclosingEnvironment ? enclosingEnvironment.global : {
-        ancestry: [null]
-      }
-    };
-
-    if (enclosingEnvironment) {
-      var framePushCallback = enclosingEnvironment.lookup(Symbol.for('fumifier.__createFrame_push'));
-      if(framePushCallback) {
-        framePushCallback(enclosingEnvironment, newFrame);
-      }
-    }
-    return newFrame;
   }
 
   // Function registration
@@ -2088,6 +2108,10 @@ var fumifier = (function() {
       return compiled;
     });
 
+    // Expose navigator and compiled regex cache to inner $eval() via environment lookup
+    environment.bind(Symbol.for('fumifier.__navigator'), navigator);
+    environment.bind(Symbol.for('fumifier.__compiledFhirRegex_OBJ'), compiledFhirRegex);
+
     // bind the resolved definition collections
     environment.bind(Symbol.for('fumifier.__resolvedDefinitions'), {
       typeMeta: ast.resolvedTypeMeta,
@@ -2100,57 +2124,61 @@ var fumifier = (function() {
 
     var fumifierObject = {
       evaluate: async function (input, bindings, callback) {
-        // throw if the expression compiled with syntax errors
-        if(typeof errors !== 'undefined') {
-          var err = {
-            code: 'S0500',
-            position: 0
-          };
-          populateMessage(err); // possible side-effects on `err`
-          throw err;
-        }
-
-        if (typeof bindings !== 'undefined') {
-          var exec_env;
-          // the variable bindings have been passed in - create a frame to hold these
-          exec_env = createFrame(environment);
-          for (var v in bindings) {
-            exec_env.bind(v, bindings[v]);
-          }
-        } else {
-          exec_env = environment;
-        }
-        // fresh diagnostics bag per call
-        exec_env.bind(SYM.diagnostics, { error: [], warning: [], debug: [] });
-        // put the input document into the environment as the root object
-        exec_env.bind('$', input);
-
-        // capture the timestamp and put it in the execution environment
-        // the $now() and $millis() functions will return this value - whenever it is called
-        timestamp = new Date();
-        exec_env.timestamp = timestamp;
-
-        // if the input is a JSON array, then wrap it in a singleton sequence so it gets treated as a single input
-        if(Array.isArray(input) && !isSequence(input)) {
-          input = createSequence(input);
-          input.outerWrapper = true;
-        }
-
-        var it;
+        var exec_env;
         try {
-          it = await evaluate(ast, input, exec_env);
-          if (typeof callback === "function") {
-            callback(null, it);
+          // throw if the expression compiled with syntax errors
+          if(typeof errors !== 'undefined') {
+            var err = {
+              code: 'S0500',
+              position: 0
+            };
+            populateMessage(err); // possible side-effects on `err`
+            throw err;
           }
-          // success -> discard diagnostics
-          return it;
+
+          if (typeof bindings !== 'undefined') {
+            // the variable bindings have been passed in - create a frame to hold these
+            exec_env = createFrame(environment);
+            for (var v in bindings) {
+              exec_env.bind(v, bindings[v]);
+            }
+          } else {
+            exec_env = environment;
+          }
+          // fresh diagnostics bag per call
+          exec_env.bind(SYM.diagnostics, { error: [], warning: [], debug: [] });
+          // put the input document into the environment as the root object
+          exec_env.bind('$', input);
+
+          // capture the timestamp and put it in the execution environment
+          // the $now() and $millis() functions will return this value - whenever it is called
+          timestamp = new Date();
+          exec_env.timestamp = timestamp; // ensure date/time utils can access a fixed reference time
+
+          // Ensure array focus is wrapped as a singleton sequence
+          if(Array.isArray(input) && !isSequence(input)) {
+            input = createSequence(input);
+            input.outerWrapper = true;
+          }
+
+          const result = await evaluate(ast, input, exec_env);
+
+          if (typeof callback === 'function') {
+            callback(null, result);
+            return undefined;
+          }
+          return result;
         } catch (err) {
           // insert error message into structure
           populateMessage(err); // possible side-effects on `err`
           try {
-            const bag = exec_env.lookup(SYM.diagnostics);
+            const bag = exec_env && typeof exec_env.lookup === 'function' ? exec_env.lookup(SYM.diagnostics) : null;
             if (bag) err.flashDiagnostics = bag;
           } catch(ex) { /* ignore diagnostics attachment issues */ }
+          if (typeof callback === 'function') {
+            callback(err);
+            return undefined;
+          }
           throw err;
         }
       },

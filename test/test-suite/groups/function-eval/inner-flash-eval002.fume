@@ -1,0 +1,4 @@
+$eval("Instance: 'pt-1'
+InstanceOf: Patient
+* id = 'abc'\n* active = true
+")

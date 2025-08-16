@@ -19,10 +19,8 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-InstanceOf: Patient
-* extension
-  * url = 'http://example.com/fhir/StructureDefinition/test-extension'
-  * valueQuantity = {'value': '42'}
+$eval('InstanceOf: Patient\n* id = "abc"')
+
 
 `
 ;

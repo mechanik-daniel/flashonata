@@ -1,0 +1,4 @@
+$eval("
+  InstanceOf: Patient
+  * gender = 'not-a-code'
+")

@@ -1,0 +1,15 @@
+{
+  "description": "$eval evaluates FLASH that builds nested arrays/objects",
+  "data": {},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "name": [
+      {
+        "given": ["Alice"],
+        "family": "Smith"
+      }
+    ]
+  },
+  "expr-file": "inner-flash-eval003.fume"
+}

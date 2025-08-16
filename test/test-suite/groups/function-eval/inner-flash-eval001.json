@@ -1,0 +1,10 @@
+{
+  "description": "$eval evaluating a simple FLASH instance expression from external file",
+  "data": null,
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "abc"
+  },
+  "expr-file": "inner-flash-eval001.fume"
+}

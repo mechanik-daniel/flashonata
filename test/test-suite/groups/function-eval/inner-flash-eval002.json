@@ -1,0 +1,11 @@
+{
+  "description": "$eval evaluates FLASH with Instance: name, returns matching Patient",
+  "data": {},
+  "bindings": {},
+  "result": {
+    "resourceType": "Patient",
+    "id": "abc",
+    "active": true
+  },
+  "expr-file": "inner-flash-eval002.fume"
+}
