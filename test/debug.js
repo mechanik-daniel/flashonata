@@ -19,8 +19,11 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-(InstanceOf: Patient
-* name.family = $join([1..1048600].('a'))).resourceType
+  InstanceOf: bp
+  * status = 'final'
+  * subject.reference = 'Patient/123'
+  * effectiveDateTime = '2023-10-01T00:00:00Z'
+  * component[SystolicBP].value = {'value':'120.5gds'}
 
 `
 ;
@@ -47,7 +50,7 @@ void async function () {
   try {
     res = await expr.evaluate({
       resourceType: "Patient"
-    }, { logLevel: 50, validationLevel: 12, throwLevel: 35, collectLevel: 70 });
+    }, { logLevel: 50, validationLevel: 30, throwLevel: 13, collectLevel: 70 });
     console.log('Expression evaluated successfully');
   } catch (e) {
     console.error('Error evaluating expression:');

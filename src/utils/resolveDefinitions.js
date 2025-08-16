@@ -349,7 +349,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
   // - Recursively fetch, resolve and save mandatory elements' children, to enable fixed[x] and pattern[x] injection at all levels.
   // - This is needed for elements that are not directly referenced in the FLASH block, but expected to be populated automatically.
   const pending = new Set();
-  const shouldExpand = (key, ed) => (ed?.min >= 1 && ed.__kind && ed.__kind !== 'system' && !ed.__fixedValue && !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key));
+  const shouldExpand = (key, ed) => (ed?.min >= 1 && ed.__kind && ed.__kind !== 'system' && !ed.__fixedValue && !Object.prototype.hasOwnProperty.call(resolvedElementChildren, key)) || (ed?.base?.path === 'Quantity.value');
   for (const [k, ed] of Object.entries(resolvedElementDefinitions)) if (shouldExpand(k, ed)) pending.add(k);
   for (const [k, childrenEds] of Object.entries(resolvedTypeChildren)) for (const ed of childrenEds) { const childKey = `${k}::${toFlashSegment(ed.id)}`; if (shouldExpand(childKey, ed)) pending.add(childKey); }
   for (const [k, childrenEds] of Object.entries(resolvedElementChildren)) for (const ed of childrenEds) { const childKey = `${k}.${toFlashSegment(ed.id)}`; if (shouldExpand(childKey, ed)) pending.add(childKey); }
@@ -378,6 +378,28 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
             assignFhirTypeCode(child);
             assignFixedOrPatternValue(child);
             await processBinding(child, fhirTypeMeta);
+
+            // Extract regex patterns for decimal system types in Quantity.value context
+            // This is needed for Quantity shorthand validation
+            if (child.__kind === 'system' && child.__fhirTypeCode === 'decimal' && child.base?.path === 'decimal.value') {
+              try {
+                const baseKey = `${fhirTypeMeta.__packageId}@${fhirTypeMeta.__packageVersion}::${child.__fhirTypeCode}`;
+                let baseTypeMeta = resolvedBaseTypeMeta[baseKey];
+                if (!baseTypeMeta) {
+                  baseTypeMeta = await getBaseTypeMeta(child.__fhirTypeCode, { id: fhirTypeMeta.__packageId, version: fhirTypeMeta.__packageVersion });
+                  resolvedBaseTypeMeta[baseKey] = baseTypeMeta;
+                }
+                const primitiveValueEd = baseTypeMeta ? await getElement(baseTypeMeta, 'value') : undefined;
+                if (primitiveValueEd) {
+                  child.__regexStr = primitiveValueEd.type?.[0]?.extension?.find((e) => e.url === 'http://hl7.org/fhir/StructureDefinition/regex')?.valueString;
+                  child.__maxLength = primitiveValueEd.maxLength;
+                }
+                if (child.__regexStr) {
+                  const label = `__fhir_regex_${child.__regexStr}`;
+                  if (!compiledRegexCache[label]) compiledRegexCache[label] = new RegExp(`^${child.__regexStr}$`);
+                }
+              } catch { /* ignore regex extraction failures */ }
+            }
           }
           const flashSegment = toFlashSegment(child.id);
           child.__flashPathRefKey = `${key}.${flashSegment}`;

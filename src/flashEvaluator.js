@@ -430,7 +430,35 @@ function createFlashEvaluator(evaluate) {
       processedInput = inlineArray.map(item => {
         // If item is primitive (null or not an object), wrap it as { value: primitive }
         if (item === null || typeof item !== 'object') {
-          return { value: item };
+          // Validate and convert the primitive value
+          const valueValueElementKey = `${expr.flashPathRefKey}.value.value`;
+          const valueValueExpr = {
+            ...expr,
+            flashPathRefKey: valueValueElementKey,
+            instanceof: expr.instanceof
+          };
+          const valueValueElementDefinition = getElementDefinition(environment, valueValueExpr);
+          if (valueValueElementDefinition) {
+            const validatedValue = PrimitiveValidator.validate(valueValueExpr, item, valueValueElementDefinition, environment);
+            return { value: validatedValue };
+          } else {
+            return { value: item };
+          }
+        } else if (item.value !== undefined) {
+          // If object already has a value property, validate/convert it
+          const valueValueElementKey = `${expr.flashPathRefKey}.value.value`;
+          const valueValueExpr = {
+            ...expr,
+            flashPathRefKey: valueValueElementKey,
+            instanceof: expr.instanceof
+          };
+          const valueValueElementDefinition = getElementDefinition(environment, valueValueExpr);
+          if (valueValueElementDefinition) {
+            const validatedValue = PrimitiveValidator.validate(valueValueExpr, item.value, valueValueElementDefinition, environment);
+            return { ...item, value: validatedValue };
+          } else {
+            return item;
+          }
         }
         // Otherwise, keep the object as-is
         return item;
@@ -784,7 +812,21 @@ function createFlashEvaluator(evaluate) {
 
           if (typeCode === 'Quantity') {
             // For Quantity, wrap primitive values as { value: primitiveValue }
-            result = { value: inlineResult };
+            // But first validate the primitive value against Quantity.value.value (decimal) constraints
+            const valueValueElementKey = `${expr.flashPathRefKey}.value.value`;
+            const valueValueExpr = {
+              ...expr,
+              flashPathRefKey: valueValueElementKey,
+              instanceof: expr.instanceof
+            };
+            const valueValueElementDefinition = getElementDefinition(environment, valueValueExpr);
+            if (valueValueElementDefinition) {
+              // Validate and convert the primitive value before wrapping
+              const validatedValue = PrimitiveValidator.validate(valueValueExpr, inlineResult, valueValueElementDefinition, environment);
+              result = { value: validatedValue };
+            } else {
+              result = { value: inlineResult };
+            }
           } else if (!policy.shouldValidate('F5104')) {
             // inhibited: allow the primitive assignment without validation
             result = inlineResult;
@@ -804,8 +846,29 @@ function createFlashEvaluator(evaluate) {
             result = inlineResult;
           }
         } else {
-          // Valid object assignment to complex type - use it as the base result
-          result = inlineResult;
+          // Valid object assignment to complex type - but check for Quantity with string value
+          const elementDefinition = getElementDefinition(environment, expr);
+          const typeCode = elementDefinition?.__fhirTypeCode;
+
+          if (typeCode === 'Quantity' && inlineResult.value !== undefined) {
+            // If this is a Quantity object with a value property, validate/convert the value
+            const valueValueElementKey = `${expr.flashPathRefKey}.value.value`;
+            const valueValueExpr = {
+              ...expr,
+              flashPathRefKey: valueValueElementKey,
+              instanceof: expr.instanceof
+            };
+            const valueValueElementDefinition = getElementDefinition(environment, valueValueExpr);
+            if (valueValueElementDefinition) {
+              // Validate and convert the value property
+              const validatedValue = PrimitiveValidator.validate(valueValueExpr, inlineResult.value, valueValueElementDefinition, environment);
+              result = { ...inlineResult, value: validatedValue };
+            } else {
+              result = inlineResult;
+            }
+          } else {
+            result = inlineResult;
+          }
         }
       }
 

@@ -13,6 +13,7 @@ Project: Fumifier (part of the FUME open-source initiative)
 
 import fn from '../utils/functions.js';
 import { createFhirPrimitive } from './FhirPrimitive.js';
+import PrimitiveValidator from './PrimitiveValidator.js';
 
 // Import utility functions directly since they are simple utilities
 const { initCap } = fn;
@@ -224,11 +225,19 @@ class ChildValueProcessor {
       // if it's a fhir primitive, we convert it to an object
       const rawValue = inlineResult[name];
       const siblingName = '_' + name;
+
+      // Get the element definition for validation
+      const elementDefinition = this.getElementDefinitionForChild(child);
+
       // If the value is an array and this element can have multiple values,
       // treat each array item as a separate primitive value
       if (Array.isArray(rawValue) && child.max !== '1') {
         for (const item of rawValue) {
-          const primitiveValue = createFhirPrimitive({ value: item });
+          // Validate and convert the primitive value
+          const validatedValue = elementDefinition ?
+            PrimitiveValidator.validate(this.createExpressionForChild(child), item, elementDefinition, this.environment) :
+            item;
+          const primitiveValue = createFhirPrimitive({ value: validatedValue });
           if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
             // if there's a sibling element with the same name prefixed with '_',
             // we will copy its properties to the value object
@@ -238,7 +247,11 @@ class ChildValueProcessor {
         }
       } else {
         // Single value or array treated as single value
-        const primitiveValue = createFhirPrimitive({ value: rawValue });
+        // Validate and convert the primitive value
+        const validatedValue = elementDefinition ?
+          PrimitiveValidator.validate(this.createExpressionForChild(child), rawValue, elementDefinition, this.environment) :
+          rawValue;
+        const primitiveValue = createFhirPrimitive({ value: validatedValue });
         if (typeof inlineResult[siblingName] === 'object' && Object.keys(inlineResult[siblingName]).length > 0) {
           // if there's a sibling element with the same name prefixed with '_',
           // we will copy its properties to the value object
@@ -247,6 +260,31 @@ class ChildValueProcessor {
         valuesForName.push(primitiveValue);
       }
     }
+  }
+
+  /**
+   * Get element definition for a child element
+   * @param {Object} child - Child element definition
+   * @returns {Object|undefined} Element definition
+   */
+  getElementDefinitionForChild(child) {
+    const definitions = this.environment.lookup(Symbol.for('fumifier.__resolvedDefinitions'));
+    if (definitions && definitions.elementDefinitions && child.__flashPathRefKey) {
+      return definitions.elementDefinitions[child.__flashPathRefKey];
+    }
+    return undefined;
+  }
+
+  /**
+   * Create an expression object for child validation
+   * @param {Object} child - Child element definition
+   * @returns {Object} Expression object
+   */
+  createExpressionForChild(child) {
+    return {
+      flashPathRefKey: child.__flashPathRefKey,
+      instanceof: child.__flashPathRefKey.split('::')[0]
+    };
   }
 }
 

@@ -16,7 +16,7 @@
     }
   },
   {
-    "skip": true,
+    "skip": false,
     "description": "Quantity shorthand: string numeric -> coerced number",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": "42",
@@ -48,7 +48,7 @@
     }
   },
   {
-    "skip": true,
+    "skip": false,
     "description": "Quantity shorthand: array mix string/object -> last object wins",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": ["42", {"value": "13"}],
