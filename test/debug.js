@@ -19,8 +19,20 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-$eval('InstanceOf: Patient\n* id = "abc"')
+InstanceOf: Basic
+* code = [
+  {
+    'coding': 
+      {
+        'system': 'http://hl7.org/fhir/sid/us-ssn',
+        'code': '12345'
+      }
+    
+  },  {
 
+    'text': 'some code'
+  }
+]
 
 `
 ;

@@ -1,0 +1,76 @@
+[
+  {
+    "description": "Basic inline non-array complex type assignment with variable reference",
+    "data": {
+      "text": "some code"
+    },
+    "result": {
+      "resourceType": "Basic",
+      "code": {
+        "text": "some code"
+      }
+    },
+    "expr-file": "inline-object007.fume"
+  },
+  {
+    "description": "Basic inline non-array complex type assignment with variable reference (singleton array)",
+    "data": [
+      {
+        "text": "some code"
+      }
+    ],
+    "result": {
+      "resourceType": "Basic",
+      "code": {
+        "text": "some code"
+      }
+    },
+    "expr-file": "inline-object007.fume"
+  },
+  {
+    "description": "Basic inline complex type assignment with variable reference (array)",
+    "data": [
+      {
+        "text": "some code 1"
+      },
+      {
+        "text": "some code 2"
+      }
+    ],
+    "result": {
+      "resourceType": "Basic",
+      "code": {
+        "text": "some code 2"
+      }
+    },
+    "expr-file": "inline-object007.fume"
+  },
+  {
+    "description": "Basic inline complex type assignment with variable reference (array merge)",
+    "data": [
+      {
+        "coding": [
+          {
+            "code": "code1"
+          }
+        ],
+        "text": "some code 1"
+      },
+      {
+        "text": "some code 2"
+      }
+    ],
+    "result": {
+      "resourceType": "Basic",
+      "code": {
+        "coding": [
+          {
+            "code": "code1"
+          }
+        ],
+        "text": "some code 2"
+      }
+    },
+    "expr-file": "inline-object007.fume"
+  }
+]

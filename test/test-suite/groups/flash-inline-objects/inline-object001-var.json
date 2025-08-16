@@ -1,17 +1,65 @@
-{
-  "description": "Basic inline complex type assignment with variable reference",
-  "data": {
-    "city": "Haifa",
-    "country": "IL"
+[
+  {
+    "description": "Basic inline complex type assignment with variable reference",
+    "data": {
+      "city": "Haifa",
+      "country": "IL"
+    },
+    "result": {
+      "resourceType": "Patient",
+      "address": [
+        {
+          "city": "Haifa",
+          "country": "IL"
+        }
+      ]
+    },
+    "expr-file": "inline-object001-var.fume"
   },
-  "result": {
-    "resourceType": "Patient",
-    "address": [
+  {
+    "description": "Basic inline complex type assignment with variable reference (singleton array)",
+    "data": [
       {
         "city": "Haifa",
         "country": "IL"
       }
-    ]
+    ],
+    "result": {
+      "resourceType": "Patient",
+      "address": [
+        {
+          "city": "Haifa",
+          "country": "IL"
+        }
+      ]
+    },
+    "expr-file": "inline-object001-var.fume"
   },
-  "expr-file": "inline-object001-var.fume"
-}
+  {
+    "description": "Basic inline complex type assignment with variable reference (array)",
+    "data": [
+      {
+        "city": "Haifa",
+        "country": "IL"
+      },
+      {
+        "city": "Tel Aviv",
+        "country": "IL"
+      }
+    ],
+    "result": {
+      "resourceType": "Patient",
+      "address": [
+        {
+          "city": "Haifa",
+          "country": "IL"
+        },
+        {
+          "city": "Tel Aviv",
+          "country": "IL"
+        }
+      ]
+    },
+    "expr-file": "inline-object001-var.fume"
+  }
+]

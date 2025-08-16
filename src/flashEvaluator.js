@@ -159,9 +159,8 @@ function createFlashEvaluator(evaluate) {
     // their value is just the primitive- no children are ever possible
     if (kind === 'system') {
       const resultValue = parseSystemPrimitive(expr, input, elementDefinition, environment);
-      // if the result value is an array, take only last one
-      // (system primitives are assumed to never be arrays in the definition)
-      // TODO: confirm this hypothesis
+      // if the result value is an array, take only the last one
+      // (system primitives are never arrays in FHIR base definitions - confirmed from R4 core package scan)
       if (Array.isArray(resultValue)) {
         /* c8 ignore next */
         result.value = resultValue[resultValue.length - 1];
@@ -727,6 +726,26 @@ function createFlashEvaluator(evaluate) {
         inlineResult = createFhirPrimitive({value: inlineResult});
         // FIX: preserve the inline primitive so finalizeFlashRuleResult can access it via input.value
         result.value = inlineResult; // inlineResult may be a single value or an array (user supplied)
+      }
+
+      // Handle inline array assignments for complex types and resources
+      if (expr.isFlashRule && (kind === 'complex-type' || kind === 'resource') && Array.isArray(inlineResult)) {
+        // For inline array assignments, create multiple FlashRuleResults and return early
+        const elementDefinition = getElementDefinition(environment, expr);
+        if (elementDefinition) {
+          const jsonElementName = elementDefinition.__name[0];
+          const isBasePoly = elementDefinition.base?.path?.endsWith('[x]');
+          const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
+          const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
+
+          // Apply resource validation if needed
+          let validatedInput = inlineResult;
+          if (kind === 'resource') {
+            validatedInput = assertResourceInput(inlineResult, expr, environment);
+          }
+
+          return createFlashRuleResultArray(groupingKey, kind, validatedInput);
+        }
       }
 
       // Handle resourceType attribute for flash rules and blocks
