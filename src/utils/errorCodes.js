@@ -240,6 +240,7 @@ const errorCodes = {
   "F5131": "Element {{value}} is forbidden according to definition: {{fhirType}}.",
   "F5102": "Value for {{fhirElement}} in {{fhirParent}} must be a Resource object, received type: {{valueType}}.",
   "F5103": "Element {{fhirElement}} in {{fhirParent}} must be a Resource, but no \"resourceType\" attribute was found in the assigned object.",
+  "F5104": "Value for {{fhirElement}} in {{fhirParent}} must be a complex object, received primitive type: {{valueType}}.",
   "F5140": "Missing required slice {{sliceName}} under {{fhirElement}} in {{fhirParent}}.",
   // ValueSet binding & expansion (primitives, Coding, Quantity, CodeableConcept)
   // Required binding violations (fatal by default)

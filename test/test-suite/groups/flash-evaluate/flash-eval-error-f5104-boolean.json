@@ -1,0 +1,9 @@
+[
+  {
+    "description": "Patient with boolean value assigned to complex Identifier type", 
+    "data": null,
+    "bindings": {},
+    "code": "F5104",
+    "expr-file": "flash-eval-error-f5104-boolean.fume"
+  }
+]

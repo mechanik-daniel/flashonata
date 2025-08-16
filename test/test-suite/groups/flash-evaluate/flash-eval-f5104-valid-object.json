@@ -1,0 +1,17 @@
+[
+  {
+    "description": "Patient with valid object assigned to complex Identifier type - should succeed",
+    "data": null,
+    "bindings": {},
+    "result": {
+      "resourceType": "Patient",
+      "identifier": [
+        {
+          "system": "http://example.org/ids",
+          "value": "patient-123"
+        }
+      ]
+    },
+    "expr-file": "flash-eval-f5104-valid-object.fume"
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "description": "Patient with primitive value assigned to complex Identifier type",
+    "data": null,
+    "bindings": {},
+    "code": "F5104",
+    "expr-file": "flash-eval-error-f5104.fume"
+  },
+  {
+    "expr-file": "flash-eval-error-f5104.fume",
+    "bindings": {
+      "validationLevel": 9
+    },
+    "result": {
+      "resourceType": "Patient",
+      "identifier": ["some-id"],
+      "gender": "male"
+    },
+    "data": null,
+    "description": "Patient with primitive value assigned to complex Identifier type - inhibited (F5104 outside validation band)"
+  },
+  {
+    "expr-file": "flash-eval-error-f5104.fume",
+    "bindings": {
+      "throwLevel": 9
+    },
+    "result": {
+      "resourceType": "Patient",
+      "identifier": ["some-id"],
+      "gender": "male"
+    },
+    "data": null,
+    "description": "Patient with primitive value assigned to complex Identifier type - downgraded (F5104 not thrown)"
+  }
+]

@@ -1,0 +1,2 @@
+InstanceOf: Patient
+* address = 'simple street address'

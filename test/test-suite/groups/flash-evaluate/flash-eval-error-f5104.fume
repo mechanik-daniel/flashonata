@@ -1,0 +1,3 @@
+InstanceOf: Patient
+* identifier = 'some-id'
+* gender = 'male'

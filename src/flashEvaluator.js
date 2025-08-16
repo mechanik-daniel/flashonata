@@ -760,6 +760,36 @@ function createFlashEvaluator(evaluate) {
         result.value = inlineResult; // inlineResult may be a single value or an array (user supplied)
       }
 
+      // Handle inline primitive assignments to complex types - this is an error
+      if (expr.isFlashRule && kind === 'complex-type' && inlineResult !== undefined && !Array.isArray(inlineResult)) {
+        const policy = createPolicy(environment);
+        // Check if we received a primitive when expecting a complex type
+        if (inlineResult === null || typeof inlineResult !== 'object') {
+          // Inhibition: skip this validation entirely when F5104 is outside validation band
+          if (!policy.shouldValidate('F5104')) {
+            // inhibited: allow the primitive assignment without validation
+            result = inlineResult;
+          } else {
+            const err = {
+              code: "F5104",
+              stack: (new Error()).stack,
+              position: expr.position,
+              start: expr.start,
+              line: expr.line,
+              fhirParent: expr.instanceof,
+              fhirElement: expr.flashPathRefKey.split('::')[1],
+              valueType: typeof inlineResult
+            };
+            if (policy.enforce(err)) throw err;
+            // downgraded: allow the primitive assignment but continue
+            result = inlineResult;
+          }
+        } else {
+          // Valid object assignment to complex type - use it as the base result
+          result = inlineResult;
+        }
+      }
+
       // Handle inline array assignments for complex types and resources
       // IMPORTANT: This must happen early to ensure proper validation timing
       if (expr.isFlashRule && (kind === 'complex-type' || kind === 'resource') && Array.isArray(inlineResult)) {

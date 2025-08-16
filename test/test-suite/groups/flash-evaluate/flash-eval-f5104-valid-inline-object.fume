@@ -1,0 +1,2 @@
+InstanceOf: Patient
+* identifier = { "system": "http://example.org/ids", "value": "patient-456" }

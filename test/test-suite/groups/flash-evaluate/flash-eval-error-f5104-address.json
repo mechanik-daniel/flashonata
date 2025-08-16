@@ -1,0 +1,9 @@
+[
+  {
+    "description": "Patient with primitive string assigned to complex Address type",
+    "data": null,
+    "bindings": {},
+    "code": "F5104",
+    "expr-file": "flash-eval-error-f5104-address.fume"
+  }
+]

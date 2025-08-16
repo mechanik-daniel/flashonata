@@ -19,20 +19,9 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-InstanceOf: Basic
-* code = [
-  {
-    'coding': 
-      {
-        'system': 'http://hl7.org/fhir/sid/us-ssn',
-        'code': '12345'
-      }
-    
-  },  {
-
-    'text': 'some code'
-  }
-]
+InstanceOf: Patient
+* active = true
+* identifier = 'some-id'
 
 `
 ;
@@ -74,10 +63,10 @@ InstanceOf: Basic
   }
 
   // Write results to file for analysis
-  fs.writeFileSync('debug-result.json', JSON.stringify(res, null, 2));
+  fs.writeFileSync('debug-result.json', res ? JSON.stringify(res, null, 2) : '');
   console.log('Results written to debug-result.json');
 
-  if (res) {
-    console.log('Result', JSON.stringify(res, null, 2));
-  }
+
+  console.log('Result', JSON.stringify(res, null, 2) ?? 'undefined');
+
 }();
