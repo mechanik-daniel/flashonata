@@ -201,7 +201,10 @@ function createFlashEvaluator(evaluate) {
     }
 
     // Handle complex types and Resource datatype.
-    // For arrays, we need to create multiple FlashRuleResults.
+    // NOTE: Arrays can reach this point in two ways:
+    // 1. From child expressions (sub-rules) - handled here
+    // 2. From inline array assignments - handled earlier in evaluateFlash with validation
+    // This separation ensures proper validation timing for policy inhibition
     if (Array.isArray(input)) {
       // Return an array where each object becomes a separate FlashRuleResult
       return createFlashRuleResultArray(groupingKey, kind, input);
@@ -399,6 +402,35 @@ function createFlashEvaluator(evaluate) {
         if (codings.length > 0 && !anyValid) enforce(codeMap.CodeableConcept.extensible.full, { codingCount: codings.length });
       }
     }
+  }
+
+  /**
+   * Handle inline array assignments for complex types and resources
+   * This is a special case that bypasses normal child processing and returns early
+   * @param {Object} expr - Flash rule expression
+   * @param {Array} inlineArray - The inline array value
+   * @param {string} kind - Element kind ('complex-type' or 'resource')
+   * @param {Object} environment - Environment with FHIR definitions
+   * @returns {Array} Array of FlashRuleResults
+   */
+  function handleInlineArrayAssignment(expr, inlineArray, kind, environment) {
+    const elementDefinition = getElementDefinition(environment, expr);
+    if (!elementDefinition) {
+      return null; // Let normal processing handle this
+    }
+
+    const jsonElementName = elementDefinition.__name[0];
+    const isBasePoly = elementDefinition.base?.path?.endsWith('[x]');
+    const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
+    const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
+
+    // Apply resource validation if needed (CRITICAL: must happen before createFlashRuleResultArray)
+    let validatedInput = inlineArray;
+    if (kind === 'resource') {
+      validatedInput = assertResourceInput(inlineArray, expr, environment);
+    }
+
+    return createFlashRuleResultArray(groupingKey, kind, validatedInput);
   }
 
   /**
@@ -729,26 +761,16 @@ function createFlashEvaluator(evaluate) {
       }
 
       // Handle inline array assignments for complex types and resources
+      // IMPORTANT: This must happen early to ensure proper validation timing
       if (expr.isFlashRule && (kind === 'complex-type' || kind === 'resource') && Array.isArray(inlineResult)) {
-        // For inline array assignments, create multiple FlashRuleResults and return early
-        const elementDefinition = getElementDefinition(environment, expr);
-        if (elementDefinition) {
-          const jsonElementName = elementDefinition.__name[0];
-          const isBasePoly = elementDefinition.base?.path?.endsWith('[x]');
-          const sliceName = isBasePoly ? undefined : elementDefinition.sliceName || undefined;
-          const groupingKey = sliceName ? `${jsonElementName}:${sliceName}` : jsonElementName;
-
-          // Apply resource validation if needed
-          let validatedInput = inlineResult;
-          if (kind === 'resource') {
-            validatedInput = assertResourceInput(inlineResult, expr, environment);
-          }
-
-          return createFlashRuleResultArray(groupingKey, kind, validatedInput);
+        const arrayResult = handleInlineArrayAssignment(expr, inlineResult, kind, environment);
+        if (arrayResult) {
+          return arrayResult; // Early return bypasses normal child processing
         }
       }
 
       // Handle resourceType attribute for flash rules and blocks
+      // NOTE: This handles single resource validation (arrays were handled above)
       if (expr.isFlashRule && kind === 'resource' && inlineResult !== undefined) {
         // For inline Resources with inline values, use the inline object as the base and ensure there is a resourceType
         result = assertResourceInput(inlineResult, expr, environment);
