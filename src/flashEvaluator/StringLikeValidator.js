@@ -39,6 +39,7 @@ export default class StringLikeValidator {
    * Error codes:
    * - F5112: string/markdown invalid content
    * - F5113: code invalid content
+   * - F5114: maxLength exceeded
    *
    * Inhibition gate: F5110 — when outside band, returns raw input unmodified
    *
@@ -47,15 +48,37 @@ export default class StringLikeValidator {
    * @param {('string'|'markdown'|'code')} fhirTypeCode FHIR type code
    * @param {string} elementFlashPath For diagnostics
    * @param {Object} policy Active validation policy (with shouldValidate/enforce)
+   * @param {Object} elementDefinition Element definition with constraints
    * @returns {*} string (validated) or original input when inhibited
    */
-  static validate(expr, input, fhirTypeCode, elementFlashPath, policy) {
+  static validate(expr, input, fhirTypeCode, elementFlashPath, policy, elementDefinition) {
+    const s = fn.string(input);
+
+    // Optional maxLength constraint validation (independent of F5110 inhibition)
+    if (elementDefinition && elementDefinition.__maxLength !== undefined) {
+      // Check F5114 policy separately from F5110
+      if (policy.shouldValidate('F5114')) {
+        const actualLength = s.length;
+        if (actualLength > elementDefinition.__maxLength) {
+          // Truncate the value for error reporting to avoid terminal overflow
+          const truncatedValue = s.length > 100 ? s.substring(0, 100) + `... (${s.length} chars total)` : s;
+          const err = FlashErrorGenerator.createError('F5114', expr, {
+            value: truncatedValue,
+            fhirElement: elementFlashPath,
+            fhirType: fhirTypeCode,
+            actualLength,
+            maxLength: elementDefinition.__maxLength
+          });
+          if (policy.enforce(err)) throw err;
+          // Don't return here - continue with other validations even if maxLength failed
+        }
+      }
+    }
+
     // Inhibit entire validation if regex band is skipped (align with date-like behavior)
     if (!policy.shouldValidate('F5110')) {
       return input; // inhibited: return raw input
     }
-
-    const s = fn.string(input);
 
     if (fhirTypeCode === 'code') {
       // code rules:

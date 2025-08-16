@@ -19,10 +19,8 @@ void async function () {
   var navigator = new FhirStructureNavigator(generator);
 
   var expression = `
-InstanceOf: Patient  
-* extension
-  * valueQuantity = [42, { "value": 100, "unit": "mg" }, 3.14]
-  * url = 'http://example.com/'
+(InstanceOf: Patient
+* name.family = $join([1..1048600].('a'))).resourceType
 
 `
 ;
@@ -49,10 +47,19 @@ InstanceOf: Patient
   try {
     res = await expr.evaluate({
       resourceType: "Patient"
-    }, { logLevel: 50, validationLevel: 35, throwLevel: 35, collectLevel: 70 });
+    }, { logLevel: 50, validationLevel: 12, throwLevel: 35, collectLevel: 70 });
     console.log('Expression evaluated successfully');
   } catch (e) {
-    console.error('Error evaluating expression:', e);
+    console.error('Error evaluating expression:');
+    console.error('Code:', e.code);
+    console.error('Message:', e.message);
+    console.error('Details:', {
+      fhirElement: e.fhirElement,
+      fhirType: e.fhirType,
+      actualLength: e.actualLength,
+      maxLength: e.maxLength,
+      instanceOf: e.instanceOf
+    });
   }
 
   // Write AST to file if available

@@ -97,6 +97,44 @@ class SystemPrimitiveValidator {
     if (valueType === 'boolean') return input ? 1 : 0;
     return input;
   }
+
+  /**
+   * Validate maxLength constraint for string values
+   * @param {*} input - Input value to validate
+   * @param {number} maxLength - Maximum allowed length
+   * @param {Object} expr - Expression for error reporting
+   * @param {string} elementFlashPath - FHIR element path for error reporting
+   * @param {string} fhirTypeCode - FHIR type code for error reporting
+   * @param {Object} policy - Policy instance for validation control
+   * @returns {*} Returns input value (validation is not auto-fixing)
+   */
+  static validateMaxLength(input, maxLength, expr, elementFlashPath, fhirTypeCode, policy) {
+    // Skip validation if F5114 is outside validation band
+    if (!policy.shouldValidate('F5114')) {
+      return input; // inhibited: return raw input
+    }
+
+    const stringValue = fn.string(input);
+    const actualLength = stringValue.length;
+
+    if (actualLength > maxLength) {
+      // Truncate the value for error reporting to avoid terminal overflow
+      const truncatedValue = stringValue.length > 100 ? stringValue.substring(0, 100) + `... (${stringValue.length} chars total)` : stringValue;
+      const err = FlashErrorGenerator.createError('F5114', expr, {
+        value: truncatedValue,
+        fhirElement: elementFlashPath,
+        fhirType: fhirTypeCode,
+        actualLength,
+        maxLength
+      });
+      if (policy.enforce(err)) {
+        throw err;
+      }
+      // Downgraded: continue with the invalid (too long) value - no auto-fix
+    }
+
+    return input;
+  }
 }
 
 export default SystemPrimitiveValidator;

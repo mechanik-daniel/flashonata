@@ -84,7 +84,7 @@ export default class PrimitiveValidator {
     // Route: string-like validation
     const isStringLike = fhirTypeCode === 'string' || fhirTypeCode === 'markdown' || fhirTypeCode === 'code';
     if (isStringLike) {
-      return StringLikeValidator.validate(expr, input, fhirTypeCode, elementFlashPath, policy);
+      return StringLikeValidator.validate(expr, input, fhirTypeCode, elementFlashPath, policy, elementDefinition);
     }
 
     // Regex-level inhibition gate for remaining types
@@ -108,6 +108,18 @@ export default class PrimitiveValidator {
         }
         // downgraded: continue with the raw input
       }
+    }
+
+    // Optional maxLength constraint validation (applies to all string-convertible types)
+    if (elementDefinition.__maxLength !== undefined) {
+      input = SystemPrimitiveValidator.validateMaxLength(
+        input,
+        elementDefinition.__maxLength,
+        expr,
+        elementFlashPath,
+        fhirTypeCode,
+        policy
+      );
     }
 
     // Convert to target JSON type

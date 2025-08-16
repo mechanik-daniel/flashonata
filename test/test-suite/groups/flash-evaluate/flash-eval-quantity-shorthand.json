@@ -1,6 +1,6 @@
 [
   {
-    "skip": true,
+    "skip": false,
     "description": "Quantity shorthand: number -> value",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": 42,
@@ -32,7 +32,7 @@
     }
   },
   {
-    "skip": true,
+    "skip": false,
     "description": "Quantity shorthand: array mix string/number -> last taken",
     "expr-file": "flash-eval-quantity-shorthand.fume",
     "data": ["13", 42],

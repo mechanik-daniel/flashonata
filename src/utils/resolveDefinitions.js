@@ -331,6 +331,7 @@ const resolveDefinitions = async function (expr, navigator, recover, errors, com
         }
         if (primitiveValueEd) {
           ed.__regexStr = primitiveValueEd.type?.[0]?.extension?.find((e) => e.url === 'http://hl7.org/fhir/StructureDefinition/regex')?.valueString;
+          ed.__maxLength = primitiveValueEd.maxLength;
         }
         if (ed.__regexStr) {
           const label = `__fhir_regex_${ed.__regexStr}`;
