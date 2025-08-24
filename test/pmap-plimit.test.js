@@ -55,4 +55,31 @@ describe('$pMap and $pLimit', function() {
     const res = await expr.evaluate({});
     expect(res).to.deep.equal([3,6,9,12]);
   });
+
+  it('$pLimit supports optional key function (lambda)', async function() {
+    // Even values to lane 0, odd to lane 1; verify mapping still correct
+    const expr = await fumifier('$pLimit([1,2,3,4,5], 2, function($v){($wait(1); $v * 10)}, function($v){$v % 2})');
+    const res = await expr.evaluate({});
+    expect(res).to.deep.equal([10,20,30,40,50]);
+  });
+
+  it('$pLimit supports optional key function (native async)', async function() {
+    const expr = await fumifier('$pLimit([1,2,3], 2, $incAsync, $keyAsync)');
+    expr.assign('incAsync', async (v) => { await new Promise(resolve => setTimeout(resolve, 2)); return v + 1; });
+    expr.assign('keyAsync', async (v) => { await new Promise(resolve => setTimeout(resolve, 1)); return v % 2; });
+    const res = await expr.evaluate({});
+    expect(res).to.deep.equal([2,3,4]);
+  });
+
+  it('$pLimit key function can return strings (internal hashing)', async function() {
+    const expr = await fumifier('$pLimit(["a","bb","ccc","dddd"], 3, function($v){($wait(1); $length($v))}, function($v){$v})');
+    const res = await expr.evaluate({});
+    expect(res).to.deep.equal([1,2,3,4]);
+  });
+
+  it('$pLimit key function can return booleans (internal mapping)', async function() {
+    const expr = await fumifier('$pLimit([1,2,3,4], 2, function($v){($wait(1); $v*2)}, function($v){$v % 2 = 1})');
+    const res = await expr.evaluate({});
+    expect(res).to.deep.equal([2,4,6,8]);
+  });
 });

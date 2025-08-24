@@ -1603,14 +1603,18 @@ const functions = (() => {
   }
 
   /**
-     * Parallel map with concurrency limit over an array
-     * Treats single values as single-element arrays and supports JSONata lambdas and native functions (sync/async)
-     * @param {Array|*} [arr] - array (or single value) to map over
-     * @param {number} limit - maximum number of concurrent operations (must be >= 1)
-     * @param {Function} func - mapper function (value[, index[, array]]) -> value
-     * @returns {Array|undefined} Array of mapped values (excluding undefined), or undefined if input is undefined
-     */
-  async function pLimit(arr, limit, func) {
+    * Parallel map with concurrency limit over an array
+    * Treats single values as single-element arrays and supports JSONata lambdas and native functions (sync/async).
+    * An optional key function can be provided to assign each item to a specific lane (0..limit-1).
+    * The key can be a number (used modulo lane count), string (hashed deterministically), or boolean (false->0, true->1).
+    * Items within a lane are processed sequentially; lanes run in parallel up to the limit.
+    * @param {Array|*} [arr] - array (or single value) to map over
+    * @param {number} limit - maximum number of concurrent operations (>= 1)
+    * @param {Function} func - mapper function (value[, index[, array]]) -> value
+    * @param {Function} [keyFunc] - optional lane key function (value[, index[, array]]) -> number|string|boolean
+    * @returns {Array|undefined} Array of mapped values (excluding undefined), or undefined if input is undefined
+    */
+  async function pLimit(arr, limit, func, keyFunc) {
     // undefined inputs always return undefined
     if (typeof arr === 'undefined') {
       return undefined;
@@ -1632,29 +1636,65 @@ const functions = (() => {
     }
 
     var mapped = new Array(arr.length);
-    var next = 0;
     var self = this;
 
-    /**
-     * Worker coroutine that processes items up to the concurrency limit
-     * @returns {Promise<void>} resolves when this worker has drained its slice
-     */
-    async function worker() {
-      // loop until all items have been claimed
-      while (next < arr.length) {
-        var idx = next;
-        next = next + 1;
-        var entry = arr[idx];
-        var func_args = hofFuncArgs(func, entry, idx, arr);
-        var res = await func.apply(self, func_args);
-        mapped[idx] = res;
+    // Build lane queues
+    var laneCount = Math.min(limit, arr.length);
+    var lanes = new Array(laneCount);
+    for (var li = 0; li < laneCount; li++) lanes[li] = [];
+
+    // Deterministic string hash to uint32 (djb2 variant with xor), for key->lane mapping
+    var _hashString = function(str) {
+      var h = 5381 >>> 0;
+      for (var ci = 0; ci < str.length; ci++) {
+        var c = str.charCodeAt(ci);
+        h = (((h << 5) + h) ^ c) >>> 0; // h * 33 xor c
       }
+      return h >>> 0; // ensure unsigned 32-bit
+    };
+
+    for (var idx = 0; idx < arr.length; idx++) {
+      var entry = arr[idx];
+      var laneIndex;
+      if (typeof keyFunc !== 'undefined') {
+        var keyArgs = hofFuncArgs(keyFunc, entry, idx, arr);
+        var keyVal = await keyFunc.apply(self, keyArgs);
+        if (typeof keyVal === 'number') {
+          var n = Math.trunc(keyVal);
+          if (!isFinite(n)) {
+            laneIndex = idx % laneCount; // fallback to round-robin
+          } else {
+            laneIndex = ((n % laneCount) + laneCount) % laneCount; // normalized modulo
+          }
+        } else if (typeof keyVal === 'string') {
+          laneIndex = _hashString(keyVal) % laneCount;
+        } else if (typeof keyVal === 'boolean') {
+          laneIndex = (keyVal ? 1 : 0) % laneCount;
+        } else if (keyVal === null || typeof keyVal === 'undefined') {
+          laneIndex = idx % laneCount; // undefined/null -> round-robin
+        } else {
+          // Last resort: try to coerce to number, else round-robin
+          var n2 = Math.trunc(Number(keyVal));
+          laneIndex = isFinite(n2) ? (((n2 % laneCount) + laneCount) % laneCount) : (idx % laneCount);
+        }
+      } else {
+        // default round-robin assignment
+        laneIndex = idx % laneCount;
+      }
+      lanes[laneIndex].push(idx);
     }
 
-    var workers = new Array(Math.min(limit, arr.length));
-    for (var w = 0; w < workers.length; w++) {
-      workers[w] = worker();
-    }
+    // Each lane processes its queue sequentially
+    var workers = lanes.map((queue) => (async () => {
+      for (var qi = 0; qi < queue.length; qi++) {
+        var i = queue[qi];
+        var v = arr[i];
+        var func_args = hofFuncArgs(func, v, i, arr);
+        var res = await func.apply(self, func_args);
+        mapped[i] = res;
+      }
+    })());
+
     await Promise.all(workers);
 
     var result = createSequence();
