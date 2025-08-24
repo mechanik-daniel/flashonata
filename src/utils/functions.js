@@ -1559,6 +1559,114 @@ const functions = (() => {
   }
 
   /**
+     * Parallel map over an array using Promise.all
+     * Treats single values as single-element arrays and supports JSONata lambdas and native functions (sync/async)
+     * @param {Array|*} [arr] - array (or single value) to map over
+     * @param {Function} func - mapper function (value[, index[, array]]) -> value
+     * @returns {Array|undefined} Array of mapped values (excluding undefined), or undefined if input is undefined
+     */
+  async function pMap(arr, func) {
+    // undefined inputs always return undefined
+    if (typeof arr === 'undefined') {
+      return undefined;
+    }
+
+    // If not an array, treat as array of a single element
+    if (!Array.isArray(arr)) {
+      arr = createSequence(arr);
+    }
+
+    if (arr.length === 0) {
+      return createSequence();
+    }
+
+    // Fire all mapping invocations concurrently
+    var promises = new Array(arr.length);
+    for (var i = 0; i < arr.length; i++) {
+      const idx = i;
+      const entry = arr[idx];
+      promises[idx] = (async () => {
+        var func_args = hofFuncArgs(func, entry, idx, arr);
+        var res = await func.apply(this, func_args);
+        return res;
+      })();
+    }
+
+    var interim = await Promise.all(promises);
+    var result = createSequence();
+    for (var j = 0; j < interim.length; j++) {
+      if (typeof interim[j] !== 'undefined') {
+        result.push(interim[j]);
+      }
+    }
+    return result;
+  }
+
+  /**
+     * Parallel map with concurrency limit over an array
+     * Treats single values as single-element arrays and supports JSONata lambdas and native functions (sync/async)
+     * @param {Array|*} [arr] - array (or single value) to map over
+     * @param {number} limit - maximum number of concurrent operations (must be >= 1)
+     * @param {Function} func - mapper function (value[, index[, array]]) -> value
+     * @returns {Array|undefined} Array of mapped values (excluding undefined), or undefined if input is undefined
+     */
+  async function pLimit(arr, limit, func) {
+    // undefined inputs always return undefined
+    if (typeof arr === 'undefined') {
+      return undefined;
+    }
+
+    // If not an array, treat as array of a single element
+    if (!Array.isArray(arr)) {
+      arr = createSequence(arr);
+    }
+
+    // Concurrency limit: rely on signature for type; coerce and clamp to at least 1
+    limit = Math.trunc(limit);
+    if (!isFinite(limit) || limit < 1) {
+      limit = 1;
+    }
+
+    if (arr.length === 0) {
+      return createSequence();
+    }
+
+    var mapped = new Array(arr.length);
+    var next = 0;
+    var self = this;
+
+    /**
+     * Worker coroutine that processes items up to the concurrency limit
+     * @returns {Promise<void>} resolves when this worker has drained its slice
+     */
+    async function worker() {
+      // loop until all items have been claimed
+      while (next < arr.length) {
+        var idx = next;
+        next = next + 1;
+        var entry = arr[idx];
+        var func_args = hofFuncArgs(func, entry, idx, arr);
+        var res = await func.apply(self, func_args);
+        mapped[idx] = res;
+      }
+    }
+
+    var workers = new Array(Math.min(limit, arr.length));
+    for (var w = 0; w < workers.length; w++) {
+      workers[w] = worker();
+    }
+    await Promise.all(workers);
+
+    var result = createSequence();
+    for (var k = 0; k < mapped.length; k++) {
+      if (typeof mapped[k] !== 'undefined') {
+        result.push(mapped[k]);
+      }
+    }
+    return result;
+  }
+
+  /**
      * Find the first element in an array that satisfies a predicate (like Array.find)
      * Accepts a JSONata lambda or native JS function as the predicate.
      * If the first argument is a single value, it is treated as an array of one element.
@@ -2266,7 +2374,7 @@ const functions = (() => {
     match, contains, replace, split, join, startsWith, endsWith, isNumeric: _isNumeric,
     formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
     boolean, boolize, not,
-    map, zip, filter, first, single, foldLeft, sift,
+    map, zip, filter, pMap, pLimit, first, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
     wait, rightNow, initCapOnce, initCap, uuid, reference
