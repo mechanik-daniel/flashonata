@@ -1485,7 +1485,7 @@ const functions = (() => {
 
   /**
      * Helper function to build the arguments to be supplied to the function arg of the
-     * HOFs map, filter, each, sift and single
+  * HOFs map, filter, first, each, sift and single
      * @param {function} func - the function to be invoked
      * @param {*} arg1 - the first (required) arg - the value
      * @param {*} arg2 - the second (optional) arg - the position (index or key)
@@ -1556,6 +1556,39 @@ const functions = (() => {
     }
 
     return result;
+  }
+
+  /**
+     * Find the first element in an array that satisfies a predicate (like Array.find)
+     * Accepts a JSONata lambda or native JS function as the predicate.
+     * If the first argument is a single value, it is treated as an array of one element.
+     * @param {Array|*} [arr] - array (or single value) to search
+     * @param {Function} func - predicate function (value[, index[, array]]) -> truthy to select
+     * @returns {*} The first matching element, or undefined if none match or input is undefined
+     */
+  async function first(arr, func) {
+    // undefined inputs always return undefined
+    if (typeof arr === 'undefined') {
+      return undefined;
+    }
+
+    // If not an array, treat as array of a single element
+    if (!Array.isArray(arr)) {
+      arr = createSequence(arr);
+    }
+
+    for (var i = 0; i < arr.length; i++) {
+      var entry = arr[i];
+      var func_args = hofFuncArgs(func, entry, i, arr);
+      // invoke func
+      var res = await func.apply(this, func_args);
+      if (boolean(res)) {
+        return entry;
+      }
+    }
+
+    // no match found => undefined (consistent with Array.find)
+    return undefined;
   }
 
   /**
@@ -2233,7 +2266,7 @@ const functions = (() => {
     match, contains, replace, split, join, startsWith, endsWith, isNumeric: _isNumeric,
     formatNumber, formatBase, number, floor, ceil, round, abs, sqrt, power, random,
     boolean, boolize, not,
-    map, zip, filter, single, foldLeft, sift,
+    map, zip, filter, first, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
     wait, rightNow, initCapOnce, initCap, uuid, reference

@@ -73,6 +73,7 @@ function registerNativeFn(staticFrame, functionEval) {
   staticFrame.bind('map', defineFunction(fn.map, '<af>'));
   staticFrame.bind('zip', defineFunction(fn.zip, '<a+>'));
   staticFrame.bind('filter', defineFunction(fn.filter, '<af>'));
+  staticFrame.bind('first', defineFunction(fn.first, '<af>'));
   staticFrame.bind('single', defineFunction(fn.single, '<af?>'));
   staticFrame.bind('reduce', defineFunction(fn.foldLeft, '<afj?:j>')); // TODO <f<jj:j>a<j>j?:j>
   staticFrame.bind('sift', defineFunction(fn.sift, '<o-f?:o>'));
