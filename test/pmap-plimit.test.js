@@ -82,4 +82,20 @@ describe('$pMap and $pLimit', function() {
     const res = await expr.evaluate({});
     expect(res).to.deep.equal([2,4,6,8]);
   });
+
+  it('$hash returns deterministic 32-bit numbers for various types', async function() {
+    const expr = await fumifier('[$hash("abc"), $hash("abc"), $hash("abd"), $hash(42), $hash(true), $hash(null)]');
+    const res = await expr.evaluate({});
+    expect(res[0]).to.equal(res[1]);
+    expect(res[0]).to.not.equal(res[2]);
+    expect(res[3]).to.be.a('number');
+    expect(res[4]).to.be.a('number');
+    expect(res[5]).to.be.a('number');
+  });
+
+  it('$hash is stable for objects regardless of key order', async function() {
+    const expr = await fumifier('$hash({"a":1,"b":2}) = $hash({"b":2,"a":1})');
+    const res = await expr.evaluate({});
+    expect(res).to.equal(true);
+  });
 });

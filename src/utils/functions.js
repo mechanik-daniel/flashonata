@@ -34,6 +34,53 @@ const functions = (() => {
   var generateReference = utils.generateReference;
 
   /**
+   * Deterministic string hash to uint32 (djb2 variant with xor), for key->lane mapping and $hash
+   * @param {string} str - input string
+   * @returns {number} unsigned 32-bit hash
+   */
+  function _hashString(str) {
+    var h = 5381 >>> 0;
+    for (var ci = 0; ci < str.length; ci++) {
+      var c = str.charCodeAt(ci);
+      h = (((h << 5) + h) ^ c) >>> 0; // h * 33 xor c
+    }
+    return h >>> 0; // ensure unsigned 32-bit
+  }
+
+  /**
+   * Stable stringify: sorts object keys recursively for deterministic representation
+   * @param {*} value - any JSON-like value
+   * @returns {string} stable serialized form
+   */
+  function _stableStringify(value) {
+    if (value === null) return 'null';
+    var t = typeof value;
+    if (t === 'string') return JSON.stringify(value); // include quotes to disambiguate
+    if (t === 'number' || t === 'boolean') return JSON.stringify(value);
+    if (Array.isArray(value)) {
+      var parts = new Array(value.length);
+      for (var i = 0; i < value.length; i++) {
+        parts[i] = _stableStringify(value[i]);
+      }
+      return '[' + parts.join(',') + ']';
+    }
+    if (isFunction(value)) {
+      var name = value.name || 'anonymous';
+      return '{"$func":' + JSON.stringify(name) + '}';
+    }
+    if (t === 'object') {
+      var keys = Object.keys(value).sort();
+      var pairs = new Array(keys.length);
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        pairs[k] = JSON.stringify(key) + ':' + _stableStringify(value[key]);
+      }
+      return '{' + pairs.join(',') + '}';
+    }
+    return JSON.stringify(String(value));
+  }
+
+  /**
      * Sum function
      * @param {Object} args - Arguments
      * @returns {number} Total value of arguments
@@ -1643,16 +1690,6 @@ const functions = (() => {
     var lanes = new Array(laneCount);
     for (var li = 0; li < laneCount; li++) lanes[li] = [];
 
-    // Deterministic string hash to uint32 (djb2 variant with xor), for key->lane mapping
-    var _hashString = function(str) {
-      var h = 5381 >>> 0;
-      for (var ci = 0; ci < str.length; ci++) {
-        var c = str.charCodeAt(ci);
-        h = (((h << 5) + h) ^ c) >>> 0; // h * 33 xor c
-      }
-      return h >>> 0; // ensure unsigned 32-bit
-    };
-
     for (var idx = 0; idx < arr.length; idx++) {
       var entry = arr[idx];
       var laneIndex;
@@ -1673,9 +1710,9 @@ const functions = (() => {
         } else if (keyVal === null || typeof keyVal === 'undefined') {
           laneIndex = idx % laneCount; // undefined/null -> round-robin
         } else {
-          // Last resort: try to coerce to number, else round-robin
-          var n2 = Math.trunc(Number(keyVal));
-          laneIndex = isFinite(n2) ? (((n2 % laneCount) + laneCount) % laneCount) : (idx % laneCount);
+          // Use stable stringify + hash for all other types
+          var hv = _hashString(_stableStringify(keyVal));
+          laneIndex = hv % laneCount;
         }
       } else {
         // default round-robin assignment
@@ -1704,6 +1741,30 @@ const functions = (() => {
       }
     }
     return result;
+  }
+
+  /**
+     * Deterministic hash of any JSON value into a 32-bit unsigned integer
+     * - Strings are hashed as-is
+     * - Numbers/booleans/null are stringified and hashed
+     * - Arrays/objects are stably stringified with sorted keys, then hashed
+     * @param {*} [value] - value to hash
+     * @returns {number|undefined} Unsigned 32-bit integer hash, or undefined if input is undefined
+     */
+  function hash(value) {
+    // undefined inputs always return undefined
+    if (typeof value === 'undefined') {
+      return undefined;
+    }
+    var str;
+    if (typeof value === 'string') {
+      str = value;
+    } else if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
+      str = JSON.stringify(value);
+    } else {
+      str = _stableStringify(value);
+    }
+    return _hashString(str);
   }
 
   /**
@@ -2417,7 +2478,7 @@ const functions = (() => {
     map, zip, filter, pMap, pLimit, first, single, foldLeft, sift,
     keys, lookup, append, exists, spread, merge, reverse, each, error, assert, type, sort, shuffle, distinct,
     base64encode, base64decode,  encodeUrlComponent, encodeUrl, decodeUrlComponent, decodeUrl,
-    wait, rightNow, initCapOnce, initCap, uuid, reference
+    wait, rightNow, initCapOnce, initCap, uuid, reference, hash
   };
 })();
 
