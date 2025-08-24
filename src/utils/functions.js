@@ -1653,12 +1653,13 @@ const functions = (() => {
     * Parallel map with concurrency limit over an array
     * Treats single values as single-element arrays and supports JSONata lambdas and native functions (sync/async).
     * An optional key function can be provided to assign each item to a specific lane (0..limit-1).
-    * The key can be a number (used modulo lane count), string (hashed deterministically), or boolean (false->0, true->1).
+    * The key can be any value: numbers use modulo; strings are hashed deterministically; booleans map to 0/1;
+    * arrays/objects are stably stringified then hashed; null/undefined fall back to round-robin.
     * Items within a lane are processed sequentially; lanes run in parallel up to the limit.
     * @param {Array|*} [arr] - array (or single value) to map over
     * @param {number} limit - maximum number of concurrent operations (>= 1)
     * @param {Function} func - mapper function (value[, index[, array]]) -> value
-    * @param {Function} [keyFunc] - optional lane key function (value[, index[, array]]) -> number|string|boolean
+    * @param {Function} [keyFunc] - optional lane key function (value[, index[, array]]) -> any
     * @returns {Array|undefined} Array of mapped values (excluding undefined), or undefined if input is undefined
     */
   async function pLimit(arr, limit, func, keyFunc) {
