@@ -1,0 +1,6 @@
+{
+  "expr": "$hash({\"a\":1,\"b\":2}) = $hash({\"b\":2,\"a\":1})",
+  "data": null,
+  "bindings": {},
+  "result": true
+}

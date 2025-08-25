@@ -1,0 +1,6 @@
+{
+  "expr": "$hash('abc') = $hash('abc') and $hash('abc') != $hash('abd')",
+  "data": null,
+  "bindings": {},
+  "result": true
+}

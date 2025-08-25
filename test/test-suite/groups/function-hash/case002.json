@@ -1,0 +1,6 @@
+{
+  "expr": "$type($hash(42)) = 'number' and $type($hash(true)) = 'number' and $type($hash(null)) = 'number'",
+  "data": null,
+  "bindings": {},
+  "result": true
+}
