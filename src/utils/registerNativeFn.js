@@ -1,19 +1,13 @@
 /*
-SPDX-License-Identifier: Apache-2.0
-SPDX-FileCopyrightText: 2025 Outburn Ltd.
-
+Copyright (c) 2025 Outburn Ltd.
 Project: Fumifier (part of the FUME open-source initiative)
 
-This file includes and modifies code from JSONata (https://github.com/jsonata-js/jsonata),
-licensed under the MIT License. See NOTICE and LICENSES/MIT-JSONata.txt for details.
-Portions of the evaluator, parser, and function library were adapted and refactored.
-*/
+This file includes and modifies code from JSONata (https://github.com/jsonata-js/jsonata).
+JSONata portions: © IBM Corp. 2016–2018, licensed under the MIT License.
+See NOTICE and LICENSES/MIT-JSONata.txt for details.
 
-/**
- * © Copyright IBM Corp. 2016, 2018 All Rights Reserved
- *   Project name: JSONata
- *   This project is licensed under the MIT License, see LICENSE
- */
+License: See the LICENSE file included with this package for the terms that apply to this distribution.
+*/
 
 /* eslint-disable require-jsdoc */
 import fn from './functions.js';

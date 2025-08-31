@@ -1,10 +1,9 @@
 /* eslint-disable no-console */
 /*
-SPDX-License-Identifier: Apache-2.0
-SPDX-FileCopyrightText: 2025 Outburn Ltd.
-
+Copyright (c) 2025 Outburn Ltd.
 Project: Fumifier (part of the FUME open-source initiative)
 
+License: See the LICENSE file included with this package for the terms that apply to this distribution.
 */
 
 
