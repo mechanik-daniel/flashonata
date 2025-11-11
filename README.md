@@ -241,7 +241,7 @@ Automate with GitHub Actions: matrix (Node 20, 22), run tests + coverage, publis
 
 ---
 ## 17. License & Attribution
-Apache License 2.0 (see `LICENSE`). Portions adapted from / inspired by JSONata (MIT). Include original JSONata notices where required.
+GNU Affero General Public License v3.0 (see `LICENSE`). Portions adapted from / inspired by JSONata (MIT). Include original JSONata notices where required.
 FHIR® is the registered trademark of HL7 and is used with permission.
 
 If you redistribute modified sources, retain attribution headers and provide a NOTICE file summarizing third‑party attributions.

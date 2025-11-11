@@ -1,7 +1,7 @@
 Fumifier (part of the FUME open-source initiative)
 Copyright (c) 2025 Outburn Ltd. and contributors
 
-Licensed under the Apache License, Version 2.0 (Apache-2.0).
+Licensed under the GNU Affero General Public License, Version 3 (AGPL-3.0).
 See the file named LICENSE in the project root for the full license text.
 
 Third-party components and attributions
@@ -20,3 +20,4 @@ Distribution notes
 Trademarks
 - JSONata is a separate project. All trademarks are the property of their respective
   owners. No endorsement by the JSONata project or its authors is implied.
+- HL7®, FHIR® and the FHIR [Flame design] are the registered trademarks of Health Level Seven International and their use does not constitute endorsement by HL7."

@@ -28,7 +28,7 @@
     "prepublishOnly": "npm run lint && npm test && npm run build",
     "pack:dry": "npm run build && npm pack --dry-run"
   },
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0",
   "keywords": [
     "JSON",
     "query",
