@@ -16,7 +16,7 @@ import resolveAncestry from './resolveAncestry.js';
 import pushAncestry from './pushAncestry.js';
 import seekParent from './seekParent.js';
 import tailCallOptimize from './tailCallOptimize.js';
-import preProcessAst from './preprocessAst.js';
+import preProcessAst from './preProcessAst.js';
 
 // post-parse stage
 // the purpose of this is to add as much semantic value to the parse tree as possible
