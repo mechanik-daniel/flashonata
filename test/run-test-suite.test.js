@@ -18,7 +18,7 @@ License: See the LICENSE file included with this package for the terms that appl
 
 import fs from "fs";
 import path from "path";
-import fumifier from '../dist/index.js';
+import fumifier from '../dist/index.mjs';
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { FhirStructureNavigator } from "@outburn/structure-navigator";
